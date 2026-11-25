@@ -1269,15 +1269,15 @@ async function startServer(): Promise<void> {
         res.status(404).json({ error: "Perintah tidak ditemukan." });
         return;
       }
-      if (cmd.status !== "pending") {
-        res.status(400).json({ error: "Perintah ini sudah diproses sebelumnya." });
-        return;
-      }
       if (req.body?.owner_confirmed !== true) {
         res.status(400).json({
           error:
             "Prinsip Brankas Mutlak: Persetujuan eksplisit Owner wajib dicentang sebelum mengeksekusi draf.",
         });
+        return;
+      }
+      if (cmd.status !== "pending" && cmd.status !== "processed") {
+        res.status(400).json({ error: "Perintah ini sudah diproses sebelumnya." });
         return;
       }
 
@@ -1311,7 +1311,7 @@ async function startServer(): Promise<void> {
       );
 
       const tx: Transaction = {
-        id: crypto.randomUUID(),
+        id: cmd.id,
         owner_id: ownerId,
         transaction_type: txType,
         source_account_id: txType === "income" ? null : sourceId,
@@ -1325,6 +1325,24 @@ async function startServer(): Promise<void> {
         created_at: new Date().toISOString(),
       };
 
+      const existingTx = db.transactions.find((item) => item.id === cmd.id);
+      if (existingTx && !isSameConfirmedTransactionRequest(existingTx, tx)) {
+        res.status(409).json({
+          error: "ID transaksi sudah digunakan untuk data berbeda. Transaksi tidak diulang.",
+        });
+        return;
+      }
+      if (cmd.status === "processed") {
+        if (!existingTx) {
+          res.status(409).json({
+            error: "Perintah sudah diproses, tetapi transaksi tidak ditemukan untuk diverifikasi.",
+          });
+          return;
+        }
+        res.json({ command: cmd, transaction: existingTx });
+        return;
+      }
+
       cmd.status = "processed";
       cmd.parsed_draft = {
         ...(cmd.parsed_draft ?? override),
@@ -1336,10 +1354,12 @@ async function startServer(): Promise<void> {
         description,
         transaction_date: tx.transaction_date,
       };
-      db.transactions.unshift(tx);
+      if (!existingTx) {
+        db.transactions.unshift(tx);
+      }
       saveVault(db);
 
-      res.json({ command: cmd, transaction: tx });
+      res.json({ command: cmd, transaction: existingTx ?? tx });
     } catch (err) {
       res.status(400).json({
         error: err instanceof Error ? err.message : "Gagal menyetujui perintah.",
