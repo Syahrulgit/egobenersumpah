@@ -5,6 +5,7 @@ import path from "node:path";
 import "./server/loadEnv";
 import express from "express";
 import { WebSocketServer } from "ws";
+import { isSameConfirmedTransactionRequest, isValidTransactionRequestId } from "./src/lib/transaction-idempotency";
 import { parseNaturalCommand } from "./src/lib/command-parser";
 import {
   advanceDueDate,
@@ -819,7 +820,10 @@ async function startServer(): Promise<void> {
       const category = req.body?.category ? String(req.body.category).trim() : null;
       const description = req.body?.description ? String(req.body.description).trim() : null;
       const ownerConfirmed = req.body?.owner_confirmed === true;
-      const status: Transaction["status"] = ownerConfirmed ? "posted" : "pending";
+      if (!ownerConfirmed) {
+        throw new Error("Persetujuan eksplisit Owner wajib dicentang sebelum transaksi dicatat.");
+      }
+      const status: Transaction["status"] = "posted";
 
       validateTransactionInvariants(
         {
@@ -836,11 +840,7 @@ async function startServer(): Promise<void> {
 
       const requestId =
         typeof req.body?.id === "string" ? req.body.id : crypto.randomUUID();
-      if (
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          requestId
-        )
-      ) {
+      if (!isValidTransactionRequestId(requestId)) {
         throw new Error("ID permintaan transaksi tidak valid.");
       }
 
@@ -865,15 +865,7 @@ async function startServer(): Promise<void> {
           throw new Error("ID transaksi tidak dapat digunakan.");
         }
         const isSameRequest =
-          existing.transaction_type === newTx.transaction_type &&
-          existing.source_account_id === newTx.source_account_id &&
-          existing.destination_account_id === newTx.destination_account_id &&
-          Number(existing.amount) === newTx.amount &&
-          existing.transaction_date === newTx.transaction_date &&
-          existing.category === newTx.category &&
-          existing.description === newTx.description &&
-          existing.status === newTx.status &&
-          existing.owner_confirmed === newTx.owner_confirmed;
+          isSameConfirmedTransactionRequest(existing, newTx);
 
         if (!isSameRequest) {
           throw new Error(
