@@ -287,7 +287,11 @@ export function UtangPage() {
         }
       }
     } catch {
-      window.sessionStorage.removeItem(PENDING_DEBT_PAYMENT_KEY);
+      try {
+        window.sessionStorage.removeItem(PENDING_DEBT_PAYMENT_KEY);
+      } catch {
+        // Storage may be unavailable in restricted browser contexts.
+      }
     }
     setPayAmount(pending?.amount ?? defaultPay);
     setPaySourceAccountId(pending?.source_account_id ?? activeAccounts[0]?.id ?? "");
@@ -335,7 +339,11 @@ export function UtangPage() {
       setPayingDebt(null);
       setPayConfirmed(false);
       setPaymentRequestId(null);
-      window.sessionStorage.removeItem(PENDING_DEBT_PAYMENT_KEY);
+      try {
+        window.sessionStorage.removeItem(PENDING_DEBT_PAYMENT_KEY);
+      } catch {
+        // The committed request ID remains safe to replay if storage cleanup fails.
+      }
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Gagal memproses pembayaran utang."
