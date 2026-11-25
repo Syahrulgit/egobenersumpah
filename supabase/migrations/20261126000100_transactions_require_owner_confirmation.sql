@@ -15,8 +15,8 @@ BEGIN
       CHECK (status <> 'posted' OR owner_confirmed IS TRUE)
       NOT VALID;
   END IF;
-END
-$$;
+END;
+$;
 
 -- Existing production audit found no posted rows without Owner confirmation.
 -- Validation will fail safely rather than changing any transaction data if that
