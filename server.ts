@@ -859,10 +859,11 @@ async function startServer(): Promise<void> {
         created_at: new Date().toISOString(),
       };
 
-      const existing = db.transactions.find(
-        (tx) => tx.id === requestId && tx.owner_id === ownerId
-      );
+      const existing = db.transactions.find((tx) => tx.id === requestId);
       if (existing) {
+        if (existing.owner_id !== ownerId) {
+          throw new Error("ID transaksi tidak dapat digunakan.");
+        }
         const isSameRequest =
           existing.transaction_type === newTx.transaction_type &&
           existing.source_account_id === newTx.source_account_id &&
