@@ -1,6 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   Activity,
+  ArrowLeft,
   ArrowLeftRight,
   BarChart3,
   Bell,
@@ -285,9 +286,28 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
         <header className="sticky top-0 z-20 border-b border-[#DCE4F0] bg-white/90 backdrop-blur-md dark:border-[#1B3163] dark:bg-[#06132F]/90">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
-              <Link to="/" className="shrink-0 md:hidden" aria-label="Beranda EGO Personal AI">
-                <EgoLogoMark size="sm" />
-              </Link>
+              {pathname !== "/" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const historyIndex = window.history.state?.__TSR_index;
+                    if (typeof historyIndex === "number" && historyIndex > 0) {
+                      window.history.back();
+                    } else {
+                      void navigate({ to: "/" });
+                    }
+                  }}
+                  className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 text-xs font-semibold text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:bg-[#087BFF]/[0.08] dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0] dark:hover:border-[#19D8FF]/50 dark:hover:text-white"
+                  aria-label="Kembali ke halaman sebelumnya"
+                >
+                  <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                  <span>Kembali</span>
+                </button>
+              ) : (
+                <Link to="/" className="shrink-0 md:hidden" aria-label="Beranda EGO Personal AI">
+                  <EgoLogoMark size="sm" />
+                </Link>
+              )}
               <div className="min-w-0">
                 <h1 className="truncate text-base font-bold tracking-tight text-[#06132F] dark:text-white sm:text-xl">
                   {title}
