@@ -2,7 +2,7 @@
 -- Review and apply manually to EGO-PERSONAL only after approval.
 -- This file is not executed by the application or deployment automatically.
 
-DO $$
+DO $ego$
 BEGIN
   IF NOT EXISTS (
     SELECT 1
@@ -16,7 +16,7 @@ BEGIN
       NOT VALID;
   END IF;
 END;
-$;
+$ego$;
 
 -- Existing production audit found no posted rows without Owner confirmation.
 -- Validation will fail safely rather than changing any transaction data if that
