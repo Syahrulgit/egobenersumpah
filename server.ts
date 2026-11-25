@@ -838,10 +838,9 @@ async function startServer(): Promise<void> {
         db.accounts
       );
 
-      const requestId =
-        typeof req.body?.id === "string" ? req.body.id : crypto.randomUUID();
+      const requestId = req.body?.id;
       if (!isValidTransactionRequestId(requestId)) {
-        throw new Error("ID permintaan transaksi tidak valid.");
+        throw new Error("ID permintaan transaksi wajib berupa UUID yang valid.");
       }
 
       const newTx: Transaction = {
