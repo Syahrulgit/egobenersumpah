@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { advanceDueDate, computeAccountBalances, roundCurrency, todayISO } from "./finance";
 import { fromDatabaseAccountType, toDatabaseAccountType } from "./account-types";
 import { isSameConfirmedTransactionRequest, isValidTransactionRequestId } from "./transaction-idempotency";
+import { isSameDebtPaymentRequest } from "./debt-payment-idempotency";
 import {
   clearPinSessionState,
   hashPinWebCrypto,
@@ -1195,6 +1196,7 @@ export function usePayDebt() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
+      request_id: string;
       debt_id: string;
       amount: number;
       source_account_id: string;
@@ -1204,81 +1206,40 @@ export function usePayDebt() {
       if (!input.owner_confirmed) {
         throw new Error("Persetujuan eksplisit Owner wajib dicentang.");
       }
+      if (!isValidTransactionRequestId(input.request_id)) {
+        throw new Error("ID permintaan pembayaran tidak valid.");
+      }
+      const paymentAmount = roundCurrency(Number(input.amount));
+      if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+        throw new Error("Nominal pembayaran harus lebih dari Rp 0.");
+      }
+      if (!input.debt_id || !input.source_account_id) {
+        throw new Error("Pilih utang dan akun sumber pembayaran.");
+      }
+
       if (isSupabaseConfigured && supabase) {
-        const { data: debt, error: getErr } = await supabase
-          .from("debts")
-          .select("*")
-          .eq("id", input.debt_id)
-          .single();
-        if (getErr || !debt) throw new Error(getErr?.message || "Utang tidak ditemukan.");
-
-        const paymentAmount = roundCurrency(input.amount);
-        validateDebtPaymentInput(
-          {
-            status: String(debt.status ?? "active"),
-            outstanding_balance: Number(debt.outstanding_balance ?? 0),
-          },
-          paymentAmount,
-          input.source_account_id,
-          input.owner_confirmed
-        );
-
-        const remaining = Math.max(
-          0,
-          roundCurrency(Number(debt.outstanding_balance) - paymentAmount)
-        );
-        const payDate = todayISO();
-        const { data: insertedTx, error: txErr } = await supabase
-          .from("transactions")
-          .insert({
-            transaction_type: "expense",
-            source_account_id: input.source_account_id,
-            destination_account_id: null,
-            amount: paymentAmount,
-            transaction_date: payDate,
-            category: "Utang & Cicilan",
-            description: `Pembayaran utang ke ${debt.creditor}`,
-            status: "posted",
-            owner_confirmed: true,
-          })
-          .select("id")
-          .single();
-        if (txErr || !insertedTx) {
-          throw new Error(txErr?.message || "Gagal mencatat transaksi pembayaran utang.");
-        }
-
-        const { error: updErr } = await supabase
-          .from("debts")
-          .update({
-            outstanding_balance: remaining,
-            status: remaining === 0 ? "paid" : "active",
-          })
-          .eq("id", input.debt_id);
-        if (updErr) {
-          await supabase.from("transactions").delete().eq("id", insertedTx.id);
-          throw new Error(updErr.message);
-        }
-
-        const { error: logErr } = await supabase.from("debt_payment_logs").insert({
-          debt_id: input.debt_id,
-          transaction_id: insertedTx.id,
-          amount: paymentAmount,
-          principal_paid: paymentAmount,
-          interest_paid: 0,
-          remaining_after: remaining,
-          notes: input.notes?.trim() || null,
+        const { data, error } = await supabase.rpc("ego_pay_debt_atomic", {
+          p_request_id: input.request_id,
+          p_debt_id: input.debt_id,
+          p_amount: paymentAmount,
+          p_source_account_id: input.source_account_id,
+          p_owner_confirmed: input.owner_confirmed,
+          p_notes: input.notes?.trim() || null,
         });
-        if (logErr && !isMissingSupabaseTableError(logErr)) {
-          // Non-fatal so core payment transaction stays consistent; log error ignored only if table not migrated
-          console.warn("debt_payment_logs insert warning:", logErr.message);
+        if (error) {
+          throw new Error(error.message || "Pembayaran utang gagal diproses.");
         }
-        return;
+        if (!data) {
+          throw new Error("Server tidak mengembalikan konfirmasi pembayaran utang.");
+        }
+        return data;
       }
 
       return apiFetch(`/api/debts/${input.debt_id}/pay`, {
         method: "POST",
         body: JSON.stringify({
-          amount: input.amount,
+          request_id: input.request_id,
+          amount: paymentAmount,
           source_account_id: input.source_account_id,
           owner_confirmed: input.owner_confirmed,
           notes: input.notes ?? null,
