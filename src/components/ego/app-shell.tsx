@@ -283,7 +283,7 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
       {/* Main Content Area */}
       <div className="md:pl-64">
         {/* Top Header */}
-        <header className="sticky top-0 z-[70] isolate border-b border-[#DCE4F0] bg-white dark:border-[#1B3163] dark:bg-[#06132F]">
+        <header className="ego-pwa-header sticky top-0 z-[70] isolate border-b border-[#DCE4F0] bg-white dark:border-[#1B3163] dark:bg-[#06132F]">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
               {pathname !== "/" ? (
