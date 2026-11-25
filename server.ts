@@ -834,8 +834,18 @@ async function startServer(): Promise<void> {
         db.accounts
       );
 
+      const requestId =
+        typeof req.body?.id === "string" ? req.body.id : crypto.randomUUID();
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          requestId
+        )
+      ) {
+        throw new Error("ID permintaan transaksi tidak valid.");
+      }
+
       const newTx: Transaction = {
-        id: crypto.randomUUID(),
+        id: requestId,
         owner_id: ownerId,
         transaction_type: txType,
         source_account_id: txType === "income" ? null : sourceId,
@@ -848,6 +858,30 @@ async function startServer(): Promise<void> {
         owner_confirmed: ownerConfirmed,
         created_at: new Date().toISOString(),
       };
+
+      const existing = db.transactions.find(
+        (tx) => tx.id === requestId && tx.owner_id === ownerId
+      );
+      if (existing) {
+        const isSameRequest =
+          existing.transaction_type === newTx.transaction_type &&
+          existing.source_account_id === newTx.source_account_id &&
+          existing.destination_account_id === newTx.destination_account_id &&
+          Number(existing.amount) === newTx.amount &&
+          existing.transaction_date === newTx.transaction_date &&
+          existing.category === newTx.category &&
+          existing.description === newTx.description &&
+          existing.status === newTx.status &&
+          existing.owner_confirmed === newTx.owner_confirmed;
+
+        if (!isSameRequest) {
+          throw new Error(
+            "ID transaksi sudah digunakan untuk data berbeda. Transaksi tidak diulang."
+          );
+        }
+        res.status(200).json(existing);
+        return;
+      }
 
       db.transactions.unshift(newTx);
       saveVault(db);
