@@ -43,3 +43,11 @@
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+
+/* iOS standalone PWA: keep the sticky header below the translucent status bar. */
+@media (display-mode: standalone) {
+  .ego-pwa-header {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
