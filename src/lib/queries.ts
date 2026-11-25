@@ -157,6 +157,14 @@ export interface VaultSnapshot {
   preferences: OwnerPreferences;
 }
 
+function toDatabaseAccountType(type: AccountType): string {
+  return type === "ewallet" ? "e_wallet" : type;
+}
+
+function fromDatabaseAccountType(type: string): AccountType {
+  return type === "e_wallet" ? "ewallet" : (type as AccountType);
+}
+
 function isMissingSupabaseTableError(err: { code?: string; message?: string } | null): boolean {
   if (!err) return false;
   const code = err.code ?? "";
@@ -339,7 +347,12 @@ export async function fetchVaultSnapshot(): Promise<VaultSnapshot> {
       throw new Error(healthRes.error.message);
     }
 
-    const accounts = (accRes.data ?? []) as Account[];
+    const accounts = ((accRes.data ?? []) as Array<Account & { account_type: string }>).map(
+      (account) => ({
+        ...account,
+        account_type: fromDatabaseAccountType(account.account_type),
+      })
+    );
     const transactions = (txRes.data ?? []) as Transaction[];
     let prefs: OwnerPreferences = {
       date_format: "DD MMM YYYY",
@@ -839,7 +852,7 @@ export function useCreateAccount() {
       if (isSupabaseConfigured && supabase) {
         const { error } = await supabase.from("accounts").insert({
           account_name: input.account_name.trim(),
-          account_type: input.account_type,
+          account_type: toDatabaseAccountType(input.account_type),
           opening_balance: roundCurrency(input.opening_balance),
         });
         if (error) throw new Error(error.message);
@@ -883,6 +896,7 @@ export function useCreateTransaction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
+      id: string;
       transaction_type: TransactionType;
       source_account_id: string | null;
       destination_account_id: string | null;
@@ -892,6 +906,14 @@ export function useCreateTransaction() {
       description: string;
       owner_confirmed: boolean;
     }) => {
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          input.id
+        )
+      ) {
+        throw new Error("ID permintaan transaksi tidak valid.");
+      }
+
       const normalized = {
         ...input,
         source_account_id:
@@ -913,11 +935,46 @@ export function useCreateTransaction() {
       });
 
       if (isSupabaseConfigured && supabase) {
-        const { error } = await supabase.from("transactions").insert({
+        const transactionRow = {
           ...normalized,
-          status: "posted",
-        });
-        if (error) throw new Error(error.message);
+          status: "posted" as const,
+        };
+        const { error } = await supabase
+          .from("transactions")
+          .insert(transactionRow);
+
+        if (error) {
+          if (error.code !== "23505") throw new Error(error.message);
+
+          // A retry with the same request ID is successful only when the
+          // already-saved row is exactly the same confirmed transaction.
+          const { data: existing, error: lookupError } = await supabase
+            .from("transactions")
+            .select(
+              "id, transaction_type, source_account_id, destination_account_id, amount, transaction_date, category, description, status, owner_confirmed"
+            )
+            .eq("id", normalized.id)
+            .maybeSingle();
+
+          if (lookupError) throw new Error(lookupError.message);
+          const isSameRequest =
+            existing?.id === normalized.id &&
+            existing.transaction_type === normalized.transaction_type &&
+            existing.source_account_id === normalized.source_account_id &&
+            existing.destination_account_id === normalized.destination_account_id &&
+            Number(existing.amount) === normalized.amount &&
+            existing.transaction_date === normalized.transaction_date &&
+            existing.category === normalized.category &&
+            existing.description === normalized.description &&
+            existing.status === "posted" &&
+            existing.owner_confirmed === true;
+
+          if (!isSameRequest) {
+            throw new Error(
+              "ID transaksi sudah digunakan untuk data berbeda. Transaksi tidak diulang."
+            );
+          }
+        }
         return;
       }
       return apiFetch("/api/transactions", {
