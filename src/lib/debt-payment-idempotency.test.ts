@@ -31,6 +31,7 @@ test("accepts an exact retry of an already committed debt payment", () => {
 
 test("rejects reuse of a payment request ID with different payment details", () => {
   assert.equal(isSameDebtPaymentRequest(log, transaction, { ...request, amount: 300000 }), false);
+  assert.equal(isSameDebtPaymentRequest(log, transaction, { ...request, request_id: "different-request-id" }), false);
   assert.equal(isSameDebtPaymentRequest(log, transaction, { ...request, debt_id: "different-debt" }), false);
   assert.equal(isSameDebtPaymentRequest(log, transaction, { ...request, source_account_id: "different-account" }), false);
   assert.equal(isSameDebtPaymentRequest(log, transaction, { ...request, notes: "Catatan berbeda" }), false);
