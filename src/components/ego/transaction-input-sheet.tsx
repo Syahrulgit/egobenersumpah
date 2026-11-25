@@ -98,6 +98,7 @@ export function TransactionSheetProvider({
   const [formError, setFormError] = useState<string | null>(null);
   const [redirectAfterSave, setRedirectAfterSave] = useState(true);
   const submittingRef = useRef(false);
+  const pendingRequestRef = useRef<{ signature: string; id: string } | null>(null);
 
   const accounts = vault?.accounts ?? [];
   const activeAccounts = useMemo(
@@ -206,7 +207,7 @@ export function TransactionSheetProvider({
 
     submittingRef.current = true;
     try {
-      await createTx.mutateAsync({
+      const transactionInput = {
         transaction_type: txType,
         source_account_id: txType === "income" ? null : sourceId,
         destination_account_id: txType === "expense" ? null : destId,
@@ -215,7 +216,19 @@ export function TransactionSheetProvider({
         category,
         description: description.trim() || category,
         owner_confirmed: true,
+      };
+      const signature = JSON.stringify(transactionInput);
+      const requestId =
+        pendingRequestRef.current?.signature === signature
+          ? pendingRequestRef.current.id
+          : crypto.randomUUID();
+      pendingRequestRef.current = { signature, id: requestId };
+
+      await createTx.mutateAsync({
+        ...transactionInput,
+        id: requestId,
       });
+      pendingRequestRef.current = null;
 
       if (txType === "expense" && expenseLimit > 0 && amount >= expenseLimit) {
         toast.warning(
