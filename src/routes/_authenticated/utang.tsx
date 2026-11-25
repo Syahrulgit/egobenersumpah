@@ -1358,6 +1358,7 @@ export function UtangPage() {
                   </button>
                   <button
                     type="button"
+                    disabled={isPendingPaymentRetry}
                     onClick={() => {
                       setPayAmount(Math.max(1, Math.round(payingDebt.outstanding_balance * 0.5)));
                       setPaymentRequestId(crypto.randomUUID());
@@ -1369,6 +1370,7 @@ export function UtangPage() {
                   </button>
                   <button
                     type="button"
+                    disabled={isPendingPaymentRetry}
                     onClick={() => {
                       setPayAmount(payingDebt.outstanding_balance);
                       setPaymentRequestId(crypto.randomUUID());
@@ -1456,6 +1458,7 @@ export function UtangPage() {
                 <div className="flex gap-2">
                   <button
                     type="button"
+                    disabled={isPendingPaymentRetry}
                     onClick={() => setPayingDebt(null)}
                     className="min-h-[44px] flex-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-4 py-2.5 text-xs font-semibold text-[#06132F] hover:bg-slate-200 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
                   >
