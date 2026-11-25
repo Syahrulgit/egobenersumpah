@@ -283,79 +283,73 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
       {/* Main Content Area */}
       <div className="md:pl-64">
         {/* Top Header */}
-        <header className="sticky top-0 z-50 isolate border-b border-[#DCE4F0] bg-white dark:border-[#1B3163] dark:bg-[#06132F]">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-            <div className="flex min-w-0 items-center gap-3">
+        <header className="sticky top-0 z-50 isolate border-b border-[#0B8F89]/30 bg-gradient-to-br from-[#087F79] via-[#086D83] to-[#075B79] text-white shadow-sm md:border-[#DCE4F0] md:bg-white md:bg-none md:text-[#06132F] md:shadow-none dark:md:border-[#1B3163] dark:md:bg-[#06132F]">
+          <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 lg:px-8">
+            <div className="flex min-h-11 items-center justify-between gap-3">
+              <Link to="/" className="flex min-w-0 items-center gap-2.5 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white md:hidden" aria-label="Beranda EGO Personal AI">
+                <EgoLogoMark size="sm" />
+                <span className="truncate text-base font-extrabold tracking-tight text-white">EGO Personal AI</span>
+              </Link>
+              <div className="hidden min-w-0 md:block">
+                <h1 className="truncate text-base font-bold tracking-tight text-[#06132F] dark:text-white sm:text-xl">{title}</h1>
+                {subtitle ? <p className="truncate text-xs text-slate-600 dark:text-[#C7D0E0]/75">{subtitle}</p> : null}
+              </div>
+
+              <div className="relative z-10 flex shrink-0 items-center gap-2">
+                {action ? <div className="hidden sm:block">{action}</div> : null}
+                <button
+                  type="button"
+                  onClick={() => setNotifOpen(true)}
+                  aria-label={totalNotifications > 0 ? `Notifikasi (${totalNotifications} item)` : "Notifikasi"}
+                  className="relative z-10 flex h-11 w-11 touch-manipulation items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white transition-colors hover:bg-white/20 active:bg-white/25 md:border-[#DCE4F0] md:bg-[#F4F7FB] md:text-[#06132F] md:hover:border-[#087BFF]/40 dark:md:border-[#1B3163] dark:md:bg-[#091634] dark:md:text-[#C7D0E0]"
+                >
+                  <Bell className="h-5 w-5" aria-hidden="true" />
+                  {totalNotifications > 0 ? <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 font-mono text-[10px] font-bold text-white shadow-sm">{totalNotifications}</span> : null}
+                </button>
+                <Link
+                  to="/owner"
+                  aria-label="Owner Control dan Pengaturan"
+                  className="relative z-10 inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white transition-colors hover:bg-white/20 active:bg-white/25 md:h-10 md:w-auto md:gap-2 md:px-3 md:border-[#DCE4F0] md:bg-[#F4F7FB] md:text-xs md:font-semibold md:text-[#06132F] md:hover:border-[#087BFF]/40 dark:md:border-[#1B3163] dark:md:bg-[#091634] dark:md:text-white"
+                >
+                  <ShieldCheck className="h-5 w-5 text-white md:h-4 md:w-4 md:text-[#087BFF] dark:md:text-[#19D8FF]" aria-hidden="true" />
+                  <span className="hidden md:inline">Owner Control</span>
+                </Link>
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center gap-3 md:hidden">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/35 bg-white/20 text-base font-bold text-white shadow-sm" aria-hidden="true">
+                {ownerName.slice(0, 1).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-white">{ownerName}</p>
+                <p className="text-[11px] font-medium text-white/75">Brankas pribadi · Owner</p>
+              </div>
+            </div>
+
+            <div className="mt-3 flex min-w-0 items-center gap-3 border-t border-white/15 pt-3 md:hidden">
               {pathname !== "/" ? (
                 <button
                   type="button"
                   onClick={() => {
                     const historyIndex = window.history.state?.__TSR_index;
-                    if (typeof historyIndex === "number" && historyIndex > 0) {
-                      window.history.back();
-                    } else {
-                      void navigate({ to: "/" });
-                    }
+                    if (typeof historyIndex === "number" && historyIndex > 0) window.history.back();
+                    else void navigate({ to: "/" });
                   }}
-                  className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 text-xs font-semibold text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:bg-[#087BFF]/[0.08] dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0] dark:hover:border-[#19D8FF]/50 dark:hover:text-white"
+                  className="inline-flex min-h-10 shrink-0 touch-manipulation items-center gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 text-xs font-semibold text-white active:bg-white/20"
                   aria-label="Kembali ke halaman sebelumnya"
                 >
                   <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                   <span>Kembali</span>
                 </button>
-              ) : (
-                <Link to="/" className="shrink-0 md:hidden" aria-label="Beranda EGO Personal AI">
-                  <EgoLogoMark size="sm" />
-                </Link>
-              )}
+              ) : null}
               <div className="min-w-0">
-                <h1 className="truncate text-base font-bold tracking-tight text-[#06132F] dark:text-white sm:text-xl">
-                  {title}
-                </h1>
-                {subtitle ? (
-                  <p className="hidden truncate text-xs text-slate-600 dark:text-[#C7D0E0]/75 sm:block">
-                    {subtitle}
-                  </p>
-                ) : null}
+                <h1 className="truncate text-base font-bold tracking-tight text-white">{title}</h1>
+                {subtitle ? <p className="truncate text-xs text-white/75">{subtitle}</p> : null}
               </div>
             </div>
-
-            <div className="relative z-10 flex shrink-0 items-center gap-2">
-              {action ? <div className="hidden sm:block">{action}</div> : null}
-
-              <button
-                type="button"
-                onClick={() => setNotifOpen(true)}
-                aria-label={
-                  totalNotifications > 0
-                    ? `Notifikasi (${totalNotifications} item)`
-                    : "Notifikasi"
-                }
-                className="relative z-10 flex h-10 w-10 items-center justify-center rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:bg-[#087BFF]/8 dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0] dark:hover:border-[#19D8FF]/50 dark:hover:text-white"
-              >
-                <Bell className="h-4 w-4" aria-hidden="true" />
-                {totalNotifications > 0 ? (
-                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#087BFF] px-1 font-mono text-[10px] font-bold text-white shadow-xs">
-                    {totalNotifications}
-                  </span>
-                ) : null}
-              </button>
-
-              <Link
-                to="/owner"
-                aria-label="Owner Control dan Pengaturan"
-                className="relative z-10 inline-flex h-10 items-center gap-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 text-xs font-semibold text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:bg-[#087BFF]/8 dark:border-[#1B3163] dark:bg-[#091634] dark:text-white dark:hover:border-[#19D8FF]/50"
-              >
-                <ShieldCheck className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
-                <span className="hidden sm:inline">Owner Control</span>
-              </Link>
-            </div>
           </div>
-          {action ? (
-            <div className="border-t border-[#DCE4F0]/70 px-4 py-2 dark:border-[#1B3163]/70 sm:hidden">
-              {action}
-            </div>
-          ) : null}
+          {action ? <div className="border-t border-white/15 px-4 py-2 md:hidden">{action}</div> : null}
         </header>
 
         <main className="mx-auto max-w-6xl px-4 pt-5 pb-28 sm:px-6 sm:pt-6 md:pb-14 lg:px-8">
