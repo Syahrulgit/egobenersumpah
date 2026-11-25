@@ -21,7 +21,7 @@ export interface ConfirmedTransactionRequest {
 
 /** A retry is safe only when the persisted row is the same posted, confirmed transaction. */
 export function isSameConfirmedTransactionRequest(
-  existing: (ConfirmedTransactionRequest & { amount: number | string }) | null | undefined,
+  existing: (Omit<ConfirmedTransactionRequest, "amount"> & { amount: number | string }) | null | undefined,
   requested: ConfirmedTransactionRequest
 ): boolean {
   return Boolean(
