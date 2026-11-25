@@ -284,6 +284,14 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
       <div className="md:pl-64">
         {/* Top Header */}
         <header className="ego-pwa-header sticky top-0 z-[70] isolate border-b border-[#DCE4F0] bg-white dark:border-[#1B3163] dark:bg-[#06132F]">
+          <div className="mx-auto flex max-w-6xl items-center gap-3 border-b border-[#DCE4F0]/70 px-4 py-2.5 dark:border-[#1B3163]/70 sm:px-6 lg:px-8 md:hidden">
+            <Link to="/" className="inline-flex min-w-0 items-center gap-3" aria-label="Beranda EGO Personal AI">
+              <EgoLogoMark size="sm" />
+              <span className="truncate text-sm font-bold tracking-tight text-[#06132F] dark:text-white">
+                EGO Personal AI
+              </span>
+            </Link>
+          </div>
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
               {pathname !== "/" ? (
@@ -303,11 +311,7 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
                   <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                   <span>Kembali</span>
                 </button>
-              ) : (
-                <Link to="/" className="shrink-0 md:hidden" aria-label="Beranda EGO Personal AI">
-                  <EgoLogoMark size="sm" />
-                </Link>
-              )}
+              ) : null}
               <div className="min-w-0">
                 <h1 className="truncate text-base font-bold tracking-tight text-[#06132F] dark:text-white sm:text-xl">
                   {title}
