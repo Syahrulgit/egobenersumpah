@@ -288,6 +288,10 @@ export function UtangPage() {
 
   function startPayment(debt: Debt) {
     const norm = normalizeDebt(debt);
+    if (storedPendingPayment && storedPendingPayment.debt_id !== norm.id) {
+      toast.error("Selesaikan pemeriksaan pembayaran tertunda terlebih dahulu agar ID percobaan tidak tertimpa.");
+      return;
+    }
     setPayingDebt(norm);
     const defaultPay =
       norm.installment_amount > 0
