@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { advanceDueDate, computeAccountBalances, roundCurrency, todayISO } from "./finance";
 import { fromDatabaseAccountType, toDatabaseAccountType } from "./account-types";
+import { isSameConfirmedTransactionRequest, isValidTransactionRequestId } from "./transaction-idempotency";
 import {
   clearPinSessionState,
   hashPinWebCrypto,
@@ -899,11 +900,7 @@ export function useCreateTransaction() {
       description: string;
       owner_confirmed: boolean;
     }) => {
-      if (
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          input.id
-        )
-      ) {
+      if (!isValidTransactionRequestId(input.id)) {
         throw new Error("ID permintaan transaksi tidak valid.");
       }
 
@@ -952,15 +949,7 @@ export function useCreateTransaction() {
           if (lookupError) throw new Error(lookupError.message);
           const isSameRequest =
             existing?.id === normalized.id &&
-            existing.transaction_type === normalized.transaction_type &&
-            existing.source_account_id === normalized.source_account_id &&
-            existing.destination_account_id === normalized.destination_account_id &&
-            Number(existing.amount) === normalized.amount &&
-            existing.transaction_date === normalized.transaction_date &&
-            existing.category === normalized.category &&
-            existing.description === normalized.description &&
-            existing.status === "posted" &&
-            existing.owner_confirmed === true;
+            isSameConfirmedTransactionRequest(existing, transactionRow);
 
           if (!isSameRequest) {
             throw new Error(
