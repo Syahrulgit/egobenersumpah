@@ -43,6 +43,17 @@ import {
 } from "../../lib/queries";
 import type { Debt, DebtPaymentFrequency, DebtType } from "../../types/ego";
 
+const PENDING_DEBT_PAYMENT_KEY = "ego_pending_debt_payment_request";
+
+interface PendingDebtPaymentRequest {
+  request_id: string;
+  debt_id: string;
+  amount: number;
+  source_account_id: string;
+  notes: string | null;
+}
+
+
 const DEBT_TYPE_OPTIONS: Array<{ value: DebtType; label: string }> = [
   { value: "kpr", label: "KPR / Properti" },
   { value: "kendaraan", label: "Cicilan Kendaraan" },
@@ -260,11 +271,29 @@ export function UtangPage() {
       norm.installment_amount > 0
         ? Math.min(norm.outstanding_balance, norm.installment_amount)
         : norm.outstanding_balance;
-    setPayAmount(defaultPay);
-    setPaySourceAccountId(activeAccounts[0]?.id ?? "");
-    setPayNotes("");
+    let pending: PendingDebtPaymentRequest | null = null;
+    try {
+      const raw = window.sessionStorage.getItem(PENDING_DEBT_PAYMENT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as PendingDebtPaymentRequest;
+        if (
+          parsed.debt_id === norm.id &&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.request_id) &&
+          Number.isFinite(parsed.amount) &&
+          parsed.amount > 0 &&
+          typeof parsed.source_account_id === "string"
+        ) {
+          pending = parsed;
+        }
+      }
+    } catch {
+      window.sessionStorage.removeItem(PENDING_DEBT_PAYMENT_KEY);
+    }
+    setPayAmount(pending?.amount ?? defaultPay);
+    setPaySourceAccountId(pending?.source_account_id ?? activeAccounts[0]?.id ?? "");
+    setPayNotes(pending?.notes ?? "");
     setPayConfirmed(false);
-    setPaymentRequestId(crypto.randomUUID());
+    setPaymentRequestId(pending?.request_id ?? crypto.randomUUID());
   }
 
   async function handlePayDebt(e: React.FormEvent) {
@@ -274,23 +303,28 @@ export function UtangPage() {
       toast.error("Pilih akun sumber pembayaran.");
       return;
     }
-    if (payAmount <= 0 || payAmount > payingDebt.outstanding_balance) {
-      toast.error(
-        "Nominal pembayaran harus lebih dari Rp 0 dan tidak melebihi sisa pokok."
-      );
+    if (!Number.isFinite(payAmount) || payAmount <= 0) {
+      toast.error("Nominal pembayaran harus lebih dari Rp 0.");
       return;
     }
     try {
       if (!paymentRequestId) {
         throw new Error("ID permintaan pembayaran belum siap. Tutup lalu buka kembali formulir pembayaran.");
       }
-      await payDebt.mutateAsync({
+      const pendingRequest: PendingDebtPaymentRequest = {
         request_id: paymentRequestId,
         debt_id: payingDebt.id,
         amount: payAmount,
         source_account_id: paySourceAccountId,
-        owner_confirmed: true,
         notes: payNotes.trim() || null,
+      };
+      window.sessionStorage.setItem(
+        PENDING_DEBT_PAYMENT_KEY,
+        JSON.stringify(pendingRequest)
+      );
+      await payDebt.mutateAsync({
+        ...pendingRequest,
+        owner_confirmed: true,
       });
       const isFull = payAmount >= payingDebt.outstanding_balance;
       toast.success(
@@ -301,6 +335,7 @@ export function UtangPage() {
       setPayingDebt(null);
       setPayConfirmed(false);
       setPaymentRequestId(null);
+      window.sessionStorage.removeItem(PENDING_DEBT_PAYMENT_KEY);
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Gagal memproses pembayaran utang."
