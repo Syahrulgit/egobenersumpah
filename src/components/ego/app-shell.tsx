@@ -283,7 +283,7 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
       {/* Main Content Area */}
       <div className="md:pl-64">
         {/* Top Header */}
-        <header className="sticky top-0 z-20 border-b border-[#DCE4F0] bg-white/90 backdrop-blur-md dark:border-[#1B3163] dark:bg-[#06132F]/90">
+        <header className="sticky top-0 z-50 isolate border-b border-[#DCE4F0] bg-white dark:border-[#1B3163] dark:bg-[#06132F]">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
               {pathname !== "/" ? (
@@ -320,7 +320,7 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="relative z-10 flex shrink-0 items-center gap-2">
               {action ? <div className="hidden sm:block">{action}</div> : null}
 
               <button
@@ -331,7 +331,7 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
                     ? `Notifikasi (${totalNotifications} item)`
                     : "Notifikasi"
                 }
-                className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:bg-[#087BFF]/8 dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0] dark:hover:border-[#19D8FF]/50 dark:hover:text-white"
+                className="relative z-10 flex h-10 w-10 items-center justify-center rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:bg-[#087BFF]/8 dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0] dark:hover:border-[#19D8FF]/50 dark:hover:text-white"
               >
                 <Bell className="h-4 w-4" aria-hidden="true" />
                 {totalNotifications > 0 ? (
@@ -344,7 +344,7 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
               <Link
                 to="/owner"
                 aria-label="Owner Control dan Pengaturan"
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 text-xs font-semibold text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:bg-[#087BFF]/8 dark:border-[#1B3163] dark:bg-[#091634] dark:text-white dark:hover:border-[#19D8FF]/50"
+                className="relative z-10 inline-flex h-10 items-center gap-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 text-xs font-semibold text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:bg-[#087BFF]/8 dark:border-[#1B3163] dark:bg-[#091634] dark:text-white dark:hover:border-[#19D8FF]/50"
               >
                 <ShieldCheck className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
                 <span className="hidden sm:inline">Owner Control</span>
