@@ -103,6 +103,7 @@ export function UtangPage() {
   const [paySourceAccountId, setPaySourceAccountId] = useState("");
   const [payNotes, setPayNotes] = useState("");
   const [payConfirmed, setPayConfirmed] = useState(false);
+  const [paymentRequestId, setPaymentRequestId] = useState<string | null>(null);
 
   // History Modal State
   const [historyDebt, setHistoryDebt] = useState<Debt | null>(null);
@@ -263,6 +264,7 @@ export function UtangPage() {
     setPaySourceAccountId(activeAccounts[0]?.id ?? "");
     setPayNotes("");
     setPayConfirmed(false);
+    setPaymentRequestId(crypto.randomUUID());
   }
 
   async function handlePayDebt(e: React.FormEvent) {
@@ -279,7 +281,11 @@ export function UtangPage() {
       return;
     }
     try {
+      if (!paymentRequestId) {
+        throw new Error("ID permintaan pembayaran belum siap. Tutup lalu buka kembali formulir pembayaran.");
+      }
       await payDebt.mutateAsync({
+        request_id: paymentRequestId,
         debt_id: payingDebt.id,
         amount: payAmount,
         source_account_id: paySourceAccountId,
@@ -294,6 +300,7 @@ export function UtangPage() {
       );
       setPayingDebt(null);
       setPayConfirmed(false);
+      setPaymentRequestId(null);
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Gagal memproses pembayaran utang."
@@ -1275,9 +1282,11 @@ export function UtangPage() {
                     payingDebt.outstanding_balance ? (
                     <button
                       type="button"
-                      onClick={() =>
-                        setPayAmount(payingDebt.installment_amount ?? 0)
-                      }
+                      onClick={() => {
+                        setPayAmount(payingDebt.installment_amount ?? 0);
+                        setPaymentRequestId(crypto.randomUUID());
+                        setPayConfirmed(false);
+                      }}
                       className="min-h-[36px] rounded-xl border border-[#087BFF]/35 bg-[#087BFF]/10 px-3 py-1.5 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/35 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
                     >
                       Cicilan Rutin ({formatIDR(payingDebt.installment_amount ?? 0, true)})
@@ -1285,35 +1294,33 @@ export function UtangPage() {
                   ) : null}
                   <button
                     type="button"
-                    onClick={() =>
-                      setPayAmount(
-                        Math.max(
-                          1,
-                          Math.round(payingDebt.outstanding_balance * 0.25)
-                        )
-                      )
-                    }
+                    onClick={() => {
+                      setPayAmount(Math.max(1, Math.round(payingDebt.outstanding_balance * 0.25)));
+                      setPaymentRequestId(crypto.randomUUID());
+                      setPayConfirmed(false);
+                    }}
                     className="min-h-[36px] rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-1.5 text-xs font-semibold text-[#06132F] hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
                   >
                     25%
                   </button>
                   <button
                     type="button"
-                    onClick={() =>
-                      setPayAmount(
-                        Math.max(
-                          1,
-                          Math.round(payingDebt.outstanding_balance * 0.5)
-                        )
-                      )
-                    }
+                    onClick={() => {
+                      setPayAmount(Math.max(1, Math.round(payingDebt.outstanding_balance * 0.5)));
+                      setPaymentRequestId(crypto.randomUUID());
+                      setPayConfirmed(false);
+                    }}
                     className="min-h-[36px] rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-1.5 text-xs font-semibold text-[#06132F] hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
                   >
                     50%
                   </button>
                   <button
                     type="button"
-                    onClick={() => setPayAmount(payingDebt.outstanding_balance)}
+                    onClick={() => {
+                      setPayAmount(payingDebt.outstanding_balance);
+                      setPaymentRequestId(crypto.randomUUID());
+                      setPayConfirmed(false);
+                    }}
                     className="min-h-[36px] rounded-xl border border-[#087BFF]/35 bg-[#087BFF]/10 px-3 py-1.5 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/35 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
                   >
                     Lunasi Penuh
@@ -1324,7 +1331,11 @@ export function UtangPage() {
                   id="pay-debt-amount"
                   label="Nominal Pembayaran (IDR)"
                   value={payAmount}
-                  onChange={setPayAmount}
+                  onChange={(value) => {
+                    setPayAmount(value);
+                    setPaymentRequestId(crypto.randomUUID());
+                    setPayConfirmed(false);
+                  }}
                   hint={`Sisa setelah bayar: ${formatIDR(
                     Math.max(0, payingDebt.outstanding_balance - payAmount)
                   )}`}
@@ -1343,7 +1354,11 @@ export function UtangPage() {
                     id="pay-debt-acc"
                     required
                     value={paySourceAccountId}
-                    onChange={(e) => setPaySourceAccountId(e.target.value)}
+                    onChange={(e) => {
+                      setPaySourceAccountId(e.target.value);
+                      setPaymentRequestId(crypto.randomUUID());
+                      setPayConfirmed(false);
+                    }}
                     className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
                   >
                     <option value="">Pilih akun...</option>
@@ -1366,7 +1381,11 @@ export function UtangPage() {
                     id="pay-debt-notes"
                     type="text"
                     value={payNotes}
-                    onChange={(e) => setPayNotes(e.target.value)}
+                    onChange={(e) => {
+                      setPayNotes(e.target.value);
+                      setPaymentRequestId(crypto.randomUUID());
+                      setPayConfirmed(false);
+                    }}
                     placeholder="Misal: Cicilan bulan ke-4"
                     className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
                   />
