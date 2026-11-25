@@ -91,6 +91,7 @@ export interface DebtPaymentLog {
   owner_id: string;
   debt_id: string;
   transaction_id: string | null;
+  request_id?: string | null;
   amount: number;
   principal_paid: number;
   interest_paid: number;
