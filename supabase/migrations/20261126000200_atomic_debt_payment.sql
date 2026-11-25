@@ -75,7 +75,7 @@ BEGIN
       OR v_existing_log.amount <> v_amount
       OR v_existing_log.notes IS DISTINCT FROM v_notes
       OR v_existing_tx.transaction_type <> 'expense'
-      OR v_existing_tx.source_account_id <> p_source_account_id
+      OR v_existing_tx.source_account_id IS DISTINCT FROM p_source_account_id
       OR v_existing_tx.amount <> v_amount
       OR v_existing_tx.category <> 'Utang & Cicilan'
       OR v_existing_tx.status <> 'posted'
