@@ -1,0 +1,45 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-ego-navy: #06132F;
+  --color-ego-blue: #087BFF;
+  --color-ego-cyan: #19D8FF;
+  --color-ego-silver: #C7D0E0;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    color-scheme: light;
+    background-color: #F4F7FB;
+    color: #06132F;
+    overflow-x: hidden;
+  }
+
+  html.dark {
+    color-scheme: dark;
+    background-color: #040B1C;
+    color: #F1F5F9;
+  }
+
+  body {
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.ego-card-hero {
+  background: radial-gradient(circle at 88% 12%, rgba(25, 216, 255, 0.22) 0%, rgba(8, 123, 255, 0.14) 28%, rgba(6, 19, 47, 0) 62%),
+    linear-gradient(135deg, #06132F 0%, #0A1D47 52%, #07193D 100%);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

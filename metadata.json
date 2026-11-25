@@ -1,0 +1,6 @@
+{
+  "name": "EGO Personal AI",
+  "description": "Asisten Keuangan Pribadi Cerdas Single-Owner dengan Prinsip Kendali Brankas Mutlak.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

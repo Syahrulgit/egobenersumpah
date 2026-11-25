@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="ego-bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#ego-bg)" />
+  <path
+    d="M256 96L128 148V248C128 332 182 406 256 428C330 406 384 332 384 248V148L256 96Z"
+    stroke="#FFFFFF"
+    stroke-width="26"
+    stroke-linejoin="round"
+    fill="rgba(255,255,255,0.12)"
+  />
+  <path
+    d="M210 262L242 294L306 226"
+    stroke="#FFFFFF"
+    stroke-width="28"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

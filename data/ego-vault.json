@@ -1,0 +1,14 @@
+{
+  "owner": null,
+  "preferences": {
+    "date_format": "DD MMM YYYY",
+    "expense_alert_limit": 5000000
+  },
+  "accounts": [],
+  "transactions": [],
+  "assets": [],
+  "debts": [],
+  "owner_commands": [],
+  "recurring_bills": [],
+  "savings_goals": []
+}
