@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { advanceDueDate, computeAccountBalances, roundCurrency, todayISO } from "./finance";
+import { fromDatabaseAccountType, toDatabaseAccountType } from "./account-types";
 import {
   clearPinSessionState,
   hashPinWebCrypto,
@@ -155,14 +156,6 @@ export interface VaultSnapshot {
   financial_health_scores?: FinancialHealthScoreSnapshot[];
   ecosystemTablesReady?: boolean;
   preferences: OwnerPreferences;
-}
-
-function toDatabaseAccountType(type: AccountType): string {
-  return type === "ewallet" ? "e_wallet" : type;
-}
-
-function fromDatabaseAccountType(type: string): AccountType {
-  return type === "e_wallet" ? "ewallet" : (type as AccountType);
 }
 
 function isMissingSupabaseTableError(err: { code?: string; message?: string } | null): boolean {
