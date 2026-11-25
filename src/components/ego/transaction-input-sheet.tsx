@@ -98,7 +98,7 @@ export function TransactionSheetProvider({
   const [formError, setFormError] = useState<string | null>(null);
   const [redirectAfterSave, setRedirectAfterSave] = useState(true);
   const submittingRef = useRef(false);
-  const pendingRequestRef = useRef<{ signature: string; id: string } | null>(null);
+  const pendingRequestRef = useRef<{ id: string } | null>(null);
 
   const accounts = vault?.accounts ?? [];
   const activeAccounts = useMemo(
@@ -217,18 +217,8 @@ export function TransactionSheetProvider({
         description: description.trim() || category,
         owner_confirmed: true,
       };
-      const signature = JSON.stringify(transactionInput);
-      if (
-        pendingRequestRef.current &&
-        pendingRequestRef.current.signature !== signature
-      ) {
-        setFormError(
-          "Ada percobaan transaksi sebelumnya yang belum terkonfirmasi. Kembalikan rincian awal lalu coba simpan ulang agar transaksi tidak tercatat ganda."
-        );
-        return;
-      }
       const requestId = pendingRequestRef.current?.id ?? crypto.randomUUID();
-      pendingRequestRef.current = { signature, id: requestId };
+      pendingRequestRef.current = { id: requestId };
 
       await createTx.mutateAsync({
         ...transactionInput,
@@ -257,8 +247,16 @@ export function TransactionSheetProvider({
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Gagal menyimpan transaksi.";
-      setFormError(msg);
-      toast.error(msg);
+      if (msg.includes("ID transaksi sudah digunakan untuk data berbeda")) {
+        pendingRequestRef.current = null;
+        const notice =
+          "Percobaan sebelumnya sudah tercatat. Perubahan terbaru belum disimpan; konfirmasi ulang untuk mencatatnya sebagai transaksi baru.";
+        setFormError(notice);
+        toast.warning(notice);
+      } else {
+        setFormError(msg);
+        toast.error(msg);
+      }
     } finally {
       submittingRef.current = false;
     }
