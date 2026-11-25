@@ -115,6 +115,7 @@ export function UtangPage() {
   const [payNotes, setPayNotes] = useState("");
   const [payConfirmed, setPayConfirmed] = useState(false);
   const [paymentRequestId, setPaymentRequestId] = useState<string | null>(null);
+  const [isPendingPaymentRetry, setIsPendingPaymentRetry] = useState(false);
 
   // History Modal State
   const [historyDebt, setHistoryDebt] = useState<Debt | null>(null);
@@ -297,6 +298,7 @@ export function UtangPage() {
     setPaySourceAccountId(pending?.source_account_id ?? activeAccounts[0]?.id ?? "");
     setPayNotes(pending?.notes ?? "");
     setPayConfirmed(false);
+    setIsPendingPaymentRetry(Boolean(pending));
     setPaymentRequestId(pending?.request_id ?? crypto.randomUUID());
   }
 
@@ -339,6 +341,7 @@ export function UtangPage() {
       setPayingDebt(null);
       setPayConfirmed(false);
       setPaymentRequestId(null);
+      setIsPendingPaymentRetry(false);
       try {
         window.sessionStorage.removeItem(PENDING_DEBT_PAYMENT_KEY);
       } catch {
@@ -1296,6 +1299,11 @@ export function UtangPage() {
       >
         {payingDebt ? (
           <form onSubmit={handlePayDebt} className="space-y-4">
+            {isPendingPaymentRetry ? (
+              <div className="rounded-xl border border-amber-400/50 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-200">
+                Ada percobaan pembayaran sebelumnya yang belum mendapat konfirmasi hasil. Rincian dikunci agar tidak berubah; konfirmasi Owner lalu ulangi permintaan yang sama untuk memeriksa hasil tanpa membuat pembayaran kedua.
+              </div>
+            ) : null}
             <div className="rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F]">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/65">
                 Sisa Pokok Terutang
@@ -1325,6 +1333,7 @@ export function UtangPage() {
                     payingDebt.outstanding_balance ? (
                     <button
                       type="button"
+                      disabled={isPendingPaymentRetry}
                       onClick={() => {
                         setPayAmount(payingDebt.installment_amount ?? 0);
                         setPaymentRequestId(crypto.randomUUID());
@@ -1337,6 +1346,7 @@ export function UtangPage() {
                   ) : null}
                   <button
                     type="button"
+                    disabled={isPendingPaymentRetry}
                     onClick={() => {
                       setPayAmount(Math.max(1, Math.round(payingDebt.outstanding_balance * 0.25)));
                       setPaymentRequestId(crypto.randomUUID());
@@ -1374,6 +1384,7 @@ export function UtangPage() {
                   id="pay-debt-amount"
                   label="Nominal Pembayaran (IDR)"
                   value={payAmount}
+                  disabled={isPendingPaymentRetry}
                   onChange={(value) => {
                     setPayAmount(value);
                     setPaymentRequestId(crypto.randomUUID());
@@ -1397,6 +1408,7 @@ export function UtangPage() {
                     id="pay-debt-acc"
                     required
                     value={paySourceAccountId}
+                    disabled={isPendingPaymentRetry}
                     onChange={(e) => {
                       setPaySourceAccountId(e.target.value);
                       setPaymentRequestId(crypto.randomUUID());
@@ -1424,6 +1436,7 @@ export function UtangPage() {
                     id="pay-debt-notes"
                     type="text"
                     value={payNotes}
+                    disabled={isPendingPaymentRetry}
                     onChange={(e) => {
                       setPayNotes(e.target.value);
                       setPaymentRequestId(crypto.randomUUID());
