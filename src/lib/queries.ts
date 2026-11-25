@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { advanceDueDate, computeAccountBalances, roundCurrency, todayISO } from "./finance";
 import { fromDatabaseAccountType, toDatabaseAccountType } from "./account-types";
 import { isSameConfirmedTransactionRequest, isValidTransactionRequestId } from "./transaction-idempotency";
-import { isSameDebtPaymentRequest } from "./debt-payment-idempotency";
 import {
   clearPinSessionState,
   hashPinWebCrypto,
@@ -27,7 +26,6 @@ import {
   validateAssetInput,
   validateCategoryBudgetInput,
   validateDebtInput,
-  validateDebtPaymentInput,
   validateFinancialReminderInput,
   validateRecurringBillInput,
   validateSavingsGoalInput,
