@@ -218,10 +218,16 @@ export function TransactionSheetProvider({
         owner_confirmed: true,
       };
       const signature = JSON.stringify(transactionInput);
-      const requestId =
-        pendingRequestRef.current?.signature === signature
-          ? pendingRequestRef.current.id
-          : crypto.randomUUID();
+      if (
+        pendingRequestRef.current &&
+        pendingRequestRef.current.signature !== signature
+      ) {
+        setFormError(
+          "Ada percobaan transaksi sebelumnya yang belum terkonfirmasi. Kembalikan rincian awal lalu coba simpan ulang agar transaksi tidak tercatat ganda."
+        );
+        return;
+      }
+      const requestId = pendingRequestRef.current?.id ?? crypto.randomUUID();
       pendingRequestRef.current = { signature, id: requestId };
 
       await createTx.mutateAsync({
