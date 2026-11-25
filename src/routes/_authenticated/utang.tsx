@@ -84,6 +84,9 @@ export function UtangPage() {
     [vault?.debts]
   );
   const transactions = vault?.transactions ?? [];
+  const storedPendingDebt = storedPendingPayment
+    ? debts.find((debt) => debt.id === storedPendingPayment.debt_id) ?? null
+    : null;
   const debtLogs = vault?.debt_payment_logs ?? [];
   const activeAccounts = (vault?.accounts ?? []).filter((a) => a.is_active);
   const dateFormat = vault?.preferences.date_format ?? "DD MMM YYYY";
@@ -116,6 +119,24 @@ export function UtangPage() {
   const [payConfirmed, setPayConfirmed] = useState(false);
   const [paymentRequestId, setPaymentRequestId] = useState<string | null>(null);
   const [isPendingPaymentRetry, setIsPendingPaymentRetry] = useState(false);
+  const [storedPendingPayment, setStoredPendingPayment] =
+    useState<PendingDebtPaymentRequest | null>(() => {
+      if (typeof window === "undefined") return null;
+      try {
+        const raw = window.sessionStorage.getItem(PENDING_DEBT_PAYMENT_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as PendingDebtPaymentRequest;
+        return (
+          typeof parsed.debt_id === "string" &&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.request_id) &&
+          Number.isFinite(parsed.amount) &&
+          parsed.amount > 0 &&
+          typeof parsed.source_account_id === "string"
+        ) ? parsed : null;
+      } catch {
+        return null;
+      }
+    });
 
   // History Modal State
   const [historyDebt, setHistoryDebt] = useState<Debt | null>(null);
@@ -299,6 +320,7 @@ export function UtangPage() {
     setPayNotes(pending?.notes ?? "");
     setPayConfirmed(false);
     setIsPendingPaymentRetry(Boolean(pending));
+    setStoredPendingPayment(pending);
     setPaymentRequestId(pending?.request_id ?? crypto.randomUUID());
   }
 
@@ -328,6 +350,7 @@ export function UtangPage() {
         PENDING_DEBT_PAYMENT_KEY,
         JSON.stringify(pendingRequest)
       );
+      setStoredPendingPayment(pendingRequest);
       await payDebt.mutateAsync({
         ...pendingRequest,
         owner_confirmed: true,
@@ -342,6 +365,7 @@ export function UtangPage() {
       setPayConfirmed(false);
       setPaymentRequestId(null);
       setIsPendingPaymentRetry(false);
+      setStoredPendingPayment(null);
       try {
         window.sessionStorage.removeItem(PENDING_DEBT_PAYMENT_KEY);
       } catch {
@@ -435,6 +459,25 @@ export function UtangPage() {
       }
     >
       <div className="space-y-6">
+        {storedPendingPayment && storedPendingDebt ? (
+          <section className="flex flex-col gap-3 rounded-2xl border border-amber-400/50 bg-amber-50 p-4 dark:border-amber-500/40 dark:bg-amber-950/30 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-amber-950 dark:text-amber-200">
+                Ada pembayaran utang yang belum terkonfirmasi hasilnya
+              </p>
+              <p className="mt-1 text-xs text-amber-900/85 dark:text-amber-200/80">
+                {storedPendingDebt.creditor} · {formatIDR(storedPendingPayment.amount)}. Periksa ulang permintaan yang sama agar tidak tercatat dua kali.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => startPayment(storedPendingDebt)}
+              className="inline-flex min-h-[38px] shrink-0 items-center justify-center rounded-xl border border-amber-500/50 px-3 py-2 text-xs font-semibold text-amber-950 hover:bg-amber-100 dark:text-amber-200 dark:hover:bg-amber-900/40"
+            >
+              Periksa pembayaran
+            </button>
+          </section>
+        ) : null}
         {/* Metrics Summary */}
         <section className="grid gap-4 sm:grid-cols-3">
           <div className="ego-card-hero flex flex-col justify-between gap-3 rounded-3xl border border-[#1B3163] p-5 text-white shadow-lg shadow-[#06132F]/15 sm:p-6">
