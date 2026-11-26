@@ -291,8 +291,11 @@ export function DashboardPage() {
           {/* B. Primary Balance Hero Card */}
           <section
             aria-label="Kartu Saldo Utama"
-            className="ego-card-hero relative overflow-hidden rounded-3xl border border-[#1B3163] p-5 text-white shadow-xl shadow-[#06132F]/20 sm:p-7"
+            className="ego-card-hero ego-card-hero--living relative overflow-hidden rounded-[2rem] border border-[#1B3163]/80 p-5 text-white shadow-2xl shadow-[#06132F]/35 sm:p-7"
           >
+            <div className="ego-card-hero__companion" aria-hidden="true">
+              <EgoCompanion size="lg" mode={egoMood} />
+            </div>
             <div className="relative z-10 flex flex-wrap items-start justify-between gap-4 pr-0">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
