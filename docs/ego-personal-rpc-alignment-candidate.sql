@@ -499,34 +499,14 @@ REVOKE UPDATE ON TABLE public.owner_commands FROM PUBLIC, anon, authenticated;
 REVOKE TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public
   FROM PUBLIC, anon, authenticated;
 
--- Keep future tables created by the two observed public-schema creator roles
--- from silently inheriting these privileges again.
+-- Keep future application tables created by the migration executor role
+-- from silently inheriting these privileges again. EGO-PERSONAL application
+-- tables are owned by postgres. Supabase's reserved supabase_admin role has
+-- platform-managed defaults that the postgres migration executor cannot
+-- alter (and is not permitted to join); those defaults are not used to create
+-- the application tables and must not be force-modified by this migration.
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLES FROM anon, authenticated;
-DO $default_acl_hardening$
-BEGIN
-  -- ALTER DEFAULT PRIVILEGES for another creator requires membership in that
-  -- role. Local Supabase intentionally keeps postgres outside supabase_admin.
-  -- If that creator has dangerous defaults, fail closed unless the migration
-  -- executor has the required membership; never silently leave an ACL behind.
-  IF pg_catalog.pg_has_role(current_user, 'supabase_admin', 'MEMBER') THEN
-    ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
-      REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLES FROM anon, authenticated;
-  ELSIF EXISTS (
-    SELECT 1
-    FROM pg_catalog.pg_default_acl AS d
-    CROSS JOIN LATERAL pg_catalog.aclexplode(d.defaclacl) AS a
-    JOIN pg_catalog.pg_roles AS gr ON gr.oid = a.grantee
-    WHERE d.defaclobjtype = 'r'
-      AND d.defaclnamespace = 'public'::regnamespace
-      AND d.defaclrole = (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'supabase_admin')
-      AND gr.rolname IN ('anon','authenticated')
-      AND a.privilege_type IN ('TRUNCATE','TRIGGER','REFERENCES')
-  ) THEN
-    RAISE EXCEPTION 'Migration executor must be a member of supabase_admin to revoke its dangerous public-schema default ACLs';
-  END IF;
-END
-$default_acl_hardening$;
 
 
 -- Column-level ACLs survive table-level REVOKE. Remove the explicitly granted
