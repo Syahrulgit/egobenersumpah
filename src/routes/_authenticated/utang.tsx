@@ -149,6 +149,7 @@ export function UtangPage() {
   const [statusFilter, setStatusFilter] = useState<
     "all" | "active" | "overdue" | "paid"
   >("all");
+  const [showAllDebts, setShowAllDebts] = useState(false);
 
   const activeDebts = debts.filter((d) => d.status === "active");
   const totalDebt = activeDebts.reduce(
@@ -179,6 +180,8 @@ export function UtangPage() {
     }
     return debts.filter((d) => d.status === statusFilter);
   }, [debts, statusFilter]);
+
+  const visibleDebts = showAllDebts ? filteredDebts : filteredDebts.slice(0, 3);
 
   const debtPaymentExpenses = useMemo(() => {
     return transactions
@@ -933,7 +936,7 @@ export function UtangPage() {
                 </div>
               ) : (
                 <div className="mt-4 divide-y divide-[#DCE4F0]/80 dark:divide-[#1B3163]">
-                  {filteredDebts.map((debt) => {
+                  {visibleDebts.map((debt) => {
                     const displayStatus = computeDebtDisplayStatus(debt);
                     const isPaid = displayStatus === "paid";
                     const paidPortion = Math.max(
@@ -1087,6 +1090,26 @@ export function UtangPage() {
                   })}
                 </div>
               )}
+              {filteredDebts.length > 0 ? (
+                <div className="mt-4 flex flex-col items-center gap-2 border-t border-[#DCE4F0]/80 pt-4 dark:border-[#1B3163]">
+                  <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+                    {showAllDebts
+                      ? `${filteredDebts.length} utang ditampilkan`
+                      : `${visibleDebts.length} dari ${filteredDebts.length} utang ditampilkan`}
+                  </p>
+                  {filteredDebts.length > 3 ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllDebts((current) => !current)}
+                      className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-[#087BFF]/25 bg-[#087BFF]/8 px-4 py-2 text-xs font-semibold text-[#087BFF] transition-colors hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/25 dark:bg-[#19D8FF]/10 dark:text-[#19D8FF]"
+                    >
+                      {showAllDebts
+                        ? "Tampilkan Lebih Sedikit"
+                        : `Lihat Semua Utang (${filteredDebts.length})`}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </section>
 
             {/* Riwayat Pembayaran Utang Terintegrasi Pengeluaran */}
