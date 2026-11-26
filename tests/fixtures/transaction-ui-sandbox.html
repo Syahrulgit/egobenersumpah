@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EGO — Sandbox Transaksi Terisolasi</title>
+  <style>
+    :root { color-scheme: light; font: 16px system-ui, sans-serif; background: #f3f6fb; color: #13213a; }
+    body { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+    main { background: white; border: 1px solid #d9e2f0; border-radius: 18px; padding: 20px; }
+    h1 { margin: 0 0 6px; font-size: 1.35rem; }
+    .warning { padding: 12px; border-radius: 12px; background: #fff4d6; color: #704b00; margin: 16px 0; }
+    .accounts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .account, .transaction { padding: 12px; border: 1px solid #d9e2f0; border-radius: 12px; }
+    .muted { color: #5e6b80; font-size: .9rem; }
+    form { display: grid; gap: 12px; margin-top: 18px; }
+    label { display: grid; gap: 6px; font-weight: 600; }
+    input, select, button { font: inherit; padding: 11px; border-radius: 10px; border: 1px solid #cbd5e1; }
+    button { background: #075fca; color: white; border: 0; font-weight: 700; cursor: pointer; }
+    button.secondary { background: #e7edf6; color: #13213a; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .check { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+    .check input { width: 18px; height: 18px; }
+    #message { min-height: 24px; font-weight: 600; }
+    #transactions { display: grid; gap: 8px; margin-top: 10px; }
+    @media (max-width: 480px) { .accounts { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>EGO — Sandbox Transaksi</h1>
+  <p class="muted">Lingkungan uji lokal • data fiktif • memori browser saja</p>
+  <div class="warning"><strong>BUKAN PRODUKSI.</strong> Halaman ini tidak mengimpor SDK Supabase, tidak memanggil API, tidak membaca akun Owner, dan tidak menyimpan data ke server. Muat ulang halaman untuk menghapus seluruh data uji.</div>
+  <h2>Saldo akun fiktif</h2>
+  <div class="accounts" id="accounts"></div>
+  <form id="transaction-form">
+    <label>Jenis transaksi
+      <select id="type"><option value="expense">Pengeluaran</option><option value="income">Pemasukan</option><option value="transfer">Transfer</option></select>
+    </label>
+    <label>Nominal (Rupiah)
+      <input id="amount" type="number" min="1" step="1" value="25000" required>
+    </label>
+    <label id="source-label">Akun sumber
+      <select id="source"><option value="cash">Dompet Uji</option><option value="bank">Bank Uji</option></select>
+    </label>
+    <label id="destination-label" hidden>Akun tujuan
+      <select id="destination"><option value="bank">Bank Uji</option><option value="cash">Dompet Uji</option></select>
+    </label>
+    <label class="check"><input id="owner-confirmed" type="checkbox"> Saya mengonfirmasi transaksi uji ini sebagai Owner</label>
+    <button id="submit" type="submit" disabled>Konfirmasi &amp; Catat di Sandbox</button>
+  </form>
+  <p id="message" role="status" aria-live="polite"></p>
+  <h2>Riwayat uji</h2>
+  <div id="transactions" class="muted">Belum ada transaksi uji.</div>
+</main>
+<script type="module">
+  import { createSandbox, submitSandboxTransaction, cancelSandboxTransaction } from "./transaction-sandbox.js";
+  const state = createSandbox();
+  const $ = (id) => document.getElementById(id);
+  const format = (value) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value);
+  const render = () => {
+    $("accounts").innerHTML = state.accounts.map((account) => `<div class="account"><strong>${account.name}</strong><div>${format(account.balance)}</div></div>`).join("");
+    $("transactions").innerHTML = state.transactions.length ? state.transactions.map((tx) => `<div class="transaction"><strong>${tx.type} — ${format(tx.amount)}</strong><div class="muted">ID: ${tx.id} • ${tx.status}</div>${tx.status === "posted" ? `<button class="secondary" data-cancel="${tx.id}" type="button">Batalkan &amp; pulihkan saldo</button>` : ""}</div>`).join("") : "Belum ada transaksi uji.";
+    document.querySelectorAll("[data-cancel]").forEach((button) => button.addEventListener("click", () => {
+      try { cancelSandboxTransaction(state, button.dataset.cancel); $("message").textContent = "Transaksi uji dibatalkan; saldo dipulihkan."; render(); }
+      catch (error) { $("message").textContent = error.message; }
+    }));
+  };
+  const syncForm = () => {
+    const type = $("type").value;
+    $("source-label").hidden = type === "income";
+    $("destination-label").hidden = type === "expense";
+    $("submit").disabled = !$("owner-confirmed").checked;
+  };
+  $("type").addEventListener("change", syncForm);
+  $("owner-confirmed").addEventListener("change", syncForm);
+  $("transaction-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    try {
+      submitSandboxTransaction(state, {
+        type: $("type").value,
+        amount: Number($("amount").value),
+        sourceId: $("type").value === "income" ? null : $("source").value,
+        destinationId: $("type").value === "expense" ? null : $("destination").value,
+        ownerConfirmed: $("owner-confirmed").checked,
+      });
+      $("message").textContent = "Berhasil dicatat di sandbox lokal. Tidak ada data produksi yang berubah.";
+      $("owner-confirmed").checked = false;
+      syncForm();
+      render();
+    } catch (error) { $("message").textContent = error.message; }
+  });
+  syncForm();
+  render();
+</script>
+</body>
+</html>
