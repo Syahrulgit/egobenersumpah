@@ -168,3 +168,7 @@ INSERT INTO public.owner_commands (id, owner_id, command_text, status, parsed_dr
    'Perintah sudah ditolak', 'rejected', NULL),
   ('14141414-1414-4141-8141-141414141414','11111111-1111-4111-8111-111111111111',
    'Perintah untuk uji penolakan', 'pending', NULL);
+
+INSERT INTO public.owner_commands (id, owner_id, command_text, status, parsed_draft) VALUES
+  ('15151515-1515-4151-8151-151515151515','22222222-2222-4222-8222-222222222222',
+   'Perintah privat Owner kedua', 'pending', NULL);
