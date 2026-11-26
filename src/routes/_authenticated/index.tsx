@@ -444,7 +444,7 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => openTransactionSheet({ type: "expense" })}
-                className="flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
+                className="flex min-h-[72px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#19D8FF] to-[#087BFF] text-white shadow-xs">
                   <Plus className="h-4 w-4" aria-hidden="true" />
@@ -457,7 +457,7 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => openTransactionSheet({ type: "transfer" })}
-                className="flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
+                className="flex min-h-[72px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#087BFF]/12 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
                   <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
@@ -469,7 +469,7 @@ export function DashboardPage() {
 
               <Link
                 to="/aset"
-                className="flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
+                className="flex min-h-[72px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#087BFF]/12 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
                   <Briefcase className="h-4 w-4" aria-hidden="true" />
@@ -481,7 +481,7 @@ export function DashboardPage() {
 
               <Link
                 to="/utang"
-                className="flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
+                className="flex min-h-[72px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400">
                   <CreditCard className="h-4 w-4" aria-hidden="true" />
