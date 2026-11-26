@@ -100,7 +100,7 @@ export function createPersistentLoginRateLimiter(
 
     recordFailure(key: string, nowMs = Date.now()): LoginRateCheckResult {
       return withFileLock(rateLimitLock, () => {
-        const store = readStore();
+        const store = readStore(rateLimitFile);
         for (const [hash, entry] of Object.entries(store)) {
           if (nowMs - entry.windowStart >= windowMs) delete store[hash];
         }
@@ -115,10 +115,10 @@ export function createPersistentLoginRateLimiter(
     },
 
     reset(key: string): void {
-      withFileLock(RATE_LIMIT_LOCK, () => {
-        const store = readStore();
+      withFileLock(rateLimitLock, () => {
+        const store = readStore(rateLimitFile);
         delete store[storageKey(namespace, key)];
-        writeStore(store);
+        writeStore(rateLimitFile, store);
       });
     },
   };
