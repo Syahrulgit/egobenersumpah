@@ -215,9 +215,59 @@ async function startServer(): Promise<void> {
   // =========================================================
   // AUTH ROUTES (SINGLE-OWNER GUARD)
   // =========================================================
-  app.get("/api/auth/status", (req, res) => {
-    const db = loadVault();
+  app.get("/api/auth/status", async (req, res) => {
     const token = extractToken(req);
+
+    // Supabase is the source of truth when configured. Never infer Supabase
+    // Owner state from the legacy file-backed vault.
+    if (isServerSupabaseConfigured()) {
+      const client = token ? createAuthedSupabaseClient(token) : null;
+      if (!client || !token) {
+        res.json({
+          hasOwner: null,
+          authenticated: false,
+          hasPin: false,
+          owner: null,
+          mode: "supabase",
+        });
+        return;
+      }
+
+      try {
+        const { data, error } = await client.auth.getUser(token);
+        const user = !error ? data.user : null;
+        res.json({
+          // Whether an Owner exists globally cannot be determined safely
+          // from the public client without a dedicated server-side RPC.
+          hasOwner: user ? true : null,
+          authenticated: Boolean(user),
+          hasPin: Boolean(user?.user_metadata?.ego_pin_hash),
+          owner: user
+            ? {
+                id: user.id,
+                email: user.email ?? null,
+                full_name:
+                  typeof user.user_metadata?.full_name === "string"
+                    ? user.user_metadata.full_name
+                    : "Owner Utama",
+                created_at: user.created_at,
+              }
+            : null,
+          mode: "supabase",
+        });
+      } catch {
+        res.json({
+          hasOwner: null,
+          authenticated: false,
+          hasPin: false,
+          owner: null,
+          mode: "supabase",
+        });
+      }
+      return;
+    }
+
+    const db = loadVault();
     const sessionOwnerId = validateSessionToken(token);
     const authenticated =
       Boolean(sessionOwnerId && db.owner && db.owner.id === sessionOwnerId);
@@ -234,6 +284,7 @@ async function startServer(): Promise<void> {
             created_at: db.owner.created_at,
           }
         : null,
+      mode: "local",
     });
   });
 
