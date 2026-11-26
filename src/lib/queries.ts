@@ -924,38 +924,21 @@ export function useCreateTransaction() {
       });
 
       if (isSupabaseConfigured && supabase) {
-        const transactionRow = {
-          ...normalized,
-          status: "posted" as const,
-        };
-        const { error } = await supabase
-          .from("transactions")
-          .insert(transactionRow);
-
-        if (error) {
-          if (error.code !== "23505") throw new Error(error.message);
-
-          // A retry with the same request ID is successful only when the
-          // already-saved row is exactly the same confirmed transaction.
-          const { data: existing, error: lookupError } = await supabase
-            .from("transactions")
-            .select(
-              "id, transaction_type, source_account_id, destination_account_id, amount, transaction_date, category, description, status, owner_confirmed"
-            )
-            .eq("id", normalized.id)
-            .maybeSingle();
-
-          if (lookupError) throw new Error(lookupError.message);
-          const isSameRequest =
-            existing?.id === normalized.id &&
-            isSameConfirmedTransactionRequest(existing, transactionRow);
-
-          if (!isSameRequest) {
-            throw new Error(
-              "ID transaksi sudah digunakan untuk data berbeda. Transaksi tidak diulang."
-            );
-          }
+        if (!normalized.owner_confirmed) {
+          throw new Error("Persetujuan eksplisit Owner wajib sebelum transaksi disimpan.");
         }
+        const { error } = await supabase.rpc("create_confirmed_transaction", {
+          p_id: normalized.id,
+          p_transaction_type: normalized.transaction_type,
+          p_source_account_id: normalized.source_account_id,
+          p_destination_account_id: normalized.destination_account_id,
+          p_amount: normalized.amount,
+          p_transaction_date: normalized.transaction_date,
+          p_category: normalized.category,
+          p_description: normalized.description,
+          p_owner_confirmed: normalized.owner_confirmed,
+        });
+        if (error) throw new Error(error.message || "Transaksi gagal disimpan.");
         return;
       }
       return apiFetch("/api/transactions", {
@@ -974,11 +957,10 @@ export function useCancelTransaction() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (isSupabaseConfigured && supabase) {
-        const { error } = await supabase
-          .from("transactions")
-          .update({ status: "cancelled" })
-          .eq("id", id);
-        if (error) throw new Error(error.message);
+        const { error } = await supabase.rpc("cancel_confirmed_transaction", {
+          p_id: id,
+        });
+        if (error) throw new Error(error.message || "Pembatalan transaksi gagal.");
         return;
       }
       return apiFetch(`/api/transactions/${id}/cancel`, { method: "PATCH" });
@@ -1216,24 +1198,22 @@ export function usePayDebt() {
       }
 
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.rpc("ego_pay_debt_atomic", {
-          p_request_id: input.request_id,
+        const { data, error } = await supabase.rpc("pay_debt_atomically", {
           p_debt_id: input.debt_id,
+          p_request_id: input.request_id,
           p_amount: paymentAmount,
           p_source_account_id: input.source_account_id,
-          p_owner_confirmed: input.owner_confirmed,
-          p_transaction_date: todayISO(),
           p_notes: input.notes?.trim() || null,
+          p_owner_confirmed: input.owner_confirmed,
         });
         if (error) {
           throw new Error(error.message || "Pembayaran utang gagal diproses.");
         }
         if (!data) {
-          throw new Error("Server tidak mengembalikan konfirmasi pembayaran utang.");
+          throw new Error("Database tidak mengembalikan konfirmasi pembayaran utang.");
         }
         return data;
       }
-
       return apiFetch(`/api/debts/${input.debt_id}/pay`, {
         method: "POST",
         body: JSON.stringify({
@@ -1334,80 +1314,26 @@ export function useApproveCommand() {
       };
 
       if (isSupabaseConfigured && supabase) {
-        const { data: existingCmd, error: cmdFetchErr } = await supabase
-          .from("owner_commands")
-          .select("id, status")
-          .eq("id", input.id)
-          .single();
-        if (cmdFetchErr || !existingCmd) {
-          throw new Error(cmdFetchErr?.message || "Perintah tidak ditemukan.");
+        const { data, error } = await supabase.rpc("approve_owner_command", {
+          p_command_id: input.id,
+          p_owner_confirmed: input.owner_confirmed,
+          p_draft: {
+            transaction_type: cleanDraft.transaction_type,
+            amount: cleanDraft.amount,
+            category: cleanDraft.category,
+            description: cleanDraft.description,
+            source_account_id: cleanDraft.source_account_id,
+            destination_account_id: cleanDraft.destination_account_id,
+            transaction_date: cleanDraft.transaction_date,
+          },
+        });
+        if (error) {
+          throw new Error(error.message || "Persetujuan perintah gagal diproses.");
         }
-
-        if (existingCmd.status === "processed") {
-          const { data: existingTx, error: existingTxErr } = await supabase
-            .from("transactions")
-            .select(
-              "id, transaction_type, source_account_id, destination_account_id, amount, transaction_date, category, description, status, owner_confirmed"
-            )
-            .eq("id", input.id)
-            .maybeSingle();
-          if (existingTxErr) throw new Error(existingTxErr.message);
-          if (
-            !existingTx ||
-            !isSameConfirmedTransactionRequest(existingTx, transactionRequest)
-          ) {
-            throw new Error("Perintah sudah diproses, tetapi transaksi tidak cocok untuk diverifikasi.");
-          }
-          return;
+        if (!data) {
+          throw new Error("Database tidak mengembalikan transaksi hasil persetujuan.");
         }
-        if (existingCmd.status !== "pending") {
-          throw new Error("Perintah ini sudah diproses sebelumnya.");
-        }
-
-        const { data: insertedTx, error: txErr } = await supabase
-          .from("transactions")
-          .insert({ id: input.id, ...transactionRequest })
-          .select(
-            "id, transaction_type, source_account_id, destination_account_id, amount, transaction_date, category, description, status, owner_confirmed"
-          )
-          .single();
-
-        let transactionCreated = Boolean(insertedTx);
-        let savedTx = insertedTx;
-        if (txErr) {
-          if (txErr.code !== "23505") {
-            throw new Error(txErr.message || "Gagal memposting transaksi draf.");
-          }
-          const { data: existingTx, error: existingTxErr } = await supabase
-            .from("transactions")
-            .select(
-              "id, transaction_type, source_account_id, destination_account_id, amount, transaction_date, category, description, status, owner_confirmed"
-            )
-            .eq("id", input.id)
-            .maybeSingle();
-          if (existingTxErr) throw new Error(existingTxErr.message);
-          if (!existingTx || !isSameConfirmedTransactionRequest(existingTx, transactionRequest)) {
-            throw new Error("ID transaksi sudah digunakan untuk data berbeda. Transaksi tidak diulang.");
-          }
-          savedTx = existingTx;
-          transactionCreated = false;
-        }
-        if (!savedTx) {
-          throw new Error("Gagal memverifikasi transaksi draf yang disimpan.");
-        }
-
-        const { error: cmdErr } = await supabase
-          .from("owner_commands")
-          .update({ status: "processed", parsed_draft: cleanDraft })
-          .eq("id", input.id)
-          .eq("status", "pending");
-        if (cmdErr) {
-          if (transactionCreated) {
-            await supabase.from("transactions").delete().eq("id", input.id);
-          }
-          throw new Error(cmdErr.message);
-        }
-        return;
+        return data;
       }
 
       return apiFetch(`/api/commands/${input.id}/approve`, {
