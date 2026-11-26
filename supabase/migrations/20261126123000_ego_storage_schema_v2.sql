@@ -72,8 +72,6 @@ create table if not exists public.debt_payment_logs (
 create unique index if not exists uq_debt_payment_request
   on public.debt_payment_logs(owner_id, request_id) where request_id is not null;
 
-create unique index if not exists uq_savings_goals_id_owner on public.savings_goals(id, owner_id);
-
 create table if not exists public.recurring_bills (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
@@ -109,6 +107,8 @@ create table if not exists public.savings_goals (
   constraint savings_goals_account_owner_fkey
     foreign key (linked_account_id, owner_id) references public.accounts(id, owner_id)
 );
+create unique index if not exists uq_savings_goals_id_owner on public.savings_goals(id, owner_id);
+
 create table if not exists public.financial_reminders (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
