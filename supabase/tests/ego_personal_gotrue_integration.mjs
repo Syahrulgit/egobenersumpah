@@ -30,7 +30,13 @@ assert(
   signup.response.status === 200 || signup.response.status === 201,
   "GoTrue accepts a disposable email signup"
 );
-assert(typeof signup.data.id === "string", "GoTrue returns a persisted user id");
+// GoTrue returns a User object when confirmation is pending, but returns a
+// Session object (with the User nested under "user") when auto-confirm is on.
+const signupUser = signup.data.user ?? signup.data;
+assert(
+  typeof signupUser.id === "string" && signupUser.id.length > 0,
+  "GoTrue signup response contains the created user id"
+);
 
 // Authenticate through the password grant; do not synthesize or modify the JWT.
 const login = await jsonRequest(authUrl + "/token?grant_type=password", {
@@ -44,7 +50,7 @@ assert(login.data.token_type?.toLowerCase() === "bearer", "GoTrue identifies the
 const parts = login.data.access_token.split(".");
 assert(parts.length === 3, "issued access token has JWT structure");
 const claims = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
-assert(claims.sub === signup.data.id, "JWT subject matches the created GoTrue user");
+assert(claims.sub === signupUser.id, "JWT subject matches the created GoTrue user");
 assert(claims.role === "authenticated", "GoTrue JWT carries authenticated role");
 assert(claims.aud === "authenticated" || claims.aud?.includes?.("authenticated"),
   "GoTrue JWT carries the expected authenticated audience");
