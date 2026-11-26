@@ -121,6 +121,19 @@ BEGIN
   EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
   END;
 
+  -- Rejection is also a narrow, owner-scoped pending -> rejected transition.
+  PERFORM public.reject_owner_command('14141414-1414-4141-8141-141414141414');
+  PERFORM public.reject_owner_command('14141414-1414-4141-8141-141414141414');
+  IF (SELECT status FROM public.owner_commands WHERE id='14141414-1414-4141-8141-141414141414') <> 'rejected' THEN
+    RAISE EXCEPTION 'Owner command rejection RPC did not set rejected status';
+  END IF;
+  BEGIN
+    UPDATE public.owner_commands SET status='processed'
+    WHERE id='13131313-1313-4131-8131-131313131313';
+    RAISE EXCEPTION 'Direct Owner command UPDATE unexpectedly succeeded';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+
   -- Debt payment updates debt + transaction + payment log atomically.
   v_payment := public.ego_pay_debt_atomic(
     '31313131-3131-4131-8131-313131313131',
