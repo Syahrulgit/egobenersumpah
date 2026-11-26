@@ -1190,7 +1190,7 @@ export function usePayDebt() {
       if (!isValidTransactionRequestId(input.request_id)) {
         throw new Error("ID permintaan pembayaran tidak valid.");
       }
-      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(input.transaction_date)) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(input.transaction_date)) {
         throw new Error("Tanggal pembayaran tidak valid.");
       }
       const paymentAmount = roundCurrency(Number(input.amount));
