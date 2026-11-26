@@ -5,8 +5,7 @@ import { withFileLock } from "./fileLock";
 import type { LoginRateCheckResult, LoginRateLimiter } from "./vaultRules";
 
 const DATA_DIR = path.resolve(process.cwd(), "data");
-const RATE_LIMIT_FILE = path.join(DATA_DIR, "ego-rate-limits.json");
-const RATE_LIMIT_LOCK = path.join(DATA_DIR, "ego-rate-limits.lock");
+
 
 interface RateLimitEntry {
   count: number;
@@ -19,7 +18,7 @@ function storageKey(namespace: string, key: string): string {
 }
 
 function readStore(): RateLimitStore {
-  if (!fs.existsSync(RATE_LIMIT_FILE)) return {};
+  if (!fs.existsSync(rateLimitFile)) return {};
   let parsed: unknown;
   try {
     parsed = JSON.parse(fs.readFileSync(RATE_LIMIT_FILE, "utf8"));
@@ -83,8 +82,11 @@ function evaluate(entry: RateLimitEntry | undefined, maxAttempts: number, window
 export function createPersistentLoginRateLimiter(
   namespace: string,
   maxAttempts = 5,
-  windowMs = 15 * 60 * 1000
+  windowMs = 15 * 60 * 1000,
+  storageDir = DATA_DIR
 ): LoginRateLimiter {
+  const rateLimitFile = path.join(storageDir, "ego-rate-limits.json");
+  const rateLimitLock = path.join(storageDir, "ego-rate-limits.lock");
   if (!/^[a-z-]{1,24}$/.test(namespace)) throw new Error("Namespace rate limit tidak valid.");
   if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || !Number.isFinite(windowMs) || windowMs <= 0) {
     throw new Error("Konfigurasi rate limit tidak valid.");
@@ -97,7 +99,7 @@ export function createPersistentLoginRateLimiter(
     },
 
     recordFailure(key: string, nowMs = Date.now()): LoginRateCheckResult {
-      return withFileLock(RATE_LIMIT_LOCK, () => {
+      return withFileLock(rateLimitLock, () => {
         const store = readStore();
         for (const [hash, entry] of Object.entries(store)) {
           if (nowMs - entry.windowStart >= windowMs) delete store[hash];
