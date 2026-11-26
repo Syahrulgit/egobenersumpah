@@ -10,6 +10,13 @@ DECLARE
   v_tx_count integer;
   v_log_count integer;
 BEGIN
+  -- The first migration must reject posted transactions without Owner confirmation.
+  BEGIN
+    INSERT INTO public.transactions (transaction_type,category,amount,source_account_id,owner_confirmed,status,owner_id)
+    VALUES ('expense','fixture invalid',1.00,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',false,'posted',auth.uid());
+    RAISE EXCEPTION 'posted unconfirmed transaction unexpectedly inserted';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+
   -- Successful payment and exact retry must return the same records.
   v_result := public.ego_pay_debt_atomic(
     '99999999-9999-4999-8999-999999999999',
