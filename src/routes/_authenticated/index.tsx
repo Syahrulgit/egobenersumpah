@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AppShell } from "../../components/ego/app-shell";
+import { EgoAnimatedMark } from "../../components/ego/ego-brand";
 import {
   BudgetUsageChart,
   severityBadgeClass,
@@ -960,7 +961,7 @@ export function DashboardPage() {
             >
               <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#C7D0E0]/75">
                 <span>EGO AI Core</span>
-                <Bot className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
+                <EgoAnimatedMark size="sm" mode="active" />
               </div>
               <p className="mt-2 text-sm font-bold text-[#06132F] dark:text-white">
                 Konsultan Keuangan AI
