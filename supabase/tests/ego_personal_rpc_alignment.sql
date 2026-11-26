@@ -192,6 +192,38 @@ BEGIN
   EXCEPTION WHEN unique_violation THEN NULL;
   END;
 
+  -- Amounts are normalized to the ledger's numeric(15,2) scale before replay comparison.
+  v_tx := public.create_confirmed_transaction(
+    '29292929-2929-4929-8929-292929292929','expense',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',NULL,20.004,'2026-11-26','Tes','Decimal retry',TRUE
+  );
+  IF v_tx.amount <> 20.00 THEN
+    RAISE EXCEPTION 'Transaction amount was not normalized to two decimal places';
+  END IF;
+  v_replay := public.create_confirmed_transaction(
+    '29292929-2929-4929-8929-292929292929','expense',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',NULL,20.00,'2026-11-26','Tes','Decimal retry',TRUE
+  );
+  IF v_tx.id <> v_replay.id THEN
+    RAISE EXCEPTION 'Equivalent two-decimal retry was not recognized as the same transaction';
+  END IF;
+  BEGIN
+    PERFORM public.create_confirmed_transaction(
+      '29292929-2929-4929-8929-292929292929','expense',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',NULL,20.01,'2026-11-26','Tes','Decimal retry',TRUE
+    );
+    RAISE EXCEPTION 'Different normalized amount unexpectedly replayed';
+  EXCEPTION WHEN unique_violation THEN NULL;
+  END;
+  BEGIN
+    PERFORM public.create_confirmed_transaction(
+      '30303030-3030-4030-8030-303030303030','expense',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',NULL,0.004,'2026-11-26','Tes','Rounds to zero',TRUE
+    );
+    RAISE EXCEPTION 'Amount rounding to zero unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
+  END;
+
   -- Reject missing confirmation, invalid account ownership, inactive account and bad shape.
   BEGIN
     PERFORM public.create_confirmed_transaction(
