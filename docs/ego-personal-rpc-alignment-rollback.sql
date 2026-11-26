@@ -8,7 +8,8 @@
 
 BEGIN;
 
-DROP FUNCTION IF EXISTS public.approve_owner_command(uuid, boolean, jsonb);
+DROP FUNCTION IF EXISTS public.approve_owner_command(uuid, boolean);
+DROP FUNCTION IF EXISTS public.save_owner_command_draft(uuid, jsonb);
 DROP FUNCTION IF EXISTS public.reject_owner_command(uuid);
 DROP FUNCTION IF EXISTS public.cancel_confirmed_transaction(uuid);
 DROP FUNCTION IF EXISTS public.create_confirmed_transaction(uuid, text, uuid, uuid, numeric, date, text, text, boolean);
