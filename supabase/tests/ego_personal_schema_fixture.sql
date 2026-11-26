@@ -25,21 +25,34 @@ $roles$;
 
 GRANT anon, authenticated TO authenticator;
 
-CREATE TABLE auth.users (id uuid PRIMARY KEY);
+DO $auth_fixture$
+BEGIN
+  -- Reuse Supabase Local's native auth.users and auth.uid(); create compatible
+  -- stand-ins only when this fixture runs on plain PostgreSQL.
+  IF pg_catalog.to_regclass('auth.users') IS NULL THEN
+    CREATE TABLE auth.users (id uuid PRIMARY KEY);
+  END IF;
+  IF pg_catalog.to_regprocedure('auth.uid()') IS NULL THEN
+    EXECUTE $function$
+      CREATE FUNCTION auth.uid()
+      RETURNS uuid
+      LANGUAGE sql
+      STABLE
+      AS $body$
+        SELECT COALESCE(
+          NULLIF(pg_catalog.current_setting('request.jwt.claim.sub', TRUE), '')::uuid,
+          (NULLIF(pg_catalog.current_setting('request.jwt.claims', TRUE), '')::jsonb ->> 'sub')::uuid
+        )
+      $body$
+    $function$;
+  END IF;
+END
+$auth_fixture$;
+
 INSERT INTO auth.users (id) VALUES
   ('11111111-1111-4111-8111-111111111111'),
-  ('22222222-2222-4222-8222-222222222222');
-
-CREATE OR REPLACE FUNCTION auth.uid()
-RETURNS uuid
-LANGUAGE sql
-STABLE
-AS $function$
-  SELECT COALESCE(
-    NULLIF(pg_catalog.current_setting('request.jwt.claim.sub', TRUE), '')::uuid,
-    (NULLIF(pg_catalog.current_setting('request.jwt.claims', TRUE), '')::jsonb ->> 'sub')::uuid
-  )
-$function$;
+  ('22222222-2222-4222-8222-222222222222')
+ON CONFLICT (id) DO NOTHING;
 
 CREATE TABLE public.accounts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
