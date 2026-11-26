@@ -1222,6 +1222,7 @@ export function usePayDebt() {
           p_amount: paymentAmount,
           p_source_account_id: input.source_account_id,
           p_owner_confirmed: input.owner_confirmed,
+          p_transaction_date: todayISO(),
           p_notes: input.notes?.trim() || null,
         });
         if (error) {
