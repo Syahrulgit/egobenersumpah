@@ -259,6 +259,32 @@ BEGIN
   EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
   END;
 
+  -- Outflows must not overdraw the source account; failures leave no ledger rows.
+  BEGIN
+    PERFORM public.create_confirmed_transaction(
+      '61616161-6161-4161-8161-616161616161','expense',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',NULL,9999999999999.99,
+      '2026-11-26','Tes','Insufficient funds expense',TRUE
+    );
+    RAISE EXCEPTION 'Expense exceeding available balance unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
+  END;
+  IF EXISTS (SELECT 1 FROM public.transactions WHERE id='61616161-6161-4161-8161-616161616161') THEN
+    RAISE EXCEPTION 'Rejected expense left a transaction row';
+  END IF;
+  BEGIN
+    PERFORM public.create_confirmed_transaction(
+      '62626262-6262-4262-8262-626262626262','transfer',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      9999999999999.99,'2026-11-26','Tes','Insufficient funds transfer',TRUE
+    );
+    RAISE EXCEPTION 'Transfer exceeding available balance unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
+  END;
+  IF EXISTS (SELECT 1 FROM public.transactions WHERE id='62626262-6262-4262-8262-626262626262') THEN
+    RAISE EXCEPTION 'Rejected transfer left a transaction row';
+  END IF;
+
   -- Reject missing confirmation, invalid account ownership, inactive account and bad shape.
   BEGIN
     PERFORM public.create_confirmed_transaction(
