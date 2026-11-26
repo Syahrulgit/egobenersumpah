@@ -35,12 +35,12 @@
 }
 
 /* The active destination responds with a small, tactile emphasis. */
-aside nav a[aria-current="page"],
+nav[aria-label="Navigasi Utama"] a[aria-current="page"],
 nav[aria-label="Navigasi Mobile"] a[aria-current="page"] {
   transition: color 220ms ease, background-color 220ms ease, transform 260ms cubic-bezier(.2,.8,.2,1);
 }
 
-aside nav a[aria-current="page"] svg,
+nav[aria-label="Navigasi Utama"] a[aria-current="page"] svg,
 nav[aria-label="Navigasi Mobile"] a[aria-current="page"] svg {
   animation: ego-hybrid-nav-pop 360ms cubic-bezier(.2,.8,.2,1) both;
 }
@@ -81,12 +81,12 @@ nav[aria-label="Navigasi Mobile"] a[aria-current="page"]::before {
     will-change: auto;
   }
   .ego-page-content::after,
-  aside nav a[aria-current="page"] svg,
+  nav[aria-label="Navigasi Utama"] a[aria-current="page"] svg,
   nav[aria-label="Navigasi Mobile"] a[aria-current="page"] svg,
   nav[aria-label="Navigasi Mobile"] a[aria-current="page"]::before {
     animation: none !important;
   }
-  aside nav a[aria-current="page"],
+  nav[aria-label="Navigasi Utama"] a[aria-current="page"],
   nav[aria-label="Navigasi Mobile"] a[aria-current="page"] {
     transition: none !important;
   }

@@ -363,7 +363,7 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
         </header>
 
         <main className="ego-page-main relative isolate mx-auto max-w-6xl px-4 pt-5 pb-28 sm:px-6 sm:pt-6 md:pb-14 lg:px-8">
-          <div className="ego-page-content relative z-10">{children}</div>
+          <div key={pathname} className="ego-page-content relative z-10">{children}</div>
         </main>
       </div>
 
