@@ -1348,10 +1348,9 @@ export function useRejectCommand() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (isSupabaseConfigured && supabase) {
-        const { error } = await supabase
-          .from("owner_commands")
-          .update({ status: "rejected" })
-          .eq("id", id);
+        const { error } = await supabase.rpc("reject_owner_command", {
+          p_command_id: id,
+        });
         if (error) throw new Error(error.message);
         return;
       }
