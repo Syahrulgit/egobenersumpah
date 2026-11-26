@@ -1043,6 +1043,7 @@ async function startServer(): Promise<void> {
   });
 
   app.patch("/api/debts/:id", requireOwner, (req, res) => {
+    withVaultMutationLock(() => {
     try {
       const ownerId = (req as express.Request & { ownerId: string }).ownerId;
       const ownerConfirmed = req.body?.owner_confirmed === true;
@@ -1125,9 +1126,11 @@ async function startServer(): Promise<void> {
         error: err instanceof Error ? err.message : "Gagal memperbarui data utang.",
       });
     }
+    });
   });
 
   app.post("/api/debts/:id/pay", requireOwner, (req, res) => {
+    withVaultMutationLock(() => {
     try {
       const ownerId = (req as express.Request & { ownerId: string }).ownerId;
       const db = loadVault();
@@ -1237,6 +1240,7 @@ async function startServer(): Promise<void> {
         error: err instanceof Error ? err.message : "Gagal memproses pembayaran utang.",
       });
     }
+    });
   });
 
   // =========================================================
