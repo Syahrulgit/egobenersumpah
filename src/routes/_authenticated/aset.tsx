@@ -33,6 +33,7 @@ export function AsetPage() {
 
   // Modal Create Asset
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [showAllAssets, setShowAllAssets] = useState(false);
 
   // New Asset Form
   const [assetName, setAssetName] = useState("");
@@ -56,6 +57,7 @@ export function AsetPage() {
 
   const assets = vault?.assets ?? [];
   const totalAssetValue = assets.reduce((sum, a) => sum + a.current_value, 0);
+  const visibleAssets = showAllAssets ? assets : assets.slice(0, 3);
 
   async function handleCreateAsset(e: React.FormEvent) {
     e.preventDefault();
@@ -232,7 +234,7 @@ export function AsetPage() {
                 </div>
               ) : (
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {assets.map((asset) => {
+                  {visibleAssets.map((asset) => {
                     const sharePct =
                       totalAssetValue > 0
                         ? Math.round((asset.current_value / totalAssetValue) * 100)
@@ -297,6 +299,26 @@ export function AsetPage() {
                   })}
                 </div>
               )}
+              {assets.length > 0 ? (
+                <div className="mt-4 flex flex-col items-center gap-2 border-t border-[#DCE4F0]/80 pt-4 dark:border-[#1B3163]">
+                  <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+                    {showAllAssets
+                      ? `${assets.length} aset ditampilkan`
+                      : `${visibleAssets.length} dari ${assets.length} aset ditampilkan`}
+                  </p>
+                  {assets.length > 3 ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllAssets((current) => !current)}
+                      className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-[#087BFF]/25 bg-[#087BFF]/8 px-4 py-2 text-xs font-semibold text-[#087BFF] transition-colors hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/25 dark:bg-[#19D8FF]/10 dark:text-[#19D8FF]"
+                    >
+                      {showAllAssets
+                        ? "Tampilkan Lebih Sedikit"
+                        : `Lihat Semua Aset (${assets.length})`}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </section>
 
