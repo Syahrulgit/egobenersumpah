@@ -248,6 +248,45 @@ BEGIN
 END;
 $function$;
 
+
+CREATE OR REPLACE FUNCTION public.reject_owner_command(p_command_id uuid)
+RETURNS public.owner_commands
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $function$
+DECLARE
+  v_owner uuid := auth.uid();
+  v_cmd public.owner_commands%ROWTYPE;
+BEGIN
+  IF v_owner IS NULL THEN
+    RAISE EXCEPTION 'Autentikasi Owner diperlukan.' USING ERRCODE = '28000';
+  END IF;
+
+  SELECT c.* INTO v_cmd
+  FROM public.owner_commands AS c
+  WHERE c.id = p_command_id AND c.owner_id = v_owner
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Perintah tidak ditemukan.' USING ERRCODE = 'P0002';
+  END IF;
+  IF v_cmd.status = 'rejected' THEN
+    RETURN v_cmd;
+  END IF;
+  IF v_cmd.status <> 'pending' THEN
+    RAISE EXCEPTION 'Hanya perintah pending yang dapat ditolak.' USING ERRCODE = '22023';
+  END IF;
+
+  UPDATE public.owner_commands AS c
+  SET status = 'rejected'
+  WHERE c.id = p_command_id AND c.owner_id = v_owner
+  RETURNING c.* INTO v_cmd;
+
+  RETURN v_cmd;
+END;
+$function$;
+
 -- Reuse the existing PERSONAL debt-payment contract and UUID request_id column.
 -- Do not create a second debt-payment implementation or an idempotency_key column.
 CREATE OR REPLACE FUNCTION public.ego_pay_debt_atomic(
@@ -393,15 +432,18 @@ $function$;
 REVOKE ALL ON FUNCTION public.create_confirmed_transaction(uuid,text,uuid,uuid,numeric,date,text,text,boolean) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.cancel_confirmed_transaction(uuid) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.approve_owner_command(uuid,boolean,jsonb) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.reject_owner_command(uuid) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.ego_pay_debt_atomic(uuid,uuid,numeric,uuid,boolean,date,text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.create_confirmed_transaction(uuid,text,uuid,uuid,numeric,date,text,text,boolean) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.cancel_confirmed_transaction(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.approve_owner_command(uuid,boolean,jsonb) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.reject_owner_command(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.ego_pay_debt_atomic(uuid,uuid,numeric,uuid,boolean,date,text) TO authenticated;
 
 -- Remove direct ledger writes so a client cannot bypass the explicit Owner
 -- confirmation RPC. SECURITY DEFINER RPCs above perform the required writes.
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.transactions FROM PUBLIC, anon, authenticated;
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.debt_payment_logs FROM PUBLIC, anon, authenticated;
+REVOKE UPDATE ON TABLE public.owner_commands FROM PUBLIC, anon, authenticated;
 
 COMMIT;
