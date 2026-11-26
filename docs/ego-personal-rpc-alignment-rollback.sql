@@ -184,10 +184,12 @@ BEGIN
 END;
 $function$;
 
--- Restore the grants observed before the candidate migration.
-GRANT INSERT, UPDATE ON TABLE public.transactions TO authenticated;
-GRANT INSERT, UPDATE, DELETE ON TABLE public.debt_payment_logs TO authenticated;
-GRANT INSERT, UPDATE ON TABLE public.owner_commands TO authenticated;
+-- Do NOT restore direct ledger DML grants during rollback.
+-- The prior app release must be adapted to use the retained authenticated RPC
+-- contract before rollback. Re-granting INSERT/UPDATE/DELETE here would reopen
+-- the bypass around explicit Owner confirmation and reintroduce the ACL flaw.
+-- If the prior app cannot use the RPC contract, keep finance writes disabled
+-- until a compatible app build is available; do not weaken database security.
 
 -- Keep the debt RPC callable by authenticated Owner only.
 REVOKE ALL ON FUNCTION public.ego_pay_debt_atomic(uuid, uuid, numeric, uuid, boolean, date, text)
