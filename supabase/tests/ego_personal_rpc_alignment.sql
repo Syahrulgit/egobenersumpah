@@ -113,6 +113,33 @@ DECLARE
   v_balance numeric;
   v_count integer;
 BEGIN
+
+  -- Column-level ACLs must be revoked independently of table-level grants.
+  IF pg_catalog.has_table_privilege('authenticated','public.transactions','INSERT')
+    OR pg_catalog.has_table_privilege('authenticated','public.transactions','UPDATE')
+    OR pg_catalog.has_column_privilege('authenticated','public.transactions','amount','INSERT')
+    OR pg_catalog.has_column_privilege('authenticated','public.transactions','amount','UPDATE') THEN
+    RAISE EXCEPTION 'Direct transaction table/column DML privilege remains';
+  END IF;
+  IF pg_catalog.has_table_privilege('authenticated','public.debt_payment_logs','INSERT')
+    OR pg_catalog.has_table_privilege('authenticated','public.debt_payment_logs','UPDATE')
+    OR pg_catalog.has_table_privilege('authenticated','public.debt_payment_logs','DELETE')
+    OR pg_catalog.has_column_privilege('authenticated','public.debt_payment_logs','amount','INSERT')
+    OR pg_catalog.has_column_privilege('authenticated','public.debt_payment_logs','amount','UPDATE') THEN
+    RAISE EXCEPTION 'Direct debt payment log DML privilege remains';
+  END IF;
+  IF pg_catalog.has_table_privilege('authenticated','public.owner_commands','UPDATE')
+    OR pg_catalog.has_column_privilege('authenticated','public.owner_commands','status','UPDATE')
+    OR pg_catalog.has_column_privilege('authenticated','public.owner_commands','owner_confirmed','INSERT')
+    OR pg_catalog.has_column_privilege('authenticated','public.owner_commands','owner_id','INSERT') THEN
+    RAISE EXCEPTION 'Owner command protected-column privilege remains';
+  END IF;
+  IF pg_catalog.has_table_privilege('authenticated','public.owner_commands','INSERT')
+    OR NOT pg_catalog.has_column_privilege('authenticated','public.owner_commands','command_text','INSERT')
+    OR NOT pg_catalog.has_column_privilege('authenticated','public.owner_commands','parsed_draft','INSERT') THEN
+    RAISE EXCEPTION 'Owner command enqueue grants are not restricted to command_text and parsed_draft';
+  END IF;
+
   -- RLS must show only the signed-in Owner's accounts.
   SELECT count(*) INTO v_count FROM public.accounts;
   IF v_count <> 3 THEN
