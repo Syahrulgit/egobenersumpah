@@ -51,7 +51,11 @@ const parts = login.data.access_token.split(".");
 assert(parts.length === 3, "issued access token has JWT structure");
 const claims = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
 assert(claims.sub === signupUser.id, "JWT subject matches the created GoTrue user");
-assert(claims.role === "authenticated", "GoTrue JWT carries authenticated role");
+console.log("DIAGNOSTIC GoTrue JWT role claim:", JSON.stringify(claims.role));
+assert(
+  claims.role === "authenticated",
+  "GoTrue JWT carries authenticated role (actual role: " + JSON.stringify(claims.role) + ")"
+);
 assert(claims.aud === "authenticated" || claims.aud?.includes?.("authenticated"),
   "GoTrue JWT carries the expected authenticated audience");
 
