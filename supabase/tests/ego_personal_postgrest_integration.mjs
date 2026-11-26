@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 
 const baseUrl = process.env.EGO_POSTGREST_URL ?? "http://127.0.0.1:3000";
 const secret = process.env.EGO_TEST_JWT_SECRET;
+const apiKey = process.env.EGO_SUPABASE_API_KEY;
 if (!secret) throw new Error("EGO_TEST_JWT_SECRET is required");
 
 const ownerA = "11111111-1111-4111-8111-111111111111";
@@ -20,7 +21,10 @@ function token(role, sub) {
 }
 
 async function request(path, { role = "anon", sub, method = "GET", body } = {}) {
-  const headers = { Authorization: "Bearer " + token(role, sub), Accept: "application/json" };
+  const headers = {
+    Authorization: "Bearer " + token(role, sub), Accept: "application/json",
+    ...(apiKey ? { apikey: apiKey } : {}),
+  };
   if (body !== undefined) headers["Content-Type"] = "application/json";
   return fetch(baseUrl + path, {
     method,
@@ -129,7 +133,10 @@ const directInsert = await request("/transactions", {
 assert(directInsert.status >= 400, "direct ledger INSERT is denied through Data API");
 
 const invalidJwt = await fetch(baseUrl + "/accounts?select=id", {
-  headers: { Authorization: "Bearer invalid.jwt.token" },
+  headers: {
+    Authorization: "Bearer invalid.jwt.token",
+    ...(apiKey ? { apikey: apiKey } : {}),
+  },
 });
 assert(invalidJwt.status === 401, "invalid JWT is rejected by PostgREST");
 
