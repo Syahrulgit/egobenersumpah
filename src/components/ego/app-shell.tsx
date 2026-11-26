@@ -32,7 +32,7 @@ import { setPinLocked } from "../../lib/pin-lock";
 import { useAuthStatus, useLogoutOwner, useVaultSnapshot } from "../../lib/queries";
 import { summarizeRemindersForDashboard } from "../../lib/reminders";
 import { ThemeToggleButton } from "../../lib/theme";
-import { EgoBrand, EgoLogoMark } from "./ego-brand";
+import { EgoBrand, EgoCompanion, EgoLogoMark } from "./ego-brand";
 import { ModalSheet } from "./modal-sheet";
 import { OfflineIndicator, PWAInstallButton } from "./pwa-controls";
 import { useTransactionSheet } from "./transaction-input-sheet";
@@ -362,8 +362,13 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
           ) : null}
         </header>
 
-        <main className="mx-auto max-w-6xl px-4 pt-5 pb-28 sm:px-6 sm:pt-6 md:pb-14 lg:px-8">
-          {children}
+        <main className="ego-page-main relative isolate mx-auto max-w-6xl px-4 pt-5 pb-28 sm:px-6 sm:pt-6 md:pb-14 lg:px-8">
+          {pathname !== "/" ? (
+            <div className="ego-page-companion" aria-hidden="true">
+              <EgoCompanion size="lg" mode="idle" />
+            </div>
+          ) : null}
+          <div className="ego-page-content relative z-10">{children}</div>
         </main>
       </div>
 
