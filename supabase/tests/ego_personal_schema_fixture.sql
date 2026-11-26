@@ -134,6 +134,10 @@ GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.accounts, public.debts, public.transactions,
   public.debt_payment_logs, public.owner_commands TO authenticated;
 GRANT DELETE ON public.debt_payment_logs TO authenticated;
+-- Seed the known over-broad Supabase default ACLs so the candidate must remove them.
+GRANT TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+CREATE TABLE public.security_privilege_probe (id integer PRIMARY KEY);
+GRANT TRUNCATE, TRIGGER, REFERENCES ON public.security_privilege_probe TO anon, authenticated;
 
 INSERT INTO public.accounts (id, account_name, account_type, owner_id, is_active) VALUES
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','Owner cash','cash','11111111-1111-4111-8111-111111111111',TRUE),
