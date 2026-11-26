@@ -64,4 +64,5 @@ INSERT INTO public.accounts (id, owner_id, is_active) VALUES
  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','11111111-1111-4111-8111-111111111111',false);
 INSERT INTO public.debts (id, owner_id, creditor, outstanding_balance, status) VALUES
  ('dddddddd-dddd-4ddd-8ddd-dddddddddddd','11111111-1111-4111-8111-111111111111','Fixture creditor',100.00,'active'),
- ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','22222222-2222-4222-8222-222222222222','Other owner',100.00,'active');
+ ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','22222222-2222-4222-8222-222222222222','Other owner',100.00,'active'),
+ ('ffffffff-ffff-4fff-8fff-ffffffffffff','11111111-1111-4111-8111-111111111111','Concurrent test',50.00,'active');
