@@ -977,6 +977,7 @@ async function startServer(): Promise<void> {
   });
 
   app.post("/api/debts", requireOwner, (req, res) => {
+    withVaultMutationLock(() => {
     try {
       const ownerId = (req as express.Request & { ownerId: string }).ownerId;
       const ownerConfirmed = req.body?.owner_confirmed === true;
@@ -1040,6 +1041,7 @@ async function startServer(): Promise<void> {
         error: err instanceof Error ? err.message : "Gagal mencatat utang.",
       });
     }
+    });
   });
 
   app.patch("/api/debts/:id", requireOwner, (req, res) => {
@@ -1227,8 +1229,8 @@ async function startServer(): Promise<void> {
         created_at: nowIso,
       };
 
-      // The local JSON-backed server handles this synchronous block in one
-      // event-loop turn; one save persists all three related records together.
+      // The shared vault lock serializes this read/validate/update/save sequence.
+      // Debt, transaction and payment-log records are persisted together.
       debt.outstanding_balance = remaining;
       debt.status = remaining === 0 ? "paid" : "active";
       db.transactions.unshift(tx);
