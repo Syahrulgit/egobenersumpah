@@ -449,7 +449,7 @@ export function DashboardPage() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#19D8FF] to-[#087BFF] text-white shadow-xs">
                   <Plus className="h-4 w-4" aria-hidden="true" />
                 </span>
-                <span className="text-[10px] font-bold leading-tight text-[#06132F] dark:text-white">
+                <span className="text-[11px] font-bold leading-tight text-[#06132F] dark:text-white">
                   Catat Transaksi
                 </span>
               </button>
@@ -462,7 +462,7 @@ export function DashboardPage() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#087BFF]/12 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
                   <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
                 </span>
-                <span className="text-[10px] font-bold leading-tight text-[#06132F] dark:text-white">
+                <span className="text-[11px] font-bold leading-tight text-[#06132F] dark:text-white">
                   Transfer
                 </span>
               </button>
@@ -474,7 +474,7 @@ export function DashboardPage() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#087BFF]/12 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
                   <Briefcase className="h-4 w-4" aria-hidden="true" />
                 </span>
-                <span className="text-[10px] font-bold leading-tight text-[#06132F] dark:text-white">
+                <span className="text-[11px] font-bold leading-tight text-[#06132F] dark:text-white">
                   Tambah Aset
                 </span>
               </Link>
@@ -486,7 +486,7 @@ export function DashboardPage() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400">
                   <CreditCard className="h-4 w-4" aria-hidden="true" />
                 </span>
-                <span className="text-[10px] font-bold leading-tight text-[#06132F] dark:text-white">
+                <span className="text-[11px] font-bold leading-tight text-[#06132F] dark:text-white">
                   Bayar Utang
                 </span>
               </Link>
