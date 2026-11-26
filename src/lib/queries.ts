@@ -1247,7 +1247,6 @@ export function useQueueCommand() {
       if (isSupabaseConfigured && supabase) {
         const { error } = await supabase.from("owner_commands").insert({
           command_text: cleanText,
-          status: "pending",
           parsed_draft: input.parsed_draft ?? null,
         });
         if (error) throw new Error(error.message);
