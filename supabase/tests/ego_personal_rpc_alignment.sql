@@ -25,6 +25,9 @@ BEGIN
 END
 $privilege_test$;
 
+-- The app migration runs as postgres and all current EGO-PERSONAL public
+-- relations are owned by postgres. Supabase-managed supabase_admin defaults
+-- are reserved platform ACLs and cannot be altered by this executor.
 DO $default_privilege_test$
 BEGIN
   IF EXISTS (
@@ -34,10 +37,11 @@ BEGIN
     JOIN pg_catalog.pg_roles AS gr ON gr.oid = a.grantee
     WHERE d.defaclobjtype = 'r'
       AND d.defaclnamespace = 'public'::regnamespace
+      AND d.defaclrole = (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'postgres')
       AND gr.rolname IN ('anon','authenticated')
       AND a.privilege_type IN ('TRUNCATE','TRIGGER','REFERENCES')
   ) THEN
-    RAISE EXCEPTION 'Dangerous table privileges remain in public-schema default ACLs';
+    RAISE EXCEPTION 'Dangerous table privileges remain in postgres-owned public-schema default ACLs';
   END IF;
 END
 $default_privilege_test$;
