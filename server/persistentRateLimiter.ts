@@ -1,0 +1,123 @@
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { withFileLock } from "./fileLock";
+import type { LoginRateCheckResult, LoginRateLimiter } from "./vaultRules";
+
+const DATA_DIR = path.resolve(process.cwd(), "data");
+const RATE_LIMIT_FILE = path.join(DATA_DIR, "ego-rate-limits.json");
+const RATE_LIMIT_LOCK = path.join(DATA_DIR, "ego-rate-limits.lock");
+
+interface RateLimitEntry {
+  count: number;
+  windowStart: number;
+}
+type RateLimitStore = Record<string, RateLimitEntry>;
+
+function storageKey(namespace: string, key: string): string {
+  return crypto.createHash("sha256").update(`${namespace}\0${key}`, "utf8").digest("hex");
+}
+
+function readStore(): RateLimitStore {
+  if (!fs.existsSync(RATE_LIMIT_FILE)) return {};
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(fs.readFileSync(RATE_LIMIT_FILE, "utf8"));
+  } catch {
+    throw new Error("Penyimpanan pembatas percobaan rusak. Login ditahan demi keamanan.");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Struktur pembatas percobaan tidak valid. Login ditahan demi keamanan.");
+  }
+  const store: RateLimitStore = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    if (
+      !/^[0-9a-f]{64}$/.test(key) ||
+      !value ||
+      typeof value !== "object" ||
+      !Number.isSafeInteger((value as RateLimitEntry).count) ||
+      (value as RateLimitEntry).count < 1 ||
+      !Number.isFinite((value as RateLimitEntry).windowStart)
+    ) {
+      throw new Error("Data pembatas percobaan tidak valid. Login ditahan demi keamanan.");
+    }
+    store[key] = value as RateLimitEntry;
+  }
+  return store;
+}
+
+function writeStore(store: RateLimitStore): void {
+  fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
+  const tmp = `${RATE_LIMIT_FILE}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  try {
+    fs.writeFileSync(tmp, JSON.stringify(store), { encoding: "utf8", mode: 0o600, flag: "wx" });
+    fs.renameSync(tmp, RATE_LIMIT_FILE);
+  } catch (error) {
+    fs.rmSync(tmp, { force: true });
+    throw error;
+  }
+}
+
+function evaluate(entry: RateLimitEntry | undefined, maxAttempts: number, windowMs: number, nowMs: number): LoginRateCheckResult {
+  if (!entry || nowMs - entry.windowStart >= windowMs) {
+    return { allowed: true, remainingAttempts: maxAttempts, retryAfterSeconds: 0 };
+  }
+  if (entry.count < maxAttempts) {
+    return { allowed: true, remainingAttempts: maxAttempts - entry.count, retryAfterSeconds: 0 };
+  }
+  const retryAfterSeconds = Math.max(1, Math.ceil((entry.windowStart + windowMs - nowMs) / 1000));
+  const waitMinutes = Math.max(1, Math.ceil(retryAfterSeconds / 60));
+  return {
+    allowed: false,
+    remainingAttempts: 0,
+    retryAfterSeconds,
+    message: `Terlalu banyak percobaan gagal. Demi keamanan brankas, silakan tunggu sekitar ${waitMinutes} menit sebelum mencoba lagi.`,
+  };
+}
+
+/**
+ * Persistent local limiter. It survives process restarts and coordinates
+ * processes sharing the same disk. For multi-host deployments use a shared
+ * database-backed limiter instead of ephemeral container storage.
+ */
+export function createPersistentLoginRateLimiter(
+  namespace: string,
+  maxAttempts = 5,
+  windowMs = 15 * 60 * 1000
+): LoginRateLimiter {
+  if (!/^[a-z-]{1,24}$/.test(namespace)) throw new Error("Namespace rate limit tidak valid.");
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || !Number.isFinite(windowMs) || windowMs <= 0) {
+    throw new Error("Konfigurasi rate limit tidak valid.");
+  }
+
+  return {
+    check(key: string, nowMs = Date.now()): LoginRateCheckResult {
+      const store = readStore();
+      return evaluate(store[storageKey(namespace, key)], maxAttempts, windowMs, nowMs);
+    },
+
+    recordFailure(key: string, nowMs = Date.now()): LoginRateCheckResult {
+      return withFileLock(RATE_LIMIT_LOCK, () => {
+        const store = readStore();
+        for (const [hash, entry] of Object.entries(store)) {
+          if (nowMs - entry.windowStart >= windowMs) delete store[hash];
+        }
+        const hash = storageKey(namespace, key);
+        const existing = store[hash];
+        store[hash] = existing
+          ? { count: existing.count + 1, windowStart: existing.windowStart }
+          : { count: 1, windowStart: nowMs };
+        writeStore(store);
+        return evaluate(store[hash], maxAttempts, windowMs, nowMs);
+      });
+    },
+
+    reset(key: string): void {
+      withFileLock(RATE_LIMIT_LOCK, () => {
+        const store = readStore();
+        delete store[storageKey(namespace, key)];
+        writeStore(store);
+      });
+    },
+  };
+}
