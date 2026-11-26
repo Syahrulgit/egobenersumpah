@@ -171,14 +171,14 @@ function saveSessions(sessions: SessionRecord[]): void {
   writePrivateJsonFile(SESSIONS_FILE, sessions);
 }
 
-function tokenDigest(token: string): Buffer {
-  return crypto.createHash("sha256").update(token, "utf8").digest();
+export function hashSessionToken(token: string): string {
+  return crypto.createHash("sha256").update(token, "utf8").digest("hex");
 }
 
 function matchesSessionToken(session: SessionRecord, token: string): boolean {
   if (session.token_hash) {
     const stored = Buffer.from(session.token_hash, "hex");
-    const candidate = tokenDigest(token);
+    const candidate = Buffer.from(hashSessionToken(token), "hex");
     return stored.length === candidate.length && crypto.timingSafeEqual(stored, candidate);
   }
   if (!session.token) return false;
@@ -189,7 +189,7 @@ function matchesSessionToken(session: SessionRecord, token: string): boolean {
 
 function upgradeLegacySession(session: SessionRecord): SessionRecord {
   if (!session.token || session.token_hash) return session;
-  return { owner_id: session.owner_id, created_at: session.created_at, token_hash: tokenDigest(session.token).toString("hex") };
+  return { owner_id: session.owner_id, created_at: session.created_at, token_hash: hashSessionToken(session.token) };
 }
 
 export function createSession(ownerId: string): string {
@@ -198,11 +198,11 @@ export function createSession(ownerId: string): string {
   const otherOwners = sessions.filter((session) => session.owner_id !== ownerId);
   const ownerSessions = sessions.filter((session) => session.owner_id === ownerId).slice(-4);
   ownerSessions.push({
-    token_hash: tokenDigest(token).toString("hex"),
+    token_hash: hashSessionToken(token),
     owner_id: ownerId,
     created_at: new Date().toISOString(),
   });
-  saveSessions([...otherOwners, ...ownerSessions]);
+  saveSessions([...otherOwners, ...ownerSessions].map(upgradeLegacySession));
   return token;
 }
 
