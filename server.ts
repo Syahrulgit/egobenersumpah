@@ -67,7 +67,6 @@ import {
   OWNER_EMAIL_REGEX,
   assertSingleOwnerAvailable,
   createEmptyVault,
-  createLoginRateLimiter,
   validateAccountInput,
   validateAssetInput,
   validateCategoryBudgetInput,
@@ -83,6 +82,7 @@ import {
   validateTransactionInvariants,
   validateWhatIfScenarioInput,
 } from "./server/vaultRules";
+import { createPersistentLoginRateLimiter } from "./server/persistentRateLimiter";
 import {
   clearAllSessions,
   createSession,
@@ -93,15 +93,16 @@ import {
   saveVault,
   validateSessionToken,
   verifyPassword,
+  withVaultMutationLock,
 } from "./server/vaultStore";
 
 const PORT =
   process.env.NODE_ENV === "production"
     ? Number(process.env.PORT) || 3000
     : 3000;
-const loginRateLimiter = createLoginRateLimiter(5, 15 * 60 * 1000);
-const passwordRateLimiter = createLoginRateLimiter(5, 15 * 60 * 1000);
-const pinRateLimiter = createLoginRateLimiter(5, 15 * 60 * 1000);
+const loginRateLimiter = createPersistentLoginRateLimiter("login", 5, 15 * 60 * 1000);
+const passwordRateLimiter = createPersistentLoginRateLimiter("password", 5, 15 * 60 * 1000);
+const pinRateLimiter = createPersistentLoginRateLimiter("pin", 5, 15 * 60 * 1000);
 
 function extractToken(req: express.Request): string | undefined {
   const authHeader = req.headers.authorization;
