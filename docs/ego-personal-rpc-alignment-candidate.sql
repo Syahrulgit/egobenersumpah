@@ -496,7 +496,7 @@ REVOKE UPDATE ON TABLE public.owner_commands FROM PUBLIC, anon, authenticated;
 
 -- Remove dangerous non-row privileges from every current public table/view.
 -- RLS does not protect TRUNCATE; clients do not need TRIGGER or REFERENCES.
-REVOKE TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public
+REVOKE MAINTAIN, TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public
   FROM PUBLIC, anon, authenticated;
 
 -- Keep future application tables created by the migration executor role
@@ -506,7 +506,7 @@ REVOKE TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public
 -- alter (and is not permitted to join); those defaults are not used to create
 -- the application tables and must not be force-modified by this migration.
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
-  REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLES FROM anon, authenticated;
+  REVOKE MAINTAIN, TRUNCATE, TRIGGER, REFERENCES ON TABLES FROM anon, authenticated;
 
 
 -- Column-level ACLs survive table-level REVOKE. Remove the explicitly granted
