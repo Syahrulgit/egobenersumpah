@@ -76,7 +76,7 @@ export function EgoAnimatedMark({
     mode === "processing"
       ? ""
       : mode === "locked"
-        ? "motion-safe:animate-[ego-breathe_3.6s_ease-in-out_infinite]"
+        ? "motion-safe:animate-[ego-appear_520ms_ease-out_1]"
         : mode === "active"
           ? "motion-safe:animate-pulse"
           : mode === "success" || mode === "warning"
@@ -89,7 +89,7 @@ export function EgoAnimatedMark({
       aria-hidden="true"
     >
       <span
-        className={`absolute inset-[-4px] rounded-[1.3rem] border border-[#19D8FF]/25 ${mode === "processing" || mode === "locked" ? "motion-safe:animate-[spin_3.2s_linear_infinite]" : ""} motion-reduce:animate-none`}
+        className={`absolute inset-[-4px] rounded-[1.3rem] border border-[#19D8FF]/25 ${mode === "processing" ? "motion-safe:animate-[spin_2.4s_linear_infinite]" : ""} motion-reduce:animate-none`}
       />
       <EgoLogoMark size={size} className="relative z-[1]" />
     </span>
