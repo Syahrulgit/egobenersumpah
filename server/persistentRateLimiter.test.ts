@@ -58,3 +58,13 @@ test("corrupt limiter storage fails closed instead of resetting attempts", () =>
     assert.throws(() => limiter.recordFailure("client", 10_000), /Login ditahan demi keamanan/);
   });
 });
+
+test("persistent limiter reserves attempts atomically across new instances", () => {
+  withTempDir((dir) => {
+    const first = createPersistentLoginRateLimiter("password", 2, 60_000, dir);
+    const second = createPersistentLoginRateLimiter("password", 2, 60_000, dir);
+    assert.equal(first.attempt("owner-client", 1_000).remainingAttempts, 1);
+    assert.equal(second.attempt("owner-client", 2_000).remainingAttempts, 0);
+    assert.equal(first.attempt("owner-client", 3_000).allowed, false);
+  });
+});
