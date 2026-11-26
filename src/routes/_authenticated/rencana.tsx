@@ -88,6 +88,8 @@ export function RencanaPage() {
   const [simGoalId, setSimGoalId] = useState<string | null>(null);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [billModalOpen, setBillModalOpen] = useState(false);
+  const [showAllGoals, setShowAllGoals] = useState(false);
+  const [showAllBills, setShowAllBills] = useState(false);
 
   useEffect(() => {
     if (
@@ -106,6 +108,8 @@ export function RencanaPage() {
   const debts = vault?.debts ?? [];
   const goals = vault?.savings_goals ?? [];
   const bills = vault?.recurring_bills ?? [];
+  const visibleGoals = showAllGoals ? goals : goals.slice(0, 3);
+  const visibleBills = showAllBills ? bills : bills.slice(0, 3);
   const dateFormat = vault?.preferences.date_format ?? "DD MMM YYYY";
 
   const netWorth = useMemo(
@@ -527,7 +531,7 @@ export function RencanaPage() {
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
-                {goals.map((goal) => {
+                {visibleGoals.map((goal) => {
                   const linkedAcc = goal.linked_account_id
                     ? accountMap.get(goal.linked_account_id)
                     : undefined;
@@ -700,6 +704,20 @@ export function RencanaPage() {
                 })}
               </div>
             )}
+            {goals.length > 0 ? (
+              <div className="mt-4 flex flex-col items-center gap-2 border-t border-[#DCE4F0]/80 pt-4 dark:border-[#1B3163]">
+                <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+                  {showAllGoals
+                    ? `${goals.length} target ditampilkan`
+                    : `${visibleGoals.length} dari ${goals.length} target ditampilkan`}
+                </p>
+                {goals.length > 3 ? (
+                  <button type="button" onClick={() => setShowAllGoals((current) => !current)} className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-[#087BFF]/25 bg-[#087BFF]/8 px-4 py-2 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/25 dark:bg-[#19D8FF]/10 dark:text-[#19D8FF]">
+                    {showAllGoals ? "Tampilkan Lebih Sedikit" : `Lihat Semua Target (${goals.length})`}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </section>
         ) : activeTab === "simulator" ? (
           <GoalSimulatorPanel
@@ -756,7 +774,7 @@ export function RencanaPage() {
               </div>
             ) : (
               <div className="divide-y divide-[#DCE4F0]/80 dark:divide-[#1B3163]">
-                {bills.map((bill) => {
+                {visibleBills.map((bill) => {
                   const delta = daysUntilDue(bill.next_due_date);
                   const acc = bill.account_id
                     ? accountMap.get(bill.account_id)
@@ -871,6 +889,20 @@ export function RencanaPage() {
                 })}
               </div>
             )}
+            {bills.length > 0 ? (
+              <div className="mt-4 flex flex-col items-center gap-2 border-t border-[#DCE4F0]/80 pt-4 dark:border-[#1B3163]">
+                <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+                  {showAllBills
+                    ? `${bills.length} jadwal ditampilkan`
+                    : `${visibleBills.length} dari ${bills.length} jadwal ditampilkan`}
+                </p>
+                {bills.length > 3 ? (
+                  <button type="button" onClick={() => setShowAllBills((current) => !current)} className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-[#087BFF]/25 bg-[#087BFF]/8 px-4 py-2 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/25 dark:bg-[#19D8FF]/10 dark:text-[#19D8FF]">
+                    {showAllBills ? "Tampilkan Lebih Sedikit" : `Lihat Semua Jadwal (${bills.length})`}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </section>
         )}
       </div>
