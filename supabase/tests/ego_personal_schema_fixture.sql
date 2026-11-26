@@ -14,6 +14,9 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'supabase_admin') THEN
     CREATE ROLE supabase_admin NOLOGIN;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'postgres') THEN
+    CREATE ROLE postgres NOLOGIN;
+  END IF;
 END
 $roles$;
 
