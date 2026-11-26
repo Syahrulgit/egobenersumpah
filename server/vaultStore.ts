@@ -9,33 +9,106 @@ import {
 const DATA_DIR = path.resolve(process.cwd(), "data");
 const VAULT_FILE = path.join(DATA_DIR, "ego-vault.json");
 
+const VAULT_COLLECTIONS = [
+  "accounts",
+  "transactions",
+  "assets",
+  "debts",
+  "debt_payment_logs",
+  "owner_commands",
+  "recurring_bills",
+  "savings_goals",
+  "financial_reminders",
+  "financial_reminder_logs",
+  "category_budgets",
+  "budget_alert_logs",
+  "whatif_scenarios",
+  "financial_health_scores",
+] as const;
+
+export class VaultReadError extends Error {
+  constructor(message = "Brankas EGO tidak dapat dibaca. Data tidak diubah; pulihkan file cadangan atau periksa file brankas.") {
+    super(message);
+    this.name = "VaultReadError";
+  }
+}
+
+/** Parse and validate the persisted vault without silently replacing damaged data. */
+export function parseVaultContent(raw: string): VaultDatabase {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new VaultReadError("File brankas EGO rusak atau bukan JSON yang valid. Data tidak diubah.");
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new VaultReadError("Struktur file brankas EGO tidak valid. Data tidak diubah.");
+  }
+
+  const candidate = parsed as Record<string, unknown>;
+  if (candidate.owner !== undefined &&
+      candidate.owner !== null &&
+      (typeof candidate.owner !== "object" || Array.isArray(candidate.owner))) {
+    throw new VaultReadError("Data Owner di dalam brankas tidak valid. Data tidak diubah.");
+  }
+  if (candidate.preferences !== undefined &&
+      (!candidate.preferences || typeof candidate.preferences !== "object" || Array.isArray(candidate.preferences))) {
+    throw new VaultReadError("Pengaturan brankas EGO tidak valid. Data tidak diubah.");
+  }
+  for (const key of VAULT_COLLECTIONS) {
+    if (candidate[key] !== undefined && !Array.isArray(candidate[key])) {
+      throw new VaultReadError(`Bagian ${key} di dalam brankas tidak valid. Data tidak diubah.`);
+    }
+  }
+
+  const empty = createEmptyVault();
+  return {
+    ...empty,
+    ...candidate,
+    preferences: {
+      ...empty.preferences,
+      ...((candidate.preferences ?? {}) as Partial<VaultDatabase["preferences"]>),
+    },
+  } as VaultDatabase;
+}
+
 export function loadVault(): VaultDatabase {
   if (!fs.existsSync(VAULT_FILE)) {
     return createEmptyVault();
   }
   try {
-    const raw = fs.readFileSync(VAULT_FILE, "utf8");
-    const parsed = JSON.parse(raw) as Partial<VaultDatabase>;
-    return {
-      ...createEmptyVault(),
-      ...parsed,
-      preferences: {
-        ...createEmptyVault().preferences,
-        ...(parsed.preferences ?? {}),
-      },
-    };
-  } catch {
-    return createEmptyVault();
+    return parseVaultContent(fs.readFileSync(VAULT_FILE, "utf8"));
+  } catch (error) {
+    if (error instanceof VaultReadError) throw error;
+    throw new VaultReadError();
+  }
+}
+
+function writePrivateJsonFile(filePath: string, value: unknown): void {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
+  }
+  const tmpFile = `${filePath}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  try {
+    fs.writeFileSync(tmpFile, JSON.stringify(value, null, 2), {
+      encoding: "utf8",
+      mode: 0o600,
+      flag: "wx",
+    });
+    fs.renameSync(tmpFile, filePath);
+  } catch (error) {
+    try {
+      fs.rmSync(tmpFile, { force: true });
+    } catch {
+      // Preserve the original write error.
+    }
+    throw error;
   }
 }
 
 export function saveVault(db: VaultDatabase): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  const tmpFile = `${VAULT_FILE}.tmp`;
-  fs.writeFileSync(tmpFile, JSON.stringify(db, null, 2), "utf8");
-  fs.renameSync(tmpFile, VAULT_FILE);
+  writePrivateJsonFile(VAULT_FILE, db);
 }
 
 export function hashPassword(password: string): string {
@@ -53,55 +126,107 @@ export function verifyPassword(password: string, storedHash: string): boolean {
   return crypto.timingSafeEqual(derived, original);
 }
 
-// In-memory session map persisted in a lightweight sessions file so dev restarts keep sessions valid
+// Session tokens are never written in plaintext after the first successful use.
+// Legacy plaintext entries are upgraded in place to preserve active Owner sessions.
 const SESSIONS_FILE = path.join(DATA_DIR, "ego-sessions.json");
 
 interface SessionRecord {
-  token: string;
+  token_hash?: string;
+  token?: string;
   owner_id: string;
   created_at: string;
+}
+
+export function parseSessionsContent(raw: string): SessionRecord[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("File sesi EGO rusak. Login ditahan demi keamanan; file tidak dikosongkan.");
+  }
+  if (!Array.isArray(parsed) || parsed.some((item) =>
+    !item ||
+    typeof item !== "object" ||
+    typeof item.owner_id !== "string" ||
+    typeof item.created_at !== "string" ||
+    (typeof item.token !== "string" && typeof item.token_hash !== "string")
+  )) {
+    throw new Error("Struktur file sesi EGO tidak valid. Login ditahan demi keamanan.");
+  }
+  return parsed as SessionRecord[];
 }
 
 function loadSessions(): SessionRecord[] {
   if (!fs.existsSync(SESSIONS_FILE)) return [];
   try {
-    return JSON.parse(fs.readFileSync(SESSIONS_FILE, "utf8")) as SessionRecord[];
-  } catch {
-    return [];
+    return parseSessionsContent(fs.readFileSync(SESSIONS_FILE, "utf8"));
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("File sesi EGO")) throw error;
+    if (error instanceof Error && error.message.startsWith("Struktur file sesi EGO")) throw error;
+    throw new Error("File sesi EGO tidak dapat dibaca. Login ditahan demi keamanan; file tidak dikosongkan.");
   }
 }
 
 function saveSessions(sessions: SessionRecord[]): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+  writePrivateJsonFile(SESSIONS_FILE, sessions);
+}
+
+function tokenDigest(token: string): Buffer {
+  return crypto.createHash("sha256").update(token, "utf8").digest();
+}
+
+function matchesSessionToken(session: SessionRecord, token: string): boolean {
+  if (session.token_hash) {
+    const stored = Buffer.from(session.token_hash, "hex");
+    const candidate = tokenDigest(token);
+    return stored.length === candidate.length && crypto.timingSafeEqual(stored, candidate);
   }
-  fs.writeFileSync(SESSIONS_FILE, JSON.stringify(sessions, null, 2), "utf8");
+  if (!session.token) return false;
+  const stored = Buffer.from(session.token, "utf8");
+  const candidate = Buffer.from(token, "utf8");
+  return stored.length === candidate.length && crypto.timingSafeEqual(stored, candidate);
+}
+
+function upgradeLegacySession(session: SessionRecord): SessionRecord {
+  if (!session.token || session.token_hash) return session;
+  return { owner_id: session.owner_id, created_at: session.created_at, token_hash: tokenDigest(session.token).toString("hex") };
 }
 
 export function createSession(ownerId: string): string {
   const token = crypto.randomBytes(32).toString("hex");
-  const sessions = loadSessions().filter((s) => s.owner_id === ownerId).slice(-4);
-  sessions.push({ token, owner_id: ownerId, created_at: new Date().toISOString() });
-  saveSessions(sessions);
+  const sessions = loadSessions();
+  const otherOwners = sessions.filter((session) => session.owner_id !== ownerId);
+  const ownerSessions = sessions.filter((session) => session.owner_id === ownerId).slice(-4);
+  ownerSessions.push({
+    token_hash: tokenDigest(token).toString("hex"),
+    owner_id: ownerId,
+    created_at: new Date().toISOString(),
+  });
+  saveSessions([...otherOwners, ...ownerSessions]);
   return token;
 }
 
 export function validateSessionToken(token: string | undefined): string | null {
   if (!token) return null;
   const sessions = loadSessions();
-  const found = sessions.find((s) => s.token === token);
-  return found ? found.owner_id : null;
+  const found = sessions.find((session) => matchesSessionToken(session, token));
+  if (!found) return null;
+
+  if (found.token && !found.token_hash) {
+    saveSessions(sessions.map((session) => session === found ? upgradeLegacySession(session) : session));
+  }
+  return found.owner_id;
 }
 
 export function revokeSessionToken(token: string | undefined): void {
   if (!token) return;
-  const sessions = loadSessions().filter((s) => s.token !== token);
+  const sessions = loadSessions().filter((session) => !matchesSessionToken(session, token));
   saveSessions(sessions);
 }
 
 export function rotateSessionsForOwner(ownerId: string, keepToken?: string): void {
   const sessions = loadSessions().filter(
-    (s) => s.owner_id !== ownerId || (keepToken !== undefined && s.token === keepToken)
+    (session) => session.owner_id !== ownerId || (keepToken !== undefined && matchesSessionToken(session, keepToken))
   );
   saveSessions(sessions);
 }
@@ -109,4 +234,3 @@ export function rotateSessionsForOwner(ownerId: string, keepToken?: string): voi
 export function clearAllSessions(): void {
   saveSessions([]);
 }
-
