@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { markPinSessionUnlocked } from "../../lib/pin-lock";
 import { useLogoutOwner, useVerifyPin } from "../../lib/queries";
 import { ThemeToggleButton } from "../../lib/theme";
-import { EgoLogoMark } from "./ego-brand";
+import { EgoAnimatedMark } from "./ego-brand";
 
 interface PinLockScreenProps {
   ownerName: string;
@@ -115,14 +115,8 @@ export function PinLockScreen({ ownerName }: PinLockScreenProps) {
           </div>
         </div>
 
-        <div className="mt-7 flex justify-center" aria-hidden="true">
-          <div className="relative flex h-20 w-20 items-center justify-center rounded-[1.8rem] bg-[#087BFF]/[0.06] shadow-[0_0_32px_rgba(8,123,255,0.16)] ring-1 ring-[#19D8FF]/25 dark:bg-[#19D8FF]/[0.06] dark:shadow-[0_0_38px_rgba(25,216,255,0.18)] motion-reduce:animate-none animate-pulse">
-            <span className="absolute inset-[-7px] rounded-[2.1rem] border border-[#19D8FF]/20" />
-            <EgoLogoMark
-              size="lg"
-              className="h-16 w-16 rounded-[1.35rem] ring-2 ring-[#19D8FF]/40 shadow-lg shadow-[#087BFF]/25"
-            />
-          </div>
+        <div className="mt-7 flex justify-center">
+          <EgoAnimatedMark size="lg" mode={verifyPin.isPending ? "processing" : errorMsg ? "warning" : pin.length === 6 ? "success" : "active"} className="p-2" />
         </div>
 
         <div className="mt-5 text-center">
