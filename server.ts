@@ -291,7 +291,7 @@ async function startServer(): Promise<void> {
 
   app.post("/api/auth/login", (req, res) => {
     const clientKey = req.ip || "local-owner";
-    const rateCheck = loginRateLimiter.check(clientKey);
+    const rateCheck = loginRateLimiter.attempt(clientKey);
     if (!rateCheck.allowed) {
       res.status(429).json({
         error: rateCheck.message,
@@ -315,14 +315,11 @@ async function startServer(): Promise<void> {
       email !== db.owner.email ||
       !verifyPassword(password, db.owner.password_hash)
     ) {
-      const failure = loginRateLimiter.recordFailure(clientKey);
-      res.status(failure.allowed ? 401 : 429).json({
-        error: failure.allowed
-          ? `Email atau kata sandi Owner tidak sesuai. Sisa percobaan: ${failure.remainingAttempts}.`
-          : failure.message,
-        remainingAttempts: failure.remainingAttempts,
-        retryAfterSeconds: failure.retryAfterSeconds,
-      });
+      res.status(401).json({
+          error: `Email atau kata sandi Owner tidak sesuai. Sisa percobaan: ${rateCheck.remainingAttempts}.`,
+          remainingAttempts: rateCheck.remainingAttempts,
+          retryAfterSeconds: 0,
+        });
       return;
     }
 
@@ -388,7 +385,7 @@ async function startServer(): Promise<void> {
     try {
       const ownerId = (req as express.Request & { ownerId: string }).ownerId;
       const clientKey = `${ownerId}:${req.ip || "local-owner"}`;
-      const rateCheck = passwordRateLimiter.check(clientKey);
+      const rateCheck = passwordRateLimiter.attempt(clientKey);
       if (!rateCheck.allowed) {
         res.status(429).json({
           error: rateCheck.message,
@@ -410,13 +407,10 @@ async function startServer(): Promise<void> {
       }
 
       if (!verifyPassword(String(req.body?.current_password ?? ""), db.owner.password_hash)) {
-        const failure = passwordRateLimiter.recordFailure(clientKey);
-        res.status(failure.allowed ? 401 : 429).json({
-          error: failure.allowed
-            ? `Kata sandi saat ini tidak sesuai. Sisa percobaan: ${failure.remainingAttempts}.`
-            : failure.message,
-          remainingAttempts: failure.remainingAttempts,
-          retryAfterSeconds: failure.retryAfterSeconds,
+        res.status(401).json({
+          error: `Kata sandi saat ini tidak sesuai. Sisa percobaan: ${rateCheck.remainingAttempts}.`,
+          remainingAttempts: rateCheck.remainingAttempts,
+          retryAfterSeconds: 0,
         });
         return;
       }
@@ -449,7 +443,7 @@ async function startServer(): Promise<void> {
     try {
       const ownerId = (req as express.Request & { ownerId: string }).ownerId;
       const clientKey = `${ownerId}:${req.ip || "local-owner"}`;
-      const rateCheck = passwordRateLimiter.check(clientKey);
+      const rateCheck = passwordRateLimiter.attempt(clientKey);
       if (!rateCheck.allowed) {
         res.status(429).json({
           error: rateCheck.message,
@@ -480,13 +474,10 @@ async function startServer(): Promise<void> {
       }
 
       if (!verifyPassword(currentPassword, db.owner.password_hash)) {
-        const failure = passwordRateLimiter.recordFailure(clientKey);
-        res.status(failure.allowed ? 401 : 429).json({
-          error: failure.allowed
-            ? `Kata sandi Owner tidak sesuai. Sisa percobaan: ${failure.remainingAttempts}.`
-            : failure.message,
-          remainingAttempts: failure.remainingAttempts,
-          retryAfterSeconds: failure.retryAfterSeconds,
+        res.status(401).json({
+          error: `Kata sandi Owner tidak sesuai. Sisa percobaan: ${rateCheck.remainingAttempts}.`,
+          remainingAttempts: rateCheck.remainingAttempts,
+          retryAfterSeconds: 0,
         });
         return;
       }
@@ -513,7 +504,7 @@ async function startServer(): Promise<void> {
     try {
       const ownerId = (req as express.Request & { ownerId: string }).ownerId;
       const clientKey = `${ownerId}:${req.ip || "local-owner"}`;
-      const rateCheck = passwordRateLimiter.check(clientKey);
+      const rateCheck = passwordRateLimiter.attempt(clientKey);
       if (!rateCheck.allowed) {
         res.status(429).json({
           error: rateCheck.message,
@@ -536,13 +527,10 @@ async function startServer(): Promise<void> {
       }
 
       if (!verifyPassword(currentPassword, db.owner.password_hash)) {
-        const failure = passwordRateLimiter.recordFailure(clientKey);
-        res.status(failure.allowed ? 401 : 429).json({
-          error: failure.allowed
-            ? `Kata sandi saat ini tidak sesuai. Sisa percobaan: ${failure.remainingAttempts}.`
-            : failure.message,
-          remainingAttempts: failure.remainingAttempts,
-          retryAfterSeconds: failure.retryAfterSeconds,
+        res.status(401).json({
+          error: `Kata sandi saat ini tidak sesuai. Sisa percobaan: ${rateCheck.remainingAttempts}.`,
+          remainingAttempts: rateCheck.remainingAttempts,
+          retryAfterSeconds: 0,
         });
         return;
       }
@@ -566,7 +554,7 @@ async function startServer(): Promise<void> {
     try {
       const ownerId = (req as express.Request & { ownerId: string }).ownerId;
       const clientKey = `${ownerId}:${req.ip || "local-owner"}`;
-      const rateCheck = passwordRateLimiter.check(clientKey);
+      const rateCheck = passwordRateLimiter.attempt(clientKey);
       if (!rateCheck.allowed) {
         res.status(429).json({
           error: rateCheck.message,
@@ -586,13 +574,10 @@ async function startServer(): Promise<void> {
       }
 
       if (!verifyPassword(currentPassword, db.owner.password_hash)) {
-        const failure = passwordRateLimiter.recordFailure(clientKey);
-        res.status(failure.allowed ? 401 : 429).json({
-          error: failure.allowed
-            ? `Kata sandi Owner tidak sesuai. Sisa percobaan: ${failure.remainingAttempts}.`
-            : failure.message,
-          remainingAttempts: failure.remainingAttempts,
-          retryAfterSeconds: failure.retryAfterSeconds,
+        res.status(401).json({
+          error: `Kata sandi Owner tidak sesuai. Sisa percobaan: ${rateCheck.remainingAttempts}.`,
+          remainingAttempts: rateCheck.remainingAttempts,
+          retryAfterSeconds: 0,
         });
         return;
       }
@@ -614,7 +599,7 @@ async function startServer(): Promise<void> {
     try {
       const ownerId = (req as express.Request & { ownerId: string }).ownerId;
       const clientKey = `${ownerId}:${req.ip || "local-owner"}`;
-      const rateCheck = pinRateLimiter.check(clientKey);
+      const rateCheck = pinRateLimiter.attempt(clientKey);
       if (!rateCheck.allowed) {
         res.status(429).json({
           error: rateCheck.message,
@@ -633,13 +618,10 @@ async function startServer(): Promise<void> {
       }
 
       if (!verifyPassword(pin, db.owner.pin_hash)) {
-        const failure = pinRateLimiter.recordFailure(clientKey);
-        res.status(failure.allowed ? 401 : 429).json({
-          error: failure.allowed
-            ? `PIN 6 digit tidak sesuai. Sisa percobaan: ${failure.remainingAttempts}.`
-            : failure.message,
-          remainingAttempts: failure.remainingAttempts,
-          retryAfterSeconds: failure.retryAfterSeconds,
+        res.status(401).json({
+          error: `PIN 6 digit tidak sesuai. Sisa percobaan: ${rateCheck.remainingAttempts}.`,
+          remainingAttempts: rateCheck.remainingAttempts,
+          retryAfterSeconds: 0,
         });
         return;
       }
@@ -657,7 +639,7 @@ async function startServer(): Promise<void> {
     try {
       const ownerId = (req as express.Request & { ownerId: string }).ownerId;
       const clientKey = `${ownerId}:${req.ip || "local-owner"}`;
-      const rateCheck = passwordRateLimiter.check(clientKey);
+      const rateCheck = passwordRateLimiter.attempt(clientKey);
       if (!rateCheck.allowed) {
         res.status(429).json({
           error: rateCheck.message,
@@ -674,13 +656,10 @@ async function startServer(): Promise<void> {
       }
 
       if (!verifyPassword(currentPassword, db.owner.password_hash)) {
-        const failure = passwordRateLimiter.recordFailure(clientKey);
-        res.status(failure.allowed ? 401 : 429).json({
-          error: failure.allowed
-            ? `Kata sandi Owner tidak sesuai. Sisa percobaan: ${failure.remainingAttempts}.`
-            : failure.message,
-          remainingAttempts: failure.remainingAttempts,
-          retryAfterSeconds: failure.retryAfterSeconds,
+        res.status(401).json({
+          error: `Kata sandi Owner tidak sesuai. Sisa percobaan: ${rateCheck.remainingAttempts}.`,
+          remainingAttempts: rateCheck.remainingAttempts,
+          retryAfterSeconds: 0,
         });
         return;
       }
