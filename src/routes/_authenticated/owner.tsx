@@ -16,6 +16,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/ego/app-shell";
+import { EgoAnimatedMark } from "../../components/ego/ego-brand";
 import { ApprovalCheck } from "../../components/ego/approval-check";
 import { LiveVoicePanel } from "../../components/ego/live-voice-panel";
 import { MoneyInput } from "../../components/ego/money-input";
@@ -353,7 +354,7 @@ export function OwnerControlPage() {
         draft,
         owner_confirmed: true,
       });
-      toast.success("Perintah disetujui dan transaksi resmi diposting.");
+      toast.success("Perintah disetujui dan transaksi resmi diposting.", { icon: <EgoAnimatedMark size="sm" mode="success" /> });
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Gagal menyetujui draf."
@@ -488,9 +489,7 @@ export function OwnerControlPage() {
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#087BFF] to-[#19D8FF] text-white shadow-sm">
-                    <BrainCircuit className="h-5 w-5" aria-hidden="true" />
-                  </div>
+                  <EgoAnimatedMark size="md" mode={advisorMutation.isPending ? "processing" : advisorMutation.data ? "success" : "active"} />
                   <div>
                     <h2 className="text-base font-bold text-[#06132F] dark:text-white">
                       EGO AI Core — Konsultan Keuangan Pribadi
