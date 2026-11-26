@@ -491,18 +491,57 @@ export function DashboardPage() {
                 </span>
               </Link>
 
+            </div>
+            <div className="mt-2">
               <Link
                 to="/laporan"
-                className="flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
+                className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[#DCE4F0] bg-white px-3.5 py-2 text-xs font-semibold text-[#087BFF] transition-colors hover:bg-[#F4F7FB] dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#19D8FF] dark:hover:bg-[#06132F]"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#06132F] text-[#19D8FF] dark:bg-[#122652]">
-                  <BarChart3 className="h-4 w-4" aria-hidden="true" />
-                </span>
-                <span className="text-[10px] font-bold leading-tight text-[#06132F] dark:text-white">
-                  Lihat Laporan
-                </span>
+                <BarChart3 className="h-4 w-4" aria-hidden="true" />
+                <span>Lihat Laporan</span>
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </Link>
             </div>
+          </section>
+
+          <section aria-label="Pengingat Penting" className="rounded-2xl border border-[#DCE4F0] bg-white p-4 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300">
+                  <BellRing className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <div>
+                  <h2 className="text-sm font-bold text-[#06132F] dark:text-white">Pengingat Penting</h2>
+                  <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">Maksimal 3 hal paling mendesak</p>
+                </div>
+              </div>
+              <Link to="/rencana" search={{ tab: "pengingat" }} className="inline-flex items-center gap-1 text-xs font-semibold text-[#087BFF] dark:text-[#19D8FF]">
+                Semua <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </Link>
+            </div>
+            {reminderSummary.priorityItems.length > 0 ? (
+              <ul className="space-y-2">
+                {reminderSummary.priorityItems.map((item) => {
+                  const urgent = item.isOverdue || item.daysRemaining === 0;
+                  const status = item.isOverdue
+                    ? `Terlambat ${Math.abs(item.daysRemaining ?? 0)} hari`
+                    : item.daysRemaining === 0
+                      ? "Jatuh tempo hari ini"
+                      : ` ${item.daysRemaining} hari lagi`;
+                  return (
+                    <li key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2.5 dark:border-[#1B3163] dark:bg-[#06132F]">
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-semibold text-[#06132F] dark:text-white">{item.title}</p>
+                        <p className={`mt-0.5 text-[11px] font-semibold ${urgent ? "text-rose-600 dark:text-rose-400" : "text-amber-600 dark:text-amber-300"}`}>{status} · {item.categoryLabel}</p>
+                      </div>
+                      <span className="shrink-0 font-mono text-xs font-bold tabular-nums text-[#06132F] dark:text-[#19D8FF]">{balanceHidden ? "••••" : formatIDR(item.amount)}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="rounded-xl border border-dashed border-[#DCE4F0] px-3 py-3 text-xs text-slate-500 dark:border-[#1B3163] dark:text-[#C7D0E0]/70">Tidak ada pengingat mendesak dalam 7 hari ke depan.</p>
+            )}
           </section>
 
           <details className="group rounded-2xl border border-[#DCE4F0] bg-white shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
