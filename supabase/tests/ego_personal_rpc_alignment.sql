@@ -25,6 +25,23 @@ BEGIN
 END
 $privilege_test$;
 
+DO $default_privilege_test$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_default_acl AS d
+    CROSS JOIN LATERAL pg_catalog.aclexplode(d.defaclacl) AS a
+    JOIN pg_catalog.pg_roles AS gr ON gr.oid = a.grantee
+    WHERE d.defaclobjtype = 'r'
+      AND d.defaclnamespace = 'public'::regnamespace
+      AND gr.rolname IN ('anon','authenticated')
+      AND a.privilege_type IN ('TRUNCATE','TRIGGER','REFERENCES')
+  ) THEN
+    RAISE EXCEPTION 'Dangerous table privileges remain in public-schema default ACLs';
+  END IF;
+END
+$default_privilege_test$;
+
 SET ROLE authenticated;
 SELECT pg_catalog.set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',FALSE);
 
