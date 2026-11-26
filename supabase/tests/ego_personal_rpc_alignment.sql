@@ -25,6 +25,31 @@ BEGIN
 END
 $privilege_test$;
 
+-- Table-level REVOKE does not remove separately granted column REFERENCES.
+-- Assert that no column-level REFERENCES survives on finance ledger tables.
+DO $column_reference_test$
+DECLARE
+  v_col record;
+  v_role text;
+BEGIN
+  FOR v_col IN
+    SELECT c.oid AS relid, c.relname, a.attname
+    FROM pg_catalog.pg_class AS c
+    JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+    JOIN pg_catalog.pg_attribute AS a ON a.attrelid = c.oid
+    WHERE n.nspname = 'public'
+      AND c.relname IN ('transactions','debt_payment_logs')
+      AND a.attnum > 0 AND NOT a.attisdropped
+  LOOP
+    FOREACH v_role IN ARRAY ARRAY['anon','authenticated'] LOOP
+      IF pg_catalog.has_column_privilege(v_role, v_col.relid, v_col.attname, 'REFERENCES') THEN
+        RAISE EXCEPTION 'Unexpected column REFERENCES privilege for % on %.%', v_role, v_col.relname, v_col.attname;
+      END IF;
+    END LOOP;
+  END LOOP;
+END
+$column_reference_test$;
+
 -- The app migration runs as postgres and all current EGO-PERSONAL public
 -- relations are owned by postgres. Supabase-managed supabase_admin defaults
 -- are reserved platform ACLs and cannot be altered by this executor.

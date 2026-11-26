@@ -353,8 +353,8 @@ DECLARE
   v_existing_tx public.transactions%ROWTYPE;
   v_transaction public.transactions%ROWTYPE;
   v_log public.debt_payment_logs%ROWTYPE;
-  v_amount numeric(14,2);
-  v_remaining numeric(14,2);
+  v_amount numeric(15,2);
+  v_remaining numeric(15,2);
   v_notes text := NULLIF(pg_catalog.btrim(p_notes), '');
 BEGIN
   IF v_owner_id IS NULL THEN
@@ -522,6 +522,12 @@ ON TABLE public.transactions FROM PUBLIC, anon, authenticated;
 REVOKE INSERT (id, owner_id, debt_id, transaction_id, amount, principal_paid,
   interest_paid, remaining_after, notes, created_at, request_id),
   UPDATE (id, owner_id, debt_id, transaction_id, amount, principal_paid,
+  interest_paid, remaining_after, notes, created_at, request_id)
+ON TABLE public.debt_payment_logs FROM PUBLIC, anon, authenticated;
+
+-- Table-level REVOKE does not clear independently granted column-level
+-- REFERENCES privileges. Remove those observed on every debt-payment-log column.
+REVOKE REFERENCES (id, owner_id, debt_id, transaction_id, amount, principal_paid,
   interest_paid, remaining_after, notes, created_at, request_id)
 ON TABLE public.debt_payment_logs FROM PUBLIC, anon, authenticated;
 
