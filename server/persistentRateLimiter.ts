@@ -105,6 +105,30 @@ export function createPersistentLoginRateLimiter(
       return evaluate(store[storageKey(namespace, key)], maxAttempts, windowMs, nowMs);
     },
 
+    attempt(key: string, nowMs = Date.now()): LoginRateCheckResult {
+      return withFileLock(rateLimitLock, () => {
+        const store = readStore(rateLimitFile);
+        for (const [hash, entry] of Object.entries(store)) {
+          if (nowMs - entry.windowStart >= windowMs) delete store[hash];
+        }
+        const hash = storageKey(namespace, key);
+        const existing = store[hash];
+        if (existing && existing.count >= maxAttempts) {
+          return evaluate(existing, maxAttempts, windowMs, nowMs);
+        }
+        const next = existing
+          ? { count: existing.count + 1, windowStart: existing.windowStart }
+          : { count: 1, windowStart: nowMs };
+        store[hash] = next;
+        writeStore(rateLimitFile, store);
+        return {
+          allowed: true,
+          remainingAttempts: Math.max(0, maxAttempts - next.count),
+          retryAfterSeconds: 0,
+        };
+      });
+    },
+
     recordFailure(key: string, nowMs = Date.now()): LoginRateCheckResult {
       return withFileLock(rateLimitLock, () => {
         const store = readStore(rateLimitFile);
