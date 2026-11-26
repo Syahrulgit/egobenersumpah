@@ -31,7 +31,7 @@
     color-scheme: light;
     background-color: #F4F7FB;
     color: #06132F;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   html.dark {
@@ -41,7 +41,7 @@
   }
 
   body {
-    overflow-x: hidden;
+    overflow-x: clip;
     -webkit-tap-highlight-color: transparent;
   }
 
