@@ -42,6 +42,63 @@ BEGIN
 END
 $default_privilege_test$;
 
+-- Contract test for the entire exposed finance RPC surface.
+-- Each function must be SECURITY DEFINER with a fixed empty search_path,
+-- owned by a privileged migration role, executable by authenticated only,
+-- and never executable by anon or PUBLIC.
+DO $rpc_contract$
+DECLARE
+  v_name text;
+  v_oid oid;
+  v_proc record;
+  v_expected text[] := ARRAY[
+    'create_confirmed_transaction(uuid,text,uuid,uuid,numeric,date,text,text,boolean)',
+    'cancel_confirmed_transaction(uuid)',
+    'save_owner_command_draft(uuid,jsonb)',
+    'approve_owner_command(uuid,boolean)',
+    'reject_owner_command(uuid)',
+    'ego_pay_debt_atomic(uuid,uuid,numeric,uuid,boolean,date,text)'
+  ];
+BEGIN
+  FOREACH v_name IN ARRAY v_expected LOOP
+    v_oid := pg_catalog.to_regprocedure('public.' || v_name);
+    IF v_oid IS NULL THEN
+      RAISE EXCEPTION 'Required finance RPC is missing: %', v_name;
+    END IF;
+    SELECT p.*, r.rolname AS owner_name INTO v_proc
+    FROM pg_catalog.pg_proc AS p
+    JOIN pg_catalog.pg_roles AS r ON r.oid = p.proowner
+    WHERE p.oid = v_oid;
+    IF v_proc.prosecdef IS DISTINCT FROM TRUE THEN
+      RAISE EXCEPTION 'Finance RPC must be SECURITY DEFINER: %', v_name;
+    END IF;
+    IF NOT (COALESCE(v_proc.proconfig, ARRAY[]::text[]) @> ARRAY['search_path=""']) THEN
+      RAISE EXCEPTION 'Finance RPC must pin search_path to empty: % (%).', v_name, v_proc.proconfig;
+    END IF;
+    IF v_proc.owner_name IN ('anon','authenticated','PUBLIC') THEN
+      RAISE EXCEPTION 'Finance RPC has an untrusted owner: % (%).', v_name, v_proc.owner_name;
+    END IF;
+    IF pg_catalog.has_function_privilege('anon',v_oid,'EXECUTE') THEN
+      RAISE EXCEPTION 'anon can execute finance RPC: %', v_name;
+    END IF;
+    IF NOT pg_catalog.has_function_privilege('authenticated',v_oid,'EXECUTE') THEN
+      RAISE EXCEPTION 'authenticated cannot execute intended finance RPC: %', v_name;
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM pg_catalog.aclexplode(
+        COALESCE(v_proc.proacl, pg_catalog.acldefault('f',v_proc.proowner))
+      ) AS a
+      WHERE a.grantee = 0 AND a.privilege_type = 'EXECUTE'
+    ) THEN
+      RAISE EXCEPTION 'PUBLIC retains EXECUTE on finance RPC: %', v_name;
+    END IF;
+  END LOOP;
+  IF pg_catalog.to_regprocedure('public.approve_owner_command(uuid,boolean,jsonb)') IS NOT NULL THEN
+    RAISE EXCEPTION 'Legacy approval overload accepting a client-supplied draft still exists';
+  END IF;
+END
+$rpc_contract$;
+
 SET ROLE authenticated;
 SELECT pg_catalog.set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',FALSE);
 
@@ -142,6 +199,29 @@ BEGIN
     RAISE EXCEPTION 'Invalid transfer unexpectedly succeeded';
   EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
   END;
+
+  -- Cross-Owner IDOR regression: Owner A must not read, replace, or approve
+  -- Owner B's pending command, even when B's UUID is known to the caller.
+  BEGIN
+    PERFORM public.save_owner_command_draft(
+      '15151515-1515-4151-8151-151515151515',
+      '{"transaction_type":"expense","amount":777,"source_account_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}'::jsonb
+    );
+    RAISE EXCEPTION 'Owner A unexpectedly saved Owner B draft';
+  EXCEPTION WHEN SQLSTATE 'P0002' THEN NULL;
+  END;
+  BEGIN
+    PERFORM public.approve_owner_command('15151515-1515-4151-8151-151515151515',TRUE);
+    RAISE EXCEPTION 'Owner A unexpectedly approved Owner B command';
+  EXCEPTION WHEN SQLSTATE 'P0002' THEN NULL;
+  END;
+  -- Switch identity to B only to verify the target row remained untouched.
+  PERFORM pg_catalog.set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',FALSE);
+  IF (SELECT status FROM public.owner_commands WHERE id='15151515-1515-4151-8151-151515151515') <> 'pending'
+     OR (SELECT parsed_draft FROM public.owner_commands WHERE id='15151515-1515-4151-8151-151515151515') IS NOT NULL THEN
+    RAISE EXCEPTION 'Cross-Owner attempt changed Owner B command';
+  END IF;
+  PERFORM pg_catalog.set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',FALSE);
 
   -- Owner command is processed atomically and can be safely retried.
   -- The edited draft is persisted first; approval accepts only command ID + Owner confirmation.
