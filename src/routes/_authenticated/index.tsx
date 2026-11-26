@@ -515,7 +515,7 @@ export function DashboardPage() {
                   <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">Maksimal 3 hal paling mendesak</p>
                 </div>
               </div>
-              <Link to="/rencana" search={{ tab: "pengingat" }} className="inline-flex items-center gap-1 text-xs font-semibold text-[#087BFF] dark:text-[#19D8FF]">
+              <Link to="/rencana" className="inline-flex items-center gap-1 text-xs font-semibold text-[#087BFF] dark:text-[#19D8FF]">
                 Semua <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </Link>
             </div>
