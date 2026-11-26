@@ -184,11 +184,6 @@ GRANT INSERT (id, command_text, command_type, status, owner_confirmed,
   created_at, processed_at, owner_id, parsed_draft)
 ON TABLE public.owner_commands TO authenticated;
 
--- In this disposable local stack only, let the postgres migration executor
--- manage supabase_admin-owned default ACLs, matching the privileged migration
--- context required by the candidate's fail-closed hardening check.
-GRANT supabase_admin TO postgres;
-
 -- Seed the known over-broad Supabase default ACLs so the candidate must remove them.
 GRANT TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
@@ -204,6 +199,22 @@ BEGIN
   END IF;
 END
 $default_acl_fixture$;
+
+-- Emit the platform-owned defaults that the candidate must evaluate. This is
+-- diagnostic only; it does not modify Supabase-managed role memberships.
+SELECT pg_catalog.pg_get_userbyid(d.defaclrole) AS creator_role,
+       n.nspname AS schema_name,
+       gr.rolname AS grantee,
+       a.privilege_type,
+       a.is_grantable
+FROM pg_catalog.pg_default_acl AS d
+JOIN pg_catalog.pg_namespace AS n ON n.oid = d.defaclnamespace
+CROSS JOIN LATERAL pg_catalog.aclexplode(d.defaclacl) AS a
+JOIN pg_catalog.pg_roles AS gr ON gr.oid = a.grantee
+WHERE d.defaclobjtype = 'r'
+  AND n.nspname = 'public'
+  AND gr.rolname IN ('anon', 'authenticated')
+ORDER BY creator_role, grantee, privilege_type;
 CREATE TABLE public.security_privilege_probe (id integer PRIMARY KEY);
 GRANT TRUNCATE, TRIGGER, REFERENCES ON public.security_privilege_probe TO anon, authenticated;
 
