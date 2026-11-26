@@ -142,6 +142,14 @@ jobs:
           EGO_TEST_JWT_SECRET: ego-personal-integration-test-secret-2026-11-27
           EGO_POSTGREST_URL: http://127.0.0.1:3000
         run: node supabase/tests/ego_personal_postgrest_integration.mjs
+      - name: Align isolated GoTrue database role password
+        env:
+          PGPASSWORD: gotrue_test_only
+        run: |
+          psql -h localhost -p 5433 -U supabase_admin -d postgres -v ON_ERROR_STOP=1 \
+            -c "ALTER ROLE supabase_auth_admin WITH LOGIN PASSWORD 'gotrue_test_only';"
+          psql -h localhost -p 5433 -U supabase_admin -d postgres -v ON_ERROR_STOP=1 \
+            -c "SELECT rolname, rolcanlogin FROM pg_roles WHERE rolname = 'supabase_auth_admin';"
       - name: Start isolated Supabase GoTrue Auth
         run: |
           docker run -d --name ego-gotrue --network host \
