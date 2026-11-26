@@ -156,9 +156,7 @@ jobs:
         env:
           PGPASSWORD: gotrue_test_only
         run: |
-          psql -h localhost -p 5433 -U supabase_admin -d postgres -v ON_ERROR_STOP=1 \\
-            -c "SELECT column_name, column_default FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name IN ('role', 'aud');" \\
-            -c "SELECT current_database() AS database, to_regclass('auth.users') AS auth_users_table;"
+          psql -h localhost -p 5433 -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -c "SELECT column_name, column_default FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name IN ('role', 'aud');" -c "SELECT current_database() AS database, to_regclass('auth.users') AS auth_users_table;"
       - name: Start isolated Supabase GoTrue Auth
         env:
           POSTGRES_PASSWORD: gotrue_test_only
@@ -174,6 +172,7 @@ jobs:
             -e GOTRUE_JWT_SECRET="ego-personal-integration-test-secret-2026-11-27" \
             -e GOTRUE_JWT_EXP=3600 \
             -e GOTRUE_JWT_AUD=authenticated \
+            -e GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated \
             -e GOTRUE_DISABLE_SIGNUP=false \
             -e GOTRUE_EXTERNAL_EMAIL_ENABLED=true \
             -e GOTRUE_MAILER_AUTOCONFIRM=true \
