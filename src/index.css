@@ -249,20 +249,38 @@ html.dark #acc-name::placeholder {
 .ego-card-hero__companion {
   position: absolute;
   top: 50%;
-  right: clamp(12px, 5vw, 58px);
+  left: 50%;
+  right: auto;
   z-index: 1;
   display: grid;
-  width: 112px;
-  height: 112px;
+  width: min(68vw, 260px);
+  height: min(68vw, 260px);
   place-items: center;
-  opacity: .38;
-  transform: translateY(-50%) scale(1.12);
-  filter: drop-shadow(0 12px 24px rgba(25,216,255,.18));
+  opacity: .22;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 14px 30px rgba(25,216,255,.22));
   pointer-events: none;
 }
-.ego-card-hero__companion .ego-companion { width: 104px; height: 104px; }
-.ego-card-hero__companion .ego-companion__orbit { border-color: rgba(25,216,255,.38); }
-.ego-card-hero__companion .ego-companion__core { filter: drop-shadow(0 0 18px rgba(25,216,255,.36)); }
+.ego-card-hero__companion .ego-companion {
+  width: 100%;
+  height: 100%;
+}
+.ego-card-hero__companion .ego-companion__orbit { inset: 2%; border-color: rgba(25,216,255,.34); }
+.ego-card-hero__companion .ego-companion__orbit--inner { inset: 10%; }
+.ego-card-hero__companion .ego-companion__core {
+  filter: drop-shadow(0 0 24px rgba(25,216,255,.42));
+}
+.ego-card-hero__companion .ego-companion__core > div {
+  width: clamp(112px, 34vw, 156px);
+  height: clamp(112px, 34vw, 156px);
+  border-radius: 34%;
+}
+.ego-card-hero__companion .ego-companion__spark {
+  right: 13%;
+  bottom: 16%;
+  width: 10px;
+  height: 10px;
+}
 .ego-card-hero--living > .relative.z-10 { position: relative; }
 .ego-dashboard > details,
 .ego-dashboard > section:not([aria-label="Aksi Cepat"]) {
@@ -311,5 +329,17 @@ html.dark #acc-name::placeholder {
   .ego-dashboard > details,
   .ego-dashboard > section:not([aria-label="Aksi Cepat"]) {
     animation: none !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .ego-card-hero__companion {
+    width: min(76vw, 220px);
+    height: min(76vw, 220px);
+    opacity: .16;
+  }
+  .ego-card-hero__companion .ego-companion__core > div {
+    width: 116px;
+    height: 116px;
   }
 }
