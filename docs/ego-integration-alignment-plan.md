@@ -110,3 +110,17 @@ Do not choose one silently; document the intended accounting behavior and test i
 - No existing Owner rows are reset, deleted, or silently transformed.
 - EGO-PERSONAL remains unchanged until Owner approval.
 - All tests and advisors have recorded, reproducible results.
+
+
+## Performance advisor snapshot
+
+- EGO-TEST: 11 unused-index INFO findings; no performance WARN finding in the advisor response.
+- EGO-PERSONAL: 7 unindexed foreign-key INFO findings, 2 `auth_rls_initplan` WARN findings, and 5 unused-index INFO findings.
+- Do not drop unused indexes automatically: the projects are new/low-traffic and usage statistics may not yet be representative.
+- Add missing FK indexes only after reviewing existing indexes, expected query patterns, and the exact FK definitions. Keep the two RLS init-plan warnings as a separate, low-risk optimization; do not combine them with critical ledger changes.
+
+## Test execution notes
+
+- The current EGO-TEST smoke-test script completed through the Supabase SQL tool without a SQL error. The script itself wraps its synthetic fixtures in a transaction and ends with ROLLBACK.
+- A separate direct-write runtime probe did not complete: the first attempt stopped at a synthetic account foreign-key failure, and the follow-up probe was blocked by a safety check. Therefore, the direct-write finding is based on catalog privilege inspection plus the current RLS policy definition, not a completed exploit simulation.
+- The Draft PR triggered GitHub Actions. At the time of this note, `database-integration` was in progress and `app-checks` was queued; no passing conclusion is claimed yet.
