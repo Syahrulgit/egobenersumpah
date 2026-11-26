@@ -183,8 +183,8 @@ export function TransaksiPage() {
         </button>
       }
     >
-      <div className="space-y-4">
-        <section className="rounded-2xl border border-[#DCE4F0] bg-white p-4 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-5">
+      <div className="ego-transactions space-y-4">
+        <section className="ego-transaction-panel ego-transaction-summary rounded-[1.65rem] border border-[#DCE4F0] bg-white p-4 shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-5">
           <div className="mb-4">
             <p className="text-xs font-semibold text-slate-500 dark:text-[#C7D0E0]/70">Ringkasan transaksi</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
@@ -354,7 +354,7 @@ export function TransaksiPage() {
             {displayedGroups.map((group) => (
               <section
                 key={group.dateKey}
-                className="overflow-hidden rounded-2xl border border-[#DCE4F0] bg-white shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none"
+                className="ego-transaction-panel overflow-hidden rounded-[1.65rem] border border-[#DCE4F0] bg-white shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#DCE4F0] bg-[#F4F7FB] px-4 py-2.5 dark:border-[#1B3163] dark:bg-[#06132F]">
                   <h2 className="text-xs font-bold text-[#06132F] dark:text-white">
