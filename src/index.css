@@ -40,10 +40,23 @@
 html.dark #acc-name {
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
+  background-color: #06132F !important;
   opacity: 1 !important;
   filter: none !important;
   font-weight: 600;
   caret-color: #19D8FF;
+}
+
+/* Keep the field dark on iOS Safari while focused or typing.
+   This ID + state selector intentionally outranks generic focus utilities. */
+html.dark #acc-name:focus,
+html.dark #acc-name:focus-visible {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  background-color: #06132F !important;
+  border-color: #19D8FF !important;
+  box-shadow: 0 0 0 2px rgba(25, 216, 255, 0.16) !important;
+  outline: none !important;
 }
 
 html.dark #acc-name::placeholder {
