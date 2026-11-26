@@ -188,8 +188,17 @@ ON TABLE public.owner_commands TO authenticated;
 GRANT TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   GRANT TRUNCATE, TRIGGER, REFERENCES ON TABLES TO anon, authenticated;
-ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
-  GRANT TRUNCATE, TRIGGER, REFERENCES ON TABLES TO anon, authenticated;
+-- The Local Stack's postgres role is intentionally not a member of
+-- supabase_admin. Seed this creator's default ACL only where the fixture
+-- executor has the same membership required to alter it.
+DO $default_acl_fixture$
+BEGIN
+  IF pg_catalog.pg_has_role(current_user, 'supabase_admin', 'MEMBER') THEN
+    ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
+      GRANT TRUNCATE, TRIGGER, REFERENCES ON TABLES TO anon, authenticated;
+  END IF;
+END
+$default_acl_fixture$;
 CREATE TABLE public.security_privilege_probe (id integer PRIMARY KEY);
 GRANT TRUNCATE, TRIGGER, REFERENCES ON public.security_privilege_probe TO anon, authenticated;
 
