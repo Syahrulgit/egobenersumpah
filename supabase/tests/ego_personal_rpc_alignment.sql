@@ -1,5 +1,30 @@
 \set ON_ERROR_STOP on
 
+-- Regression guard: neither anon nor authenticated may retain table-level
+-- TRUNCATE, TRIGGER, or REFERENCES on any public relation after the candidate.
+DO $privilege_test$
+DECLARE
+  v_rel record;
+  v_role text;
+  v_priv text;
+BEGIN
+  FOR v_rel IN
+    SELECT c.oid, n.nspname, c.relname
+    FROM pg_catalog.pg_class AS c
+    JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relkind IN ('r','p','v','m','f')
+  LOOP
+    FOREACH v_role IN ARRAY ARRAY['anon','authenticated'] LOOP
+      FOREACH v_priv IN ARRAY ARRAY['TRUNCATE','TRIGGER','REFERENCES'] LOOP
+        IF pg_catalog.has_table_privilege(v_role, v_rel.oid, v_priv) THEN
+          RAISE EXCEPTION 'Unexpected % privilege for % on %.%', v_priv, v_role, v_rel.nspname, v_rel.relname;
+        END IF;
+      END LOOP;
+    END LOOP;
+  END LOOP;
+END
+$privilege_test$;
+
 SET ROLE authenticated;
 SELECT pg_catalog.set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',FALSE);
 
