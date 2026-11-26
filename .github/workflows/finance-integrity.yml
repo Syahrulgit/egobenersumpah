@@ -46,6 +46,19 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      auth-postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: gotrue_test
+          POSTGRES_PASSWORD: gotrue_test_only
+          POSTGRES_DB: gotrue_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U gotrue_test -d gotrue_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@v4
@@ -126,6 +139,37 @@ jobs:
           EGO_TEST_JWT_SECRET: ego-personal-postgrest-test-secret-2026-11-27
           EGO_POSTGREST_URL: http://127.0.0.1:3000
         run: node supabase/tests/ego_personal_postgrest_integration.mjs
+      - name: Start isolated Supabase GoTrue Auth
+        run: |
+          docker run -d --name ego-gotrue --network host \
+            -e GOTRUE_API_HOST=0.0.0.0 \
+            -e GOTRUE_API_PORT=9999 \
+            -e GOTRUE_DB_DRIVER=postgres \
+            -e GOTRUE_DB_DATABASE_URL="postgres://gotrue_test:gotrue_test_only@127.0.0.1:5433/gotrue_test?sslmode=disable" \
+            -e GOTRUE_SITE_URL="http://127.0.0.1:9999" \
+            -e API_EXTERNAL_URL="http://127.0.0.1:9999" \
+            -e GOTRUE_JWT_ISSUER="http://127.0.0.1:9999" \
+            -e GOTRUE_JWT_SECRET="ego-personal-gotrue-test-secret-2026-11-27" \
+            -e GOTRUE_JWT_EXP=3600 \
+            -e GOTRUE_JWT_AUD=authenticated \
+            -e GOTRUE_DISABLE_SIGNUP=false \
+            -e GOTRUE_EXTERNAL_EMAIL_ENABLED=true \
+            -e GOTRUE_MAILER_AUTOCONFIRM=true \
+            supabase/auth:v2.176.0
+          for attempt in $(seq 1 45); do
+            if curl --fail --silent http://127.0.0.1:9999/health >/dev/null; then
+              echo "GoTrue is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs ego-gotrue
+          exit 1
+      - name: Verify real GoTrue signup, password login and PostgREST JWT
+        env:
+          EGO_GOTRUE_URL: http://127.0.0.1:9999
+          EGO_POSTGREST_URL: http://127.0.0.1:3000
+        run: node supabase/tests/ego_personal_gotrue_integration.mjs
       - name: Verify Owner authorization, RPCs, replay, cancellation and rollback
         env:
           PGPASSWORD: ego_test_only
