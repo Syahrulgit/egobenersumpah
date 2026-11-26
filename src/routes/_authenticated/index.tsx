@@ -440,7 +440,7 @@ export function DashboardPage() {
 
           {/* C. Quick Actions */}
           <section aria-label="Aksi Cepat">
-            <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+            <div className="grid grid-cols-4 gap-2.5">
               <button
                 type="button"
                 onClick={() => openTransactionSheet({ type: "expense" })}
