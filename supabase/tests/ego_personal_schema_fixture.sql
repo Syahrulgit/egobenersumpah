@@ -151,4 +151,6 @@ INSERT INTO public.owner_commands (id, owner_id, command_text, status, parsed_dr
    'Tes persetujuan perintah', 'pending',
    '{"transaction_type":"expense","amount":5,"source_account_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","destination_account_id":null,"transaction_date":"2026-11-26","category":"Tes","description":"Draf uji"}'),
   ('13131313-1313-4131-8131-131313131313','11111111-1111-4111-8111-111111111111',
-   'Perintah ditolak', 'rejected', NULL);
+   'Perintah sudah ditolak', 'rejected', NULL),
+  ('14141414-1414-4141-8141-141414141414','11111111-1111-4111-8111-111111111111',
+   'Perintah untuk uji penolakan', 'pending', NULL);
