@@ -185,9 +185,9 @@ GRANT INSERT (id, command_text, command_type, status, owner_confirmed,
 ON TABLE public.owner_commands TO authenticated;
 
 -- Seed the known over-broad Supabase default ACLs so the candidate must remove them.
-GRANT TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT MAINTAIN, TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
-  GRANT TRUNCATE, TRIGGER, REFERENCES ON TABLES TO anon, authenticated;
+  GRANT MAINTAIN, TRUNCATE, TRIGGER, REFERENCES ON TABLES TO anon, authenticated;
 -- The Local Stack's postgres role is intentionally not a member of
 -- supabase_admin. Seed this creator's default ACL only where the fixture
 -- executor has the same membership required to alter it.
@@ -201,7 +201,7 @@ END
 $default_acl_fixture$;
 
 CREATE TABLE public.security_privilege_probe (id integer PRIMARY KEY);
-GRANT TRUNCATE, TRIGGER, REFERENCES ON public.security_privilege_probe TO anon, authenticated;
+GRANT MAINTAIN, TRUNCATE, TRIGGER, REFERENCES ON public.security_privilege_probe TO anon, authenticated;
 
 INSERT INTO public.accounts (id, account_name, account_type, owner_id, is_active) VALUES
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','Owner cash','cash','11111111-1111-4111-8111-111111111111',TRUE),
