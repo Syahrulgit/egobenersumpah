@@ -410,10 +410,10 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => openTransactionSheet({ type: "expense" })}
-                className="flex min-h-[72px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
+                className="group flex min-h-[72px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all duration-150 hover:border-[#087BFF]/50 hover:shadow-sm active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100 dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#19D8FF] to-[#087BFF] text-white shadow-xs">
-                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  <Plus className="h-4 w-4 transition-transform duration-150 group-active:rotate-12 motion-reduce:transition-none motion-reduce:group-active:rotate-0" aria-hidden="true" />
                 </span>
                 <span className="text-[11px] font-bold leading-tight text-[#06132F] dark:text-white">
                   Catat Transaksi
@@ -423,10 +423,10 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => openTransactionSheet({ type: "transfer" })}
-                className="flex min-h-[72px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
+                className="group flex min-h-[72px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all duration-150 hover:border-[#087BFF]/50 hover:shadow-sm active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100 dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#087BFF]/12 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
-                  <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
+                  <ArrowLeftRight className="h-4 w-4 transition-transform duration-150 group-active:scale-110 motion-reduce:transition-none motion-reduce:group-active:scale-100" aria-hidden="true" />
                 </span>
                 <span className="text-[11px] font-bold leading-tight text-[#06132F] dark:text-white">
                   Transfer
