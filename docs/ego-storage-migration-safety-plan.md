@@ -16,11 +16,16 @@ Status: design-only; no production data or schema has been changed.
 - Supabase Auth is used by `verifyOwnerToken()` to verify Supabase tokens; the local session fallback still reads the local vault.
 - `createAuthedSupabaseClient(token)` exists, but the inspected routes do not establish Supabase as the financial-data source of truth.
 - The current app data model in `src/types/ego.ts` contains accounts, transactions, assets, debts, debt payment logs, owner commands, recurring bills, savings goals, reminders/logs, category budgets/logs, what-if scenarios, and financial-health snapshots.
-- EGO-TEST is active, has one baseline migration, and its five tables (accounts, transactions, assets, debts, owner_commands) contain zero rows.
-- All five EGO-TEST tables have RLS enabled. Policies are owner-scoped with `auth.uid()`; owner_commands has separate insert/select/update policies.
+- EGO-TEST is active. Baseline plus storage schema v2 and v2.1 migrations are applied; all 15 application-owned finance tables are still empty.
+- All 15 application-owned finance tables have RLS enabled and exactly one consolidated `owner_isolation` policy per table using `auth.uid()`. Baseline overlapping policies on the five original tables were removed.
 - The `account_balances` view is configured with `security_invoker = true`. Its current definition calculates balances from opening balances and confirmed, posted transactions. Grants and behavior still need application-level tests.
 - Security advisor currently reports no findings. Performance advisor reports two unindexed transaction foreign keys (source_account_id and destination_account_id); this is informational at the current zero-row test stage and should be addressed in the reviewed schema migration.
-- Schema/model mismatches exist and must be resolved before application cutover:
+- Schema/model mismatches identified in the initial audit have been addressed additively in EGO-TEST: nullable transaction category; `ewallet` account type while retaining legacy spellings; debt metadata and app/legacy status compatibility; asset unit; owner command parsed draft; and all missing persisted collections plus owner preferences. These schema changes are not yet wired into application routes.
+- Database constraints now reject posted transactions without explicit Owner confirmation and reject invalid account shape / same-account transfers. A temporary-table SQL probe verified those constraints and the owner-scoped transaction idempotency unique index.
+- Composite owner-aware foreign keys prevent transactions and linked records from referencing another Owner's accounts/debts/goals/bills. Covering indexes were added for these relationships.
+- Security advisor reports no findings. Performance advisor no longer reports unindexed foreign keys or overlapping permissive policies; it reports unused indexes, expected because the test tables are intentionally empty.
+- End-to-end RLS isolation tests with two authenticated test users, real transaction/debt-payment RPC tests, backup/restore tests, and app integration tests remain pending.
+- Schema/model mismatches that were found and addressed in the test project:
   - accounts DB allows `other`, while the app AccountType currently lists cash/bank/ewallet.
   - transactions DB requires category, while the app type allows category null; DB also has extra recorded_at/source_command fields.
   - debts DB status is unpaid/partial/paid, while the app type uses active/paid; app has optional debt metadata absent from the inspected DB table.
