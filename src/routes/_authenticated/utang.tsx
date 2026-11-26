@@ -51,6 +51,7 @@ interface PendingDebtPaymentRequest {
   amount: number;
   source_account_id: string;
   notes: string | null;
+  transaction_date: string;
 }
 
 
@@ -115,6 +116,7 @@ export function UtangPage() {
   const [payNotes, setPayNotes] = useState("");
   const [payConfirmed, setPayConfirmed] = useState(false);
   const [paymentRequestId, setPaymentRequestId] = useState<string | null>(null);
+  const [paymentTransactionDate, setPaymentTransactionDate] = useState(todayISO());
   const [isPendingPaymentRetry, setIsPendingPaymentRetry] = useState(false);
   const [storedPendingPayment, setStoredPendingPayment] =
     useState<PendingDebtPaymentRequest | null>(() => {
@@ -129,7 +131,11 @@ export function UtangPage() {
           Number.isFinite(parsed.amount) &&
           parsed.amount > 0 &&
           typeof parsed.source_account_id === "string"
-        ) ? parsed : null;
+        ) ? {
+          ...parsed,
+          // Legacy pending requests predate date persistence; retain their request UUID.
+          transaction_date: typeof parsed.transaction_date === "string" ? parsed.transaction_date : todayISO(),
+        } : null;
       } catch {
         return null;
       }
@@ -313,7 +319,10 @@ export function UtangPage() {
           parsed.amount > 0 &&
           typeof parsed.source_account_id === "string"
         ) {
-          pending = parsed;
+          pending = {
+            ...parsed,
+            transaction_date: typeof parsed.transaction_date === "string" ? parsed.transaction_date : todayISO(),
+          };
         }
       }
     } catch {
@@ -330,6 +339,7 @@ export function UtangPage() {
     setIsPendingPaymentRetry(Boolean(pending));
     setStoredPendingPayment(pending);
     setPaymentRequestId(pending?.request_id ?? crypto.randomUUID());
+    setPaymentTransactionDate(pending?.transaction_date ?? todayISO());
   }
 
   async function handlePayDebt(e: React.FormEvent) {
@@ -353,6 +363,7 @@ export function UtangPage() {
         amount: payAmount,
         source_account_id: paySourceAccountId,
         notes: payNotes.trim() || null,
+        transaction_date: paymentTransactionDate,
       };
       window.sessionStorage.setItem(
         PENDING_DEBT_PAYMENT_KEY,
