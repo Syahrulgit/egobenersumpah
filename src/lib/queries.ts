@@ -1182,12 +1182,16 @@ export function usePayDebt() {
       source_account_id: string;
       owner_confirmed: boolean;
       notes?: string | null;
+      transaction_date: string;
     }) => {
       if (!input.owner_confirmed) {
         throw new Error("Persetujuan eksplisit Owner wajib dicentang.");
       }
       if (!isValidTransactionRequestId(input.request_id)) {
         throw new Error("ID permintaan pembayaran tidak valid.");
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(input.transaction_date)) {
+        throw new Error("Tanggal pembayaran tidak valid.");
       }
       const paymentAmount = roundCurrency(Number(input.amount));
       if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
@@ -1198,13 +1202,14 @@ export function usePayDebt() {
       }
 
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.rpc("pay_debt_atomically", {
-          p_debt_id: input.debt_id,
+        const { data, error } = await supabase.rpc("ego_pay_debt_atomic", {
           p_request_id: input.request_id,
+          p_debt_id: input.debt_id,
           p_amount: paymentAmount,
           p_source_account_id: input.source_account_id,
-          p_notes: input.notes?.trim() || null,
           p_owner_confirmed: input.owner_confirmed,
+          p_transaction_date: input.transaction_date,
+          p_notes: input.notes?.trim() || null,
         });
         if (error) {
           throw new Error(error.message || "Pembayaran utang gagal diproses.");
@@ -1242,7 +1247,6 @@ export function useQueueCommand() {
       if (isSupabaseConfigured && supabase) {
         const { error } = await supabase.from("owner_commands").insert({
           command_text: cleanText,
-          status: "pending",
           parsed_draft: input.parsed_draft ?? null,
         });
         if (error) throw new Error(error.message);
@@ -1302,9 +1306,8 @@ export function useApproveCommand() {
         description: (input.draft.description || "Transaksi Owner").trim(),
       };
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.rpc("approve_owner_command", {
+        const { error: draftError } = await supabase.rpc("save_owner_command_draft", {
           p_command_id: input.id,
-          p_owner_confirmed: input.owner_confirmed,
           p_draft: {
             transaction_type: cleanDraft.transaction_type,
             amount: cleanDraft.amount,
@@ -1314,6 +1317,14 @@ export function useApproveCommand() {
             destination_account_id: cleanDraft.destination_account_id,
             transaction_date: cleanDraft.transaction_date,
           },
+        });
+        if (draftError) {
+          throw new Error(draftError.message || "Penyimpanan draf transaksi gagal.");
+        }
+
+        const { data, error } = await supabase.rpc("approve_owner_command", {
+          p_command_id: input.id,
+          p_owner_confirmed: input.owner_confirmed,
         });
         if (error) {
           throw new Error(error.message || "Persetujuan perintah gagal diproses.");
@@ -1343,10 +1354,9 @@ export function useRejectCommand() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (isSupabaseConfigured && supabase) {
-        const { error } = await supabase
-          .from("owner_commands")
-          .update({ status: "rejected" })
-          .eq("id", id);
+        const { error } = await supabase.rpc("reject_owner_command", {
+          p_command_id: id,
+        });
         if (error) throw new Error(error.message);
         return;
       }
@@ -1501,7 +1511,7 @@ export function useQueueRecurringBill() {
           .from("owner_commands")
           .insert({
             command_text: `[Tagihan Rutin] ${bill.title} · Rp ${bill.amount.toLocaleString("id-ID")} (Jatuh tempo ${bill.next_due_date})`,
-            status: "pending",
+            // status defaults to pending; omit it to honor the restricted INSERT column grant.
             parsed_draft: draft,
           })
           .select("id")
@@ -1931,7 +1941,7 @@ export function useQueueReminderDraft() {
           .from("owner_commands")
           .insert({
             command_text: `[Pengingat] ${r.title} · Rp ${r.amount.toLocaleString("id-ID")} (Jatuh tempo ${r.due_date})`,
-            status: "pending",
+            // status defaults to pending; omit it to honor the restricted INSERT column grant.
             parsed_draft: draft,
           })
           .select("id")
