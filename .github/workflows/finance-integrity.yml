@@ -77,7 +77,7 @@ jobs:
     timeout-minutes: 12
     services:
       postgres:
-        image: postgres:16
+        image: postgres:17
         env:
           POSTGRES_USER: ego_test
           POSTGRES_PASSWORD: ego_test_only
