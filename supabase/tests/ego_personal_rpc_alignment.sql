@@ -337,6 +337,17 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 
+  -- Positive inputs that normalize to zero must fail with a clear validation error.
+  BEGIN
+    PERFORM public.ego_pay_debt_atomic(
+      '30313131-3031-4131-8131-303131313131',
+      'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      0.004,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',TRUE,DATE '2026-11-26','rounds to zero'
+    );
+    RAISE EXCEPTION 'Debt payment amount rounding to zero unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
+  END;
+
   -- Debt payment updates debt + transaction + payment log atomically.
   v_payment := public.ego_pay_debt_atomic(
     '31313131-3131-4131-8131-313131313131',
