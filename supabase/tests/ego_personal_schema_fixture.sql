@@ -11,6 +11,9 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'authenticated') THEN
     CREATE ROLE authenticated NOLOGIN;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'supabase_admin') THEN
+    CREATE ROLE supabase_admin NOLOGIN;
+  END IF;
 END
 $roles$;
 
@@ -136,6 +139,10 @@ GRANT SELECT, INSERT, UPDATE ON public.accounts, public.debts, public.transactio
 GRANT DELETE ON public.debt_payment_logs TO authenticated;
 -- Seed the known over-broad Supabase default ACLs so the candidate must remove them.
 GRANT TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  GRANT TRUNCATE, TRIGGER, REFERENCES ON TABLES TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
+  GRANT TRUNCATE, TRIGGER, REFERENCES ON TABLES TO anon, authenticated;
 CREATE TABLE public.security_privilege_probe (id integer PRIMARY KEY);
 GRANT TRUNCATE, TRIGGER, REFERENCES ON public.security_privilege_probe TO anon, authenticated;
 
