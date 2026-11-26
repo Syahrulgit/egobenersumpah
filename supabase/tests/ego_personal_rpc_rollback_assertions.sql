@@ -4,6 +4,9 @@ DO $rollback_assertions$
 DECLARE
   v_proc record;
   v_oid oid;
+  v_rel record;
+  v_role text;
+  v_priv text;
 BEGIN
   IF pg_catalog.to_regprocedure('public.create_confirmed_transaction(uuid,text,uuid,uuid,numeric,date,text,text,boolean)') IS NOT NULL
     OR pg_catalog.to_regprocedure('public.cancel_confirmed_transaction(uuid)') IS NOT NULL
@@ -40,9 +43,36 @@ BEGIN
     OR NOT pg_catalog.has_table_privilege('authenticated','public.owner_commands','UPDATE') THEN
     RAISE EXCEPTION 'Rollback did not restore the pre-alignment authenticated DML grants';
   END IF;
-  IF pg_catalog.has_table_privilege('anon','public.transactions','TRUNCATE')
-    OR pg_catalog.has_table_privilege('authenticated','public.transactions','TRUNCATE') THEN
-    RAISE EXCEPTION 'Rollback incorrectly restored dangerous TRUNCATE privileges';
+  -- Rollback intentionally retains the candidate's security hardening:
+  -- neither API role regains MAINTAIN, TRUNCATE, TRIGGER or REFERENCES.
+  FOR v_rel IN
+    SELECT c.oid, n.nspname, c.relname
+    FROM pg_catalog.pg_class AS c
+    JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relkind IN ('r','p','v','m','f')
+  LOOP
+    FOREACH v_role IN ARRAY ARRAY['anon','authenticated'] LOOP
+      FOREACH v_priv IN ARRAY ARRAY['MAINTAIN','TRUNCATE','TRIGGER','REFERENCES'] LOOP
+        IF pg_catalog.has_table_privilege(v_role, v_rel.oid, v_priv) THEN
+          RAISE EXCEPTION 'Rollback restored hardened % privilege for % on %.%',
+            v_priv, v_role, v_rel.nspname, v_rel.relname;
+        END IF;
+      END LOOP;
+    END LOOP;
+  END LOOP;
+
+  IF EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_default_acl AS d
+    CROSS JOIN LATERAL pg_catalog.aclexplode(d.defaclacl) AS a
+    JOIN pg_catalog.pg_roles AS gr ON gr.oid = a.grantee
+    WHERE d.defaclobjtype = 'r'
+      AND d.defaclnamespace = 'public'::regnamespace
+      AND d.defaclrole = (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'postgres')
+      AND gr.rolname IN ('anon','authenticated')
+      AND a.privilege_type IN ('MAINTAIN','TRUNCATE','TRIGGER','REFERENCES')
+  ) THEN
+    RAISE EXCEPTION 'Rollback restored hardened postgres-owned default ACL privileges';
   END IF;
 END
 $rollback_assertions$;
