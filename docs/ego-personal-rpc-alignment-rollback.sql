@@ -29,6 +29,10 @@ DROP FUNCTION IF EXISTS public.create_confirmed_transaction(uuid, text, uuid, uu
 -- If the prior app cannot use the RPC contract, keep finance writes disabled
 -- until a compatible app build is available; do not weaken database security.
 
+-- Keep owner_commands protected from direct table-level deletion as well.
+-- Safe column-level INSERT grants are intentionally preserved by this rollback.
+REVOKE DELETE ON TABLE public.owner_commands FROM PUBLIC, anon, authenticated;
+
 -- Keep the debt RPC callable by authenticated Owner only.
 REVOKE ALL ON FUNCTION public.ego_pay_debt_atomic(uuid, uuid, numeric, uuid, boolean, date, text)
   FROM PUBLIC, anon;
