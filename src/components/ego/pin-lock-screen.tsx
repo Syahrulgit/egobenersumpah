@@ -116,7 +116,7 @@ export function PinLockScreen({ ownerName }: PinLockScreenProps) {
         </div>
 
         <div className="mt-7 flex justify-center">
-          <EgoAnimatedMark size="lg" mode={verifyPin.isPending ? "processing" : errorMsg ? "warning" : pin.length === 6 ? "success" : "active"} className="p-2" />
+          <EgoAnimatedMark size="lg" mode={verifyPin.isPending ? "processing" : errorMsg ? "warning" : "active"} className="p-2" />
         </div>
 
         <div className="mt-5 text-center">
