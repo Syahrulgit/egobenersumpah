@@ -229,7 +229,7 @@ jobs:
         shell: bash
         run: |
           npx --yes supabase@3.4.0 status -o env > "$RUNNER_TEMP/ego-supabase-local.env"
-          KEY="$(sed -n 's/^ANON_KEY=//p; s/^SUPABASE_ANON_KEY=//p' "$RUNNER_TEMP/ego-supabase-local.env" | head -n 1 | tr -d '"')"
+          KEY="$(sed -n 's/^ANON_KEY=//p; s/^SUPABASE_ANON_KEY=//p; s/^PUBLISHABLE_KEY=//p' "$RUNNER_TEMP/ego-supabase-local.env" | head -n 1 | tr -d '"')"
           if [[ -z "$KEY" ]]; then
             echo "Could not read the local Supabase anon key from CLI status output"
             exit 1
