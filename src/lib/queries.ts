@@ -1307,9 +1307,8 @@ export function useApproveCommand() {
         description: (input.draft.description || "Transaksi Owner").trim(),
       };
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.rpc("approve_owner_command", {
+        const { error: draftError } = await supabase.rpc("save_owner_command_draft", {
           p_command_id: input.id,
-          p_owner_confirmed: input.owner_confirmed,
           p_draft: {
             transaction_type: cleanDraft.transaction_type,
             amount: cleanDraft.amount,
@@ -1319,6 +1318,14 @@ export function useApproveCommand() {
             destination_account_id: cleanDraft.destination_account_id,
             transaction_date: cleanDraft.transaction_date,
           },
+        });
+        if (draftError) {
+          throw new Error(draftError.message || "Penyimpanan draf transaksi gagal.");
+        }
+
+        const { data, error } = await supabase.rpc("approve_owner_command", {
+          p_command_id: input.id,
+          p_owner_confirmed: input.owner_confirmed,
         });
         if (error) {
           throw new Error(error.message || "Persetujuan perintah gagal diproses.");
