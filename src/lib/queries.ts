@@ -1182,12 +1182,16 @@ export function usePayDebt() {
       source_account_id: string;
       owner_confirmed: boolean;
       notes?: string | null;
+      transaction_date: string;
     }) => {
       if (!input.owner_confirmed) {
         throw new Error("Persetujuan eksplisit Owner wajib dicentang.");
       }
       if (!isValidTransactionRequestId(input.request_id)) {
         throw new Error("ID permintaan pembayaran tidak valid.");
+      }
+      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(input.transaction_date)) {
+        throw new Error("Tanggal pembayaran tidak valid.");
       }
       const paymentAmount = roundCurrency(Number(input.amount));
       if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
@@ -1198,13 +1202,14 @@ export function usePayDebt() {
       }
 
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.rpc("pay_debt_atomically", {
-          p_debt_id: input.debt_id,
+        const { data, error } = await supabase.rpc("ego_pay_debt_atomic", {
           p_request_id: input.request_id,
+          p_debt_id: input.debt_id,
           p_amount: paymentAmount,
           p_source_account_id: input.source_account_id,
-          p_notes: input.notes?.trim() || null,
           p_owner_confirmed: input.owner_confirmed,
+          p_transaction_date: input.transaction_date,
+          p_notes: input.notes?.trim() || null,
         });
         if (error) {
           throw new Error(error.message || "Pembayaran utang gagal diproses.");
