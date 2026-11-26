@@ -140,6 +140,28 @@ GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.accounts, public.debts, public.transactions,
   public.debt_payment_logs, public.owner_commands TO authenticated;
 GRANT DELETE ON public.debt_payment_logs TO authenticated;
+
+-- Model the live PERSONAL column-only grants separately from table grants.
+REVOKE INSERT, UPDATE ON TABLE public.transactions, public.debt_payment_logs,
+  public.owner_commands FROM authenticated;
+GRANT INSERT (id, transaction_date, transaction_type, category, amount,
+  source_account_id, destination_account_id, description, owner_confirmed,
+  status, recorded_at, source_command, created_at, owner_id),
+  UPDATE (id, transaction_date, transaction_type, category, amount,
+  source_account_id, destination_account_id, description, owner_confirmed,
+  status, recorded_at, source_command, created_at, owner_id)
+ON TABLE public.transactions TO authenticated;
+GRANT INSERT (id, owner_id, debt_id, transaction_id, amount, principal_paid,
+  interest_paid, remaining_after, notes, created_at, request_id),
+  UPDATE (id, owner_id, debt_id, transaction_id, amount, principal_paid,
+  interest_paid, remaining_after, notes, created_at, request_id)
+ON TABLE public.debt_payment_logs TO authenticated;
+GRANT INSERT (id, command_text, command_type, status, owner_confirmed,
+  created_at, processed_at, owner_id, parsed_draft),
+  UPDATE (id, command_text, command_type, status, owner_confirmed,
+  created_at, processed_at, owner_id, parsed_draft)
+ON TABLE public.owner_commands TO authenticated;
+
 -- Seed the known over-broad Supabase default ACLs so the candidate must remove them.
 GRANT TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
