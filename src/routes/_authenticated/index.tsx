@@ -276,6 +276,49 @@ export function DashboardPage() {
         </div>
       ) : (
         <div className="space-y-5">
+          <section
+            aria-label="EGO AI Companion"
+            className="ego-companion relative isolate flex items-center gap-3 overflow-hidden rounded-2xl border border-[#1B3163] bg-gradient-to-r from-[#071633] via-[#0A1D47] to-[#082A55] p-3.5 text-white shadow-sm shadow-[#06132F]/15 sm:gap-4 sm:p-4"
+          >
+            <div className="ego-companion-art relative flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl border border-[#19D8FF]/25 bg-[#06132F]/75 sm:h-[88px] sm:w-[88px]">
+              <svg viewBox="0 0 96 96" className="h-[68px] w-[68px] sm:h-[78px] sm:w-[78px]" role="img" aria-label="Maskot robot EGO">
+                <defs>
+                  <linearGradient id="egoRobotShell" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#F8FCFF" />
+                    <stop offset="55%" stopColor="#A9C9E8" />
+                    <stop offset="100%" stopColor="#477BAF" />
+                  </linearGradient>
+                  <linearGradient id="egoRobotFace" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#102B55" />
+                    <stop offset="100%" stopColor="#06132F" />
+                  </linearGradient>
+                </defs>
+                <path d="M48 8v8" stroke="#19D8FF" strokeWidth="3" strokeLinecap="round" />
+                <circle cx="48" cy="6" r="3" fill="#19D8FF" />
+                <rect x="13" y="30" width="9" height="24" rx="4.5" fill="#19D8FF" opacity=".8" />
+                <rect x="74" y="30" width="9" height="24" rx="4.5" fill="#19D8FF" opacity=".8" />
+                <rect x="19" y="17" width="58" height="56" rx="19" fill="url(#egoRobotShell)" stroke="#D9F3FF" strokeWidth="2" />
+                <rect x="25" y="24" width="46" height="39" rx="14" fill="url(#egoRobotFace)" stroke="#19D8FF" strokeOpacity=".55" />
+                <path d="M35 42c3-5 8-5 11 0M51 42c3-5 8-5 11 0" fill="none" stroke="#19D8FF" strokeWidth="4" strokeLinecap="round" />
+                <path d="M39 53q9 7 18 0" fill="none" stroke="#8BEFFF" strokeWidth="2.5" strokeLinecap="round" />
+                <rect x="35" y="69" width="26" height="13" rx="6.5" fill="#0D3970" stroke="#19D8FF" strokeWidth="1.5" />
+                <path d="M42 75h12" stroke="#19D8FF" strokeWidth="2.5" strokeLinecap="round" />
+                <path d="M28 79l-5 8M68 79l5 8" stroke="#A9C9E8" strokeWidth="5" strokeLinecap="round" />
+              </svg>
+              <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-[#071633] bg-emerald-400" aria-hidden="true" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-bold tracking-wide text-white">EGO AI Companion</p>
+                <span className="rounded-full border border-[#19D8FF]/25 bg-[#19D8FF]/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#75E9FF]">Siap membantu</span>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-[#D2E3F7] sm:text-sm">
+                Halo, {ownerName}. Saya siap membantu Owner memahami kondisi keuangan dan menjaga tujuan tetap terarah.
+              </p>
+              <p className="mt-1.5 text-[10px] font-medium text-[#75DFFF]/80">Asisten pribadi · Kendali tetap di tangan Owner</p>
+            </div>
+            <span className="hidden shrink-0 text-2xl text-[#19D8FF]/80 sm:block" aria-hidden="true">✦</span>
+          </section>
           {/* B. Primary Balance Hero Card */}
           <section
             aria-label="Kartu Saldo Utama"
