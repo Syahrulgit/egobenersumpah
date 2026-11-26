@@ -16,8 +16,10 @@ Status: design-only; no production data or schema has been changed.
 - Supabase Auth is used by `verifyOwnerToken()` to verify Supabase tokens; the local session fallback still reads the local vault.
 - `createAuthedSupabaseClient(token)` exists, but the inspected routes do not establish Supabase as the financial-data source of truth.
 - The current app data model in `src/types/ego.ts` contains accounts, transactions, assets, debts, debt payment logs, owner commands, recurring bills, savings goals, reminders/logs, category budgets/logs, what-if scenarios, and financial-health snapshots.
-- EGO-TEST is active, has one baseline migration, and its five inspected tables (accounts, transactions, assets, debts, owner_commands) contain zero rows.
+- EGO-TEST is active, has one baseline migration, and its five tables (accounts, transactions, assets, debts, owner_commands) contain zero rows.
 - All five EGO-TEST tables have RLS enabled. Policies are owner-scoped with `auth.uid()`; owner_commands has separate insert/select/update policies.
+- The `account_balances` view is configured with `security_invoker = true`. Its current definition calculates balances from opening balances and confirmed, posted transactions. Grants and behavior still need application-level tests.
+- Security advisor currently reports no findings. Performance advisor reports two unindexed transaction foreign keys (source_account_id and destination_account_id); this is informational at the current zero-row test stage and should be addressed in the reviewed schema migration.
 - Schema/model mismatches exist and must be resolved before application cutover:
   - accounts DB allows `other`, while the app AccountType currently lists cash/bank/ewallet.
   - transactions DB requires category, while the app type allows category null; DB also has extra recorded_at/source_command fields.
@@ -25,7 +27,6 @@ Status: design-only; no production data or schema has been changed.
   - assets DB lacks the app's `unit` field.
   - owner_commands DB lacks the app's `parsed_draft` field and uses different status names.
   - app collections for debt_payment_logs, recurring_bills, savings_goals, financial_reminders, financial_reminder_logs, category_budgets, budget_alert_logs, whatif_scenarios, and financial_health_scores are not present in the inspected EGO-TEST schema.
-- A view named `account_balances` exists in EGO-TEST; its security_invoker behavior and grants must be verified before use.
 
 ## Proposed target architecture
 
@@ -40,7 +41,7 @@ Status: design-only; no production data or schema has been changed.
    - command approval + resulting posted transaction.
 6. Enforce explicit Owner confirmation at the database boundary for posting financial transactions. Use unique request/idempotency keys to prevent duplicate submissions.
 7. Derive balances from opening balances and posted ledger entries (or prove any materialized balance update is atomic). Transfers must debit and credit in the same database transaction.
-8. Review views for RLS behavior (Postgres 15+ views should use `security_invoker = true` where appropriate), grants, and all policies. Do not rely on RLS alone if a privileged backend path bypasses it.
+8. Review views for RLS behavior, grants, and all policies. Do not rely on RLS alone if a privileged backend path bypasses it.
 
 ## Migration sequence
 
@@ -48,6 +49,7 @@ Status: design-only; no production data or schema has been changed.
 - Compare every field in `src/types/ego.ts` and `VaultDatabase` with the EGO-TEST schema.
 - Agree canonical names, nullable fields, enums/status transitions, JSONB payloads, timestamps, and FK behavior.
 - Produce versioned SQL migrations and review RLS/policies/views/functions.
+- Add indexes for both transaction account foreign keys.
 - Keep all changes confined to EGO-TEST until test results are reviewed.
 
 ### Phase B — synthetic test data and behavior
@@ -89,4 +91,4 @@ Status: design-only; no production data or schema has been changed.
 
 ## Current decision
 
-Design only. No DDL has been applied to EGO-TEST, no records have been inserted, no production project has been queried for mutation, and no app code has been changed. The next implementation unit is a reviewed schema-reconciliation migration for EGO-TEST, not a production cutover.
+Design-only. No DDL has been applied to EGO-TEST, no records have been inserted, no production project has been queried for mutation, and no app code has been changed. The next implementation unit is a reviewed schema-reconciliation migration for EGO-TEST, not a production cutover.
