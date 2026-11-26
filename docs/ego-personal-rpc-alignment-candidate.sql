@@ -46,7 +46,7 @@ BEGIN
   IF p_id IS NULL OR p_amount IS NULL OR p_amount <= 0 OR p_transaction_date IS NULL THEN
     RAISE EXCEPTION 'Data transaksi tidak valid.' USING ERRCODE = '22023';
   END IF;
-  IF p_transaction_type NOT IN ('income', 'expense', 'transfer') THEN
+  IF p_transaction_type IS NULL OR p_transaction_type NOT IN ('income', 'expense', 'transfer') THEN
     RAISE EXCEPTION 'Jenis transaksi tidak valid.' USING ERRCODE = '22023';
   END IF;
 
@@ -401,7 +401,7 @@ GRANT EXECUTE ON FUNCTION public.ego_pay_debt_atomic(uuid,uuid,numeric,uuid,bool
 
 -- Remove direct ledger writes so a client cannot bypass the explicit Owner
 -- confirmation RPC. SECURITY DEFINER RPCs above perform the required writes.
-REVOKE INSERT, UPDATE, DELETE ON TABLE public.transactions FROM anon, authenticated;
-REVOKE INSERT, UPDATE, DELETE ON TABLE public.debt_payment_logs FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.transactions FROM PUBLIC, anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.debt_payment_logs FROM PUBLIC, anon, authenticated;
 
 COMMIT;
