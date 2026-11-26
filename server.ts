@@ -5,6 +5,8 @@ import path from "node:path";
 import "./server/loadEnv";
 import express from "express";
 import { WebSocketServer } from "ws";
+import { isSameConfirmedTransactionRequest, isValidTransactionRequestId } from "./src/lib/transaction-idempotency";
+import { isSameDebtPaymentRequest } from "./src/lib/debt-payment-idempotency";
 import { parseNaturalCommand } from "./src/lib/command-parser";
 import {
   advanceDueDate,
@@ -819,7 +821,10 @@ async function startServer(): Promise<void> {
       const category = req.body?.category ? String(req.body.category).trim() : null;
       const description = req.body?.description ? String(req.body.description).trim() : null;
       const ownerConfirmed = req.body?.owner_confirmed === true;
-      const status: Transaction["status"] = ownerConfirmed ? "posted" : "pending";
+      if (!ownerConfirmed) {
+        throw new Error("Persetujuan eksplisit Owner wajib dicentang sebelum transaksi dicatat.");
+      }
+      const status: Transaction["status"] = "posted";
 
       validateTransactionInvariants(
         {
@@ -834,8 +839,13 @@ async function startServer(): Promise<void> {
         db.accounts
       );
 
+      const requestId = req.body?.id;
+      if (!isValidTransactionRequestId(requestId)) {
+        throw new Error("ID permintaan transaksi wajib berupa UUID yang valid.");
+      }
+
       const newTx: Transaction = {
-        id: crypto.randomUUID(),
+        id: requestId,
         owner_id: ownerId,
         transaction_type: txType,
         source_account_id: txType === "income" ? null : sourceId,
@@ -848,6 +858,23 @@ async function startServer(): Promise<void> {
         owner_confirmed: ownerConfirmed,
         created_at: new Date().toISOString(),
       };
+
+      const existing = db.transactions.find((tx) => tx.id === requestId);
+      if (existing) {
+        if (existing.owner_id !== ownerId) {
+          throw new Error("ID transaksi tidak dapat digunakan.");
+        }
+        const isSameRequest =
+          isSameConfirmedTransactionRequest(existing, newTx);
+
+        if (!isSameRequest) {
+          throw new Error(
+            "ID transaksi sudah digunakan untuk data berbeda. Transaksi tidak diulang."
+          );
+        }
+        res.status(200).json(existing);
+        return;
+      }
 
       db.transactions.unshift(newTx);
       saveVault(db);
@@ -1104,16 +1131,52 @@ async function startServer(): Promise<void> {
       const ownerId = (req as express.Request & { ownerId: string }).ownerId;
       const db = loadVault();
       db.debt_payment_logs ??= [];
+      const requestId = req.body?.request_id;
+      if (!isValidTransactionRequestId(requestId)) {
+        res.status(400).json({ error: "ID permintaan pembayaran wajib berupa UUID yang valid." });
+        return;
+      }
+
       const debt = db.debts.find((d) => d.id === req.params.id && d.owner_id === ownerId);
       if (!debt) {
         res.status(404).json({ error: "Data utang tidak ditemukan." });
         return;
       }
 
-      const paymentAmount = Number(req.body?.amount ?? 0);
+      const paymentAmount = roundCurrency(Number(req.body?.amount ?? 0));
       const sourceAccountId = String(req.body?.source_account_id ?? "");
       const ownerConfirmed = req.body?.owner_confirmed === true;
       const notes = req.body?.notes ? String(req.body.notes).trim() : null;
+      if (!ownerConfirmed) {
+        throw new Error("Persetujuan eksplisit Owner wajib dicentang.");
+      }
+      if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+        throw new Error("Nominal pembayaran harus lebih dari Rp 0.");
+      }
+
+      const requestIdentity = {
+        request_id: requestId,
+        debt_id: req.params.id,
+        amount: paymentAmount,
+        source_account_id: sourceAccountId,
+        notes,
+      };
+      const existingLog = db.debt_payment_logs.find(
+        (item) => item.owner_id === ownerId && item.request_id === requestId
+      );
+      if (existingLog) {
+        const existingTx = db.transactions.find(
+          (item) => item.id === existingLog.transaction_id && item.owner_id === ownerId
+        );
+        if (!isSameDebtPaymentRequest(existingLog, existingTx, requestIdentity)) {
+          res.status(409).json({
+            error: "ID pembayaran sudah digunakan untuk rincian berbeda. Pembayaran tidak diulang.",
+          });
+          return;
+        }
+        res.json({ debt: normalizeDebt(debt), transaction: existingTx, log: existingLog, replayed: true });
+        return;
+      }
 
       validateDebtPayment(debt, paymentAmount, sourceAccountId, ownerConfirmed);
       validateTransactionInvariants(
@@ -1130,45 +1193,44 @@ async function startServer(): Promise<void> {
       );
 
       const newBalance = roundCurrency(debt.outstanding_balance - paymentAmount);
-      debt.outstanding_balance = Math.max(0, newBalance);
-      if (debt.outstanding_balance === 0) {
-        debt.status = "paid";
-      }
-
+      const remaining = Math.max(0, newBalance);
       const nowIso = new Date().toISOString();
-      const payDate = todayISO();
       const tx: Transaction = {
         id: crypto.randomUUID(),
         owner_id: ownerId,
         transaction_type: "expense",
         source_account_id: sourceAccountId,
         destination_account_id: null,
-        amount: roundCurrency(paymentAmount),
-        transaction_date: payDate,
+        amount: paymentAmount,
+        transaction_date: todayISO(),
         category: "Utang & Cicilan",
         description: `Pembayaran utang ke ${debt.creditor}`,
         status: "posted",
         owner_confirmed: true,
         created_at: nowIso,
       };
-
       const log: DebtPaymentLog = {
         id: crypto.randomUUID(),
         owner_id: ownerId,
         debt_id: debt.id,
         transaction_id: tx.id,
-        amount: roundCurrency(paymentAmount),
-        principal_paid: roundCurrency(paymentAmount),
+        request_id: requestId,
+        amount: paymentAmount,
+        principal_paid: paymentAmount,
         interest_paid: 0,
-        remaining_after: debt.outstanding_balance,
+        remaining_after: remaining,
         notes,
         created_at: nowIso,
       };
 
+      // The local JSON-backed server handles this synchronous block in one
+      // event-loop turn; one save persists all three related records together.
+      debt.outstanding_balance = remaining;
+      debt.status = remaining === 0 ? "paid" : "active";
       db.transactions.unshift(tx);
       db.debt_payment_logs.unshift(log);
       saveVault(db);
-      res.json({ debt: normalizeDebt(debt), transaction: tx, log });
+      res.json({ debt: normalizeDebt(debt), transaction: tx, log, replayed: false });
     } catch (err) {
       res.status(400).json({
         error: err instanceof Error ? err.message : "Gagal memproses pembayaran utang.",
@@ -1243,15 +1305,15 @@ async function startServer(): Promise<void> {
         res.status(404).json({ error: "Perintah tidak ditemukan." });
         return;
       }
-      if (cmd.status !== "pending") {
-        res.status(400).json({ error: "Perintah ini sudah diproses sebelumnya." });
-        return;
-      }
       if (req.body?.owner_confirmed !== true) {
         res.status(400).json({
           error:
             "Prinsip Brankas Mutlak: Persetujuan eksplisit Owner wajib dicentang sebelum mengeksekusi draf.",
         });
+        return;
+      }
+      if (cmd.status !== "pending" && cmd.status !== "processed") {
+        res.status(400).json({ error: "Perintah ini sudah diproses sebelumnya." });
         return;
       }
 
@@ -1285,7 +1347,7 @@ async function startServer(): Promise<void> {
       );
 
       const tx: Transaction = {
-        id: crypto.randomUUID(),
+        id: cmd.id,
         owner_id: ownerId,
         transaction_type: txType,
         source_account_id: txType === "income" ? null : sourceId,
@@ -1299,6 +1361,24 @@ async function startServer(): Promise<void> {
         created_at: new Date().toISOString(),
       };
 
+      const existingTx = db.transactions.find((item) => item.id === cmd.id);
+      if (existingTx && !isSameConfirmedTransactionRequest(existingTx, tx)) {
+        res.status(409).json({
+          error: "ID transaksi sudah digunakan untuk data berbeda. Transaksi tidak diulang.",
+        });
+        return;
+      }
+      if (cmd.status === "processed") {
+        if (!existingTx) {
+          res.status(409).json({
+            error: "Perintah sudah diproses, tetapi transaksi tidak ditemukan untuk diverifikasi.",
+          });
+          return;
+        }
+        res.json({ command: cmd, transaction: existingTx });
+        return;
+      }
+
       cmd.status = "processed";
       cmd.parsed_draft = {
         ...(cmd.parsed_draft ?? override),
@@ -1310,10 +1390,12 @@ async function startServer(): Promise<void> {
         description,
         transaction_date: tx.transaction_date,
       };
-      db.transactions.unshift(tx);
+      if (!existingTx) {
+        db.transactions.unshift(tx);
+      }
       saveVault(db);
 
-      res.json({ command: cmd, transaction: tx });
+      res.json({ command: cmd, transaction: existingTx ?? tx });
     } catch (err) {
       res.status(400).json({
         error: err instanceof Error ? err.message : "Gagal menyetujui perintah.",

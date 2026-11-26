@@ -43,6 +43,17 @@ import {
 } from "../../lib/queries";
 import type { Debt, DebtPaymentFrequency, DebtType } from "../../types/ego";
 
+const PENDING_DEBT_PAYMENT_KEY = "ego_pending_debt_payment_request";
+
+interface PendingDebtPaymentRequest {
+  request_id: string;
+  debt_id: string;
+  amount: number;
+  source_account_id: string;
+  notes: string | null;
+}
+
+
 const DEBT_TYPE_OPTIONS: Array<{ value: DebtType; label: string }> = [
   { value: "kpr", label: "KPR / Properti" },
   { value: "kendaraan", label: "Cicilan Kendaraan" },
@@ -103,6 +114,30 @@ export function UtangPage() {
   const [paySourceAccountId, setPaySourceAccountId] = useState("");
   const [payNotes, setPayNotes] = useState("");
   const [payConfirmed, setPayConfirmed] = useState(false);
+  const [paymentRequestId, setPaymentRequestId] = useState<string | null>(null);
+  const [isPendingPaymentRetry, setIsPendingPaymentRetry] = useState(false);
+  const [storedPendingPayment, setStoredPendingPayment] =
+    useState<PendingDebtPaymentRequest | null>(() => {
+      if (typeof window === "undefined") return null;
+      try {
+        const raw = window.sessionStorage.getItem(PENDING_DEBT_PAYMENT_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as PendingDebtPaymentRequest;
+        return (
+          typeof parsed.debt_id === "string" &&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.request_id) &&
+          Number.isFinite(parsed.amount) &&
+          parsed.amount > 0 &&
+          typeof parsed.source_account_id === "string"
+        ) ? parsed : null;
+      } catch {
+        return null;
+      }
+    });
+
+  const storedPendingDebt = storedPendingPayment
+    ? debts.find((debt) => debt.id === storedPendingPayment.debt_id) ?? null
+    : null;
 
   // History Modal State
   const [historyDebt, setHistoryDebt] = useState<Debt | null>(null);
@@ -254,15 +289,44 @@ export function UtangPage() {
 
   function startPayment(debt: Debt) {
     const norm = normalizeDebt(debt);
+    if (storedPendingPayment && storedPendingPayment.debt_id !== norm.id) {
+      toast.error("Selesaikan pemeriksaan pembayaran tertunda terlebih dahulu agar ID percobaan tidak tertimpa.");
+      return;
+    }
     setPayingDebt(norm);
     const defaultPay =
       norm.installment_amount > 0
         ? Math.min(norm.outstanding_balance, norm.installment_amount)
         : norm.outstanding_balance;
-    setPayAmount(defaultPay);
-    setPaySourceAccountId(activeAccounts[0]?.id ?? "");
-    setPayNotes("");
+    let pending: PendingDebtPaymentRequest | null = null;
+    try {
+      const raw = window.sessionStorage.getItem(PENDING_DEBT_PAYMENT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as PendingDebtPaymentRequest;
+        if (
+          parsed.debt_id === norm.id &&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.request_id) &&
+          Number.isFinite(parsed.amount) &&
+          parsed.amount > 0 &&
+          typeof parsed.source_account_id === "string"
+        ) {
+          pending = parsed;
+        }
+      }
+    } catch {
+      try {
+        window.sessionStorage.removeItem(PENDING_DEBT_PAYMENT_KEY);
+      } catch {
+        // Storage may be unavailable in restricted browser contexts.
+      }
+    }
+    setPayAmount(pending?.amount ?? defaultPay);
+    setPaySourceAccountId(pending?.source_account_id ?? activeAccounts[0]?.id ?? "");
+    setPayNotes(pending?.notes ?? "");
     setPayConfirmed(false);
+    setIsPendingPaymentRetry(Boolean(pending));
+    setStoredPendingPayment(pending);
+    setPaymentRequestId(pending?.request_id ?? crypto.randomUUID());
   }
 
   async function handlePayDebt(e: React.FormEvent) {
@@ -272,19 +336,29 @@ export function UtangPage() {
       toast.error("Pilih akun sumber pembayaran.");
       return;
     }
-    if (payAmount <= 0 || payAmount > payingDebt.outstanding_balance) {
-      toast.error(
-        "Nominal pembayaran harus lebih dari Rp 0 dan tidak melebihi sisa pokok."
-      );
+    if (!Number.isFinite(payAmount) || payAmount <= 0) {
+      toast.error("Nominal pembayaran harus lebih dari Rp 0.");
       return;
     }
     try {
-      await payDebt.mutateAsync({
+      if (!paymentRequestId) {
+        throw new Error("ID permintaan pembayaran belum siap. Tutup lalu buka kembali formulir pembayaran.");
+      }
+      const pendingRequest: PendingDebtPaymentRequest = {
+        request_id: paymentRequestId,
         debt_id: payingDebt.id,
         amount: payAmount,
         source_account_id: paySourceAccountId,
-        owner_confirmed: true,
         notes: payNotes.trim() || null,
+      };
+      window.sessionStorage.setItem(
+        PENDING_DEBT_PAYMENT_KEY,
+        JSON.stringify(pendingRequest)
+      );
+      setStoredPendingPayment(pendingRequest);
+      await payDebt.mutateAsync({
+        ...pendingRequest,
+        owner_confirmed: true,
       });
       const isFull = payAmount >= payingDebt.outstanding_balance;
       toast.success(
@@ -294,6 +368,14 @@ export function UtangPage() {
       );
       setPayingDebt(null);
       setPayConfirmed(false);
+      setPaymentRequestId(null);
+      setIsPendingPaymentRetry(false);
+      setStoredPendingPayment(null);
+      try {
+        window.sessionStorage.removeItem(PENDING_DEBT_PAYMENT_KEY);
+      } catch {
+        // The committed request ID remains safe to replay if storage cleanup fails.
+      }
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Gagal memproses pembayaran utang."
@@ -382,6 +464,25 @@ export function UtangPage() {
       }
     >
       <div className="space-y-6">
+        {storedPendingPayment && storedPendingDebt ? (
+          <section className="flex flex-col gap-3 rounded-2xl border border-amber-400/50 bg-amber-50 p-4 dark:border-amber-500/40 dark:bg-amber-950/30 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-amber-950 dark:text-amber-200">
+                Ada pembayaran utang yang belum terkonfirmasi hasilnya
+              </p>
+              <p className="mt-1 text-xs text-amber-900/85 dark:text-amber-200/80">
+                {storedPendingDebt.creditor} · {formatIDR(storedPendingPayment.amount)}. Periksa ulang permintaan yang sama agar tidak tercatat dua kali.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => startPayment(storedPendingDebt)}
+              className="inline-flex min-h-[38px] shrink-0 items-center justify-center rounded-xl border border-amber-500/50 px-3 py-2 text-xs font-semibold text-amber-950 hover:bg-amber-100 dark:text-amber-200 dark:hover:bg-amber-900/40"
+            >
+              Periksa pembayaran
+            </button>
+          </section>
+        ) : null}
         {/* Metrics Summary */}
         <section className="grid gap-4 sm:grid-cols-3">
           <div className="ego-card-hero flex flex-col justify-between gap-3 rounded-3xl border border-[#1B3163] p-5 text-white shadow-lg shadow-[#06132F]/15 sm:p-6">
@@ -1246,6 +1347,11 @@ export function UtangPage() {
       >
         {payingDebt ? (
           <form onSubmit={handlePayDebt} className="space-y-4">
+            {isPendingPaymentRetry ? (
+              <div className="rounded-xl border border-amber-400/50 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-200">
+                Ada percobaan pembayaran sebelumnya yang belum mendapat konfirmasi hasil. Rincian dikunci agar tidak berubah; konfirmasi Owner lalu ulangi permintaan yang sama untuk memeriksa hasil tanpa membuat pembayaran kedua.
+              </div>
+            ) : null}
             <div className="rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F]">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/65">
                 Sisa Pokok Terutang
@@ -1275,9 +1381,12 @@ export function UtangPage() {
                     payingDebt.outstanding_balance ? (
                     <button
                       type="button"
-                      onClick={() =>
-                        setPayAmount(payingDebt.installment_amount ?? 0)
-                      }
+                      disabled={isPendingPaymentRetry}
+                      onClick={() => {
+                        setPayAmount(payingDebt.installment_amount ?? 0);
+                        setPaymentRequestId(crypto.randomUUID());
+                        setPayConfirmed(false);
+                      }}
                       className="min-h-[36px] rounded-xl border border-[#087BFF]/35 bg-[#087BFF]/10 px-3 py-1.5 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/35 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
                     >
                       Cicilan Rutin ({formatIDR(payingDebt.installment_amount ?? 0, true)})
@@ -1285,35 +1394,36 @@ export function UtangPage() {
                   ) : null}
                   <button
                     type="button"
-                    onClick={() =>
-                      setPayAmount(
-                        Math.max(
-                          1,
-                          Math.round(payingDebt.outstanding_balance * 0.25)
-                        )
-                      )
-                    }
+                    disabled={isPendingPaymentRetry}
+                    onClick={() => {
+                      setPayAmount(Math.max(1, Math.round(payingDebt.outstanding_balance * 0.25)));
+                      setPaymentRequestId(crypto.randomUUID());
+                      setPayConfirmed(false);
+                    }}
                     className="min-h-[36px] rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-1.5 text-xs font-semibold text-[#06132F] hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
                   >
                     25%
                   </button>
                   <button
                     type="button"
-                    onClick={() =>
-                      setPayAmount(
-                        Math.max(
-                          1,
-                          Math.round(payingDebt.outstanding_balance * 0.5)
-                        )
-                      )
-                    }
+                    disabled={isPendingPaymentRetry}
+                    onClick={() => {
+                      setPayAmount(Math.max(1, Math.round(payingDebt.outstanding_balance * 0.5)));
+                      setPaymentRequestId(crypto.randomUUID());
+                      setPayConfirmed(false);
+                    }}
                     className="min-h-[36px] rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-1.5 text-xs font-semibold text-[#06132F] hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
                   >
                     50%
                   </button>
                   <button
                     type="button"
-                    onClick={() => setPayAmount(payingDebt.outstanding_balance)}
+                    disabled={isPendingPaymentRetry}
+                    onClick={() => {
+                      setPayAmount(payingDebt.outstanding_balance);
+                      setPaymentRequestId(crypto.randomUUID());
+                      setPayConfirmed(false);
+                    }}
                     className="min-h-[36px] rounded-xl border border-[#087BFF]/35 bg-[#087BFF]/10 px-3 py-1.5 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/35 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
                   >
                     Lunasi Penuh
@@ -1324,7 +1434,12 @@ export function UtangPage() {
                   id="pay-debt-amount"
                   label="Nominal Pembayaran (IDR)"
                   value={payAmount}
-                  onChange={setPayAmount}
+                  disabled={isPendingPaymentRetry}
+                  onChange={(value) => {
+                    setPayAmount(value);
+                    setPaymentRequestId(crypto.randomUUID());
+                    setPayConfirmed(false);
+                  }}
                   hint={`Sisa setelah bayar: ${formatIDR(
                     Math.max(0, payingDebt.outstanding_balance - payAmount)
                   )}`}
@@ -1343,7 +1458,12 @@ export function UtangPage() {
                     id="pay-debt-acc"
                     required
                     value={paySourceAccountId}
-                    onChange={(e) => setPaySourceAccountId(e.target.value)}
+                    disabled={isPendingPaymentRetry}
+                    onChange={(e) => {
+                      setPaySourceAccountId(e.target.value);
+                      setPaymentRequestId(crypto.randomUUID());
+                      setPayConfirmed(false);
+                    }}
                     className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
                   >
                     <option value="">Pilih akun...</option>
@@ -1366,7 +1486,12 @@ export function UtangPage() {
                     id="pay-debt-notes"
                     type="text"
                     value={payNotes}
-                    onChange={(e) => setPayNotes(e.target.value)}
+                    disabled={isPendingPaymentRetry}
+                    onChange={(e) => {
+                      setPayNotes(e.target.value);
+                      setPaymentRequestId(crypto.randomUUID());
+                      setPayConfirmed(false);
+                    }}
                     placeholder="Misal: Cicilan bulan ke-4"
                     className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
                   />
@@ -1381,6 +1506,7 @@ export function UtangPage() {
                 <div className="flex gap-2">
                   <button
                     type="button"
+                    disabled={isPendingPaymentRetry}
                     onClick={() => setPayingDebt(null)}
                     className="min-h-[44px] flex-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-4 py-2.5 text-xs font-semibold text-[#06132F] hover:bg-slate-200 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
                   >

@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { advanceDueDate, computeAccountBalances, roundCurrency, todayISO } from "./finance";
+import { fromDatabaseAccountType, toDatabaseAccountType } from "./account-types";
+import { isSameConfirmedTransactionRequest, isValidTransactionRequestId } from "./transaction-idempotency";
 import {
   clearPinSessionState,
   hashPinWebCrypto,
@@ -24,7 +26,6 @@ import {
   validateAssetInput,
   validateCategoryBudgetInput,
   validateDebtInput,
-  validateDebtPaymentInput,
   validateFinancialReminderInput,
   validateRecurringBillInput,
   validateSavingsGoalInput,
@@ -339,7 +340,12 @@ export async function fetchVaultSnapshot(): Promise<VaultSnapshot> {
       throw new Error(healthRes.error.message);
     }
 
-    const accounts = (accRes.data ?? []) as Account[];
+    const accounts = ((accRes.data ?? []) as Array<Account & { account_type: string }>).map(
+      (account) => ({
+        ...account,
+        account_type: fromDatabaseAccountType(account.account_type),
+      })
+    );
     const transactions = (txRes.data ?? []) as Transaction[];
     let prefs: OwnerPreferences = {
       date_format: "DD MMM YYYY",
@@ -839,7 +845,7 @@ export function useCreateAccount() {
       if (isSupabaseConfigured && supabase) {
         const { error } = await supabase.from("accounts").insert({
           account_name: input.account_name.trim(),
-          account_type: input.account_type,
+          account_type: toDatabaseAccountType(input.account_type),
           opening_balance: roundCurrency(input.opening_balance),
         });
         if (error) throw new Error(error.message);
@@ -883,6 +889,7 @@ export function useCreateTransaction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
+      id: string;
       transaction_type: TransactionType;
       source_account_id: string | null;
       destination_account_id: string | null;
@@ -892,6 +899,10 @@ export function useCreateTransaction() {
       description: string;
       owner_confirmed: boolean;
     }) => {
+      if (!isValidTransactionRequestId(input.id)) {
+        throw new Error("ID permintaan transaksi tidak valid.");
+      }
+
       const normalized = {
         ...input,
         source_account_id:
@@ -913,11 +924,38 @@ export function useCreateTransaction() {
       });
 
       if (isSupabaseConfigured && supabase) {
-        const { error } = await supabase.from("transactions").insert({
+        const transactionRow = {
           ...normalized,
-          status: "posted",
-        });
-        if (error) throw new Error(error.message);
+          status: "posted" as const,
+        };
+        const { error } = await supabase
+          .from("transactions")
+          .insert(transactionRow);
+
+        if (error) {
+          if (error.code !== "23505") throw new Error(error.message);
+
+          // A retry with the same request ID is successful only when the
+          // already-saved row is exactly the same confirmed transaction.
+          const { data: existing, error: lookupError } = await supabase
+            .from("transactions")
+            .select(
+              "id, transaction_type, source_account_id, destination_account_id, amount, transaction_date, category, description, status, owner_confirmed"
+            )
+            .eq("id", normalized.id)
+            .maybeSingle();
+
+          if (lookupError) throw new Error(lookupError.message);
+          const isSameRequest =
+            existing?.id === normalized.id &&
+            isSameConfirmedTransactionRequest(existing, transactionRow);
+
+          if (!isSameRequest) {
+            throw new Error(
+              "ID transaksi sudah digunakan untuk data berbeda. Transaksi tidak diulang."
+            );
+          }
+        }
         return;
       }
       return apiFetch("/api/transactions", {
@@ -1156,6 +1194,7 @@ export function usePayDebt() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
+      request_id: string;
       debt_id: string;
       amount: number;
       source_account_id: string;
@@ -1165,81 +1204,41 @@ export function usePayDebt() {
       if (!input.owner_confirmed) {
         throw new Error("Persetujuan eksplisit Owner wajib dicentang.");
       }
+      if (!isValidTransactionRequestId(input.request_id)) {
+        throw new Error("ID permintaan pembayaran tidak valid.");
+      }
+      const paymentAmount = roundCurrency(Number(input.amount));
+      if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+        throw new Error("Nominal pembayaran harus lebih dari Rp 0.");
+      }
+      if (!input.debt_id || !input.source_account_id) {
+        throw new Error("Pilih utang dan akun sumber pembayaran.");
+      }
+
       if (isSupabaseConfigured && supabase) {
-        const { data: debt, error: getErr } = await supabase
-          .from("debts")
-          .select("*")
-          .eq("id", input.debt_id)
-          .single();
-        if (getErr || !debt) throw new Error(getErr?.message || "Utang tidak ditemukan.");
-
-        const paymentAmount = roundCurrency(input.amount);
-        validateDebtPaymentInput(
-          {
-            status: String(debt.status ?? "active"),
-            outstanding_balance: Number(debt.outstanding_balance ?? 0),
-          },
-          paymentAmount,
-          input.source_account_id,
-          input.owner_confirmed
-        );
-
-        const remaining = Math.max(
-          0,
-          roundCurrency(Number(debt.outstanding_balance) - paymentAmount)
-        );
-        const payDate = todayISO();
-        const { data: insertedTx, error: txErr } = await supabase
-          .from("transactions")
-          .insert({
-            transaction_type: "expense",
-            source_account_id: input.source_account_id,
-            destination_account_id: null,
-            amount: paymentAmount,
-            transaction_date: payDate,
-            category: "Utang & Cicilan",
-            description: `Pembayaran utang ke ${debt.creditor}`,
-            status: "posted",
-            owner_confirmed: true,
-          })
-          .select("id")
-          .single();
-        if (txErr || !insertedTx) {
-          throw new Error(txErr?.message || "Gagal mencatat transaksi pembayaran utang.");
-        }
-
-        const { error: updErr } = await supabase
-          .from("debts")
-          .update({
-            outstanding_balance: remaining,
-            status: remaining === 0 ? "paid" : "active",
-          })
-          .eq("id", input.debt_id);
-        if (updErr) {
-          await supabase.from("transactions").delete().eq("id", insertedTx.id);
-          throw new Error(updErr.message);
-        }
-
-        const { error: logErr } = await supabase.from("debt_payment_logs").insert({
-          debt_id: input.debt_id,
-          transaction_id: insertedTx.id,
-          amount: paymentAmount,
-          principal_paid: paymentAmount,
-          interest_paid: 0,
-          remaining_after: remaining,
-          notes: input.notes?.trim() || null,
+        const { data, error } = await supabase.rpc("ego_pay_debt_atomic", {
+          p_request_id: input.request_id,
+          p_debt_id: input.debt_id,
+          p_amount: paymentAmount,
+          p_source_account_id: input.source_account_id,
+          p_owner_confirmed: input.owner_confirmed,
+          p_transaction_date: todayISO(),
+          p_notes: input.notes?.trim() || null,
         });
-        if (logErr && !isMissingSupabaseTableError(logErr)) {
-          // Non-fatal so core payment transaction stays consistent; log error ignored only if table not migrated
-          console.warn("debt_payment_logs insert warning:", logErr.message);
+        if (error) {
+          throw new Error(error.message || "Pembayaran utang gagal diproses.");
         }
-        return;
+        if (!data) {
+          throw new Error("Server tidak mengembalikan konfirmasi pembayaran utang.");
+        }
+        return data;
       }
 
       return apiFetch(`/api/debts/${input.debt_id}/pay`, {
         method: "POST",
         body: JSON.stringify({
-          amount: input.amount,
+          request_id: input.request_id,
+          amount: paymentAmount,
           source_account_id: input.source_account_id,
           owner_confirmed: input.owner_confirmed,
           notes: input.notes ?? null,
@@ -1294,6 +1293,9 @@ export function useApproveCommand() {
       if (!input.owner_confirmed) {
         throw new Error("Persetujuan eksplisit Owner wajib dicentang.");
       }
+      if (!isValidTransactionRequestId(input.id)) {
+        throw new Error("ID perintah transaksi tidak valid.");
+      }
       const amount = roundCurrency(Number(input.draft.amount ?? 0));
       const txType = input.draft.transaction_type;
       const sourceId =
@@ -1310,6 +1312,27 @@ export function useApproveCommand() {
         owner_confirmed: input.owner_confirmed,
       });
 
+      const cleanDraft: ParsedCommandDraft = {
+        ...input.draft,
+        amount,
+        source_account_id: sourceId,
+        destination_account_id: destId,
+        transaction_date: (input.draft.transaction_date || todayISO()).slice(0, 10),
+        category: (input.draft.category || "Lainnya").trim(),
+        description: (input.draft.description || "Transaksi Owner").trim(),
+      };
+      const transactionRequest = {
+        transaction_type: cleanDraft.transaction_type,
+        source_account_id: cleanDraft.source_account_id,
+        destination_account_id: cleanDraft.destination_account_id,
+        amount,
+        transaction_date: cleanDraft.transaction_date,
+        category: cleanDraft.category,
+        description: cleanDraft.description,
+        status: "posted" as const,
+        owner_confirmed: true,
+      };
+
       if (isSupabaseConfigured && supabase) {
         const { data: existingCmd, error: cmdFetchErr } = await supabase
           .from("owner_commands")
@@ -1319,37 +1342,58 @@ export function useApproveCommand() {
         if (cmdFetchErr || !existingCmd) {
           throw new Error(cmdFetchErr?.message || "Perintah tidak ditemukan.");
         }
+
+        if (existingCmd.status === "processed") {
+          const { data: existingTx, error: existingTxErr } = await supabase
+            .from("transactions")
+            .select(
+              "id, transaction_type, source_account_id, destination_account_id, amount, transaction_date, category, description, status, owner_confirmed"
+            )
+            .eq("id", input.id)
+            .maybeSingle();
+          if (existingTxErr) throw new Error(existingTxErr.message);
+          if (
+            !existingTx ||
+            !isSameConfirmedTransactionRequest(existingTx, transactionRequest)
+          ) {
+            throw new Error("Perintah sudah diproses, tetapi transaksi tidak cocok untuk diverifikasi.");
+          }
+          return;
+        }
         if (existingCmd.status !== "pending") {
           throw new Error("Perintah ini sudah diproses sebelumnya.");
         }
 
-        const cleanDraft: ParsedCommandDraft = {
-          ...input.draft,
-          amount,
-          source_account_id: sourceId,
-          destination_account_id: destId,
-          transaction_date: (input.draft.transaction_date || todayISO()).slice(0, 10),
-          category: (input.draft.category || "Lainnya").trim(),
-          description: (input.draft.description || "Transaksi Owner").trim(),
-        };
-
         const { data: insertedTx, error: txErr } = await supabase
           .from("transactions")
-          .insert({
-            transaction_type: cleanDraft.transaction_type,
-            source_account_id: cleanDraft.source_account_id,
-            destination_account_id: cleanDraft.destination_account_id,
-            amount: cleanDraft.amount,
-            transaction_date: cleanDraft.transaction_date,
-            category: cleanDraft.category,
-            description: cleanDraft.description,
-            status: "posted",
-            owner_confirmed: true,
-          })
-          .select("id")
+          .insert({ id: input.id, ...transactionRequest })
+          .select(
+            "id, transaction_type, source_account_id, destination_account_id, amount, transaction_date, category, description, status, owner_confirmed"
+          )
           .single();
-        if (txErr || !insertedTx) {
-          throw new Error(txErr?.message || "Gagal memposting transaksi draf.");
+
+        let transactionCreated = Boolean(insertedTx);
+        let savedTx = insertedTx;
+        if (txErr) {
+          if (txErr.code !== "23505") {
+            throw new Error(txErr.message || "Gagal memposting transaksi draf.");
+          }
+          const { data: existingTx, error: existingTxErr } = await supabase
+            .from("transactions")
+            .select(
+              "id, transaction_type, source_account_id, destination_account_id, amount, transaction_date, category, description, status, owner_confirmed"
+            )
+            .eq("id", input.id)
+            .maybeSingle();
+          if (existingTxErr) throw new Error(existingTxErr.message);
+          if (!existingTx || !isSameConfirmedTransactionRequest(existingTx, transactionRequest)) {
+            throw new Error("ID transaksi sudah digunakan untuk data berbeda. Transaksi tidak diulang.");
+          }
+          savedTx = existingTx;
+          transactionCreated = false;
+        }
+        if (!savedTx) {
+          throw new Error("Gagal memverifikasi transaksi draf yang disimpan.");
         }
 
         const { error: cmdErr } = await supabase
@@ -1358,7 +1402,9 @@ export function useApproveCommand() {
           .eq("id", input.id)
           .eq("status", "pending");
         if (cmdErr) {
-          await supabase.from("transactions").delete().eq("id", insertedTx.id);
+          if (transactionCreated) {
+            await supabase.from("transactions").delete().eq("id", input.id);
+          }
           throw new Error(cmdErr.message);
         }
         return;

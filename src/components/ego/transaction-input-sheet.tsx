@@ -46,6 +46,31 @@ export const CATEGORIES_BY_TYPE: Record<TransactionType, string[]> = {
 };
 
 const QUICK_AMOUNTS = [25_000, 50_000, 100_000, 500_000] as const;
+const PENDING_TRANSACTION_REQUEST_KEY = "ego_pending_transaction_request_id";
+
+function readPendingTransactionRequestId(): string | null {
+  try {
+    const id = window.sessionStorage.getItem(PENDING_TRANSACTION_REQUEST_KEY);
+    return id &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+      ? id
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function writePendingTransactionRequestId(id: string | null): void {
+  try {
+    if (id) {
+      window.sessionStorage.setItem(PENDING_TRANSACTION_REQUEST_KEY, id);
+    } else {
+      window.sessionStorage.removeItem(PENDING_TRANSACTION_REQUEST_KEY);
+    }
+  } catch {
+    // In-memory retry protection remains available if session storage is blocked.
+  }
+}
 
 export interface OpenTransactionSheetOptions {
   type?: TransactionType;
@@ -98,6 +123,7 @@ export function TransactionSheetProvider({
   const [formError, setFormError] = useState<string | null>(null);
   const [redirectAfterSave, setRedirectAfterSave] = useState(true);
   const submittingRef = useRef(false);
+  const pendingRequestRef = useRef<{ id: string } | null>(null);
 
   const accounts = vault?.accounts ?? [];
   const activeAccounts = useMemo(
@@ -206,7 +232,7 @@ export function TransactionSheetProvider({
 
     submittingRef.current = true;
     try {
-      await createTx.mutateAsync({
+      const transactionInput = {
         transaction_type: txType,
         source_account_id: txType === "income" ? null : sourceId,
         destination_account_id: txType === "expense" ? null : destId,
@@ -215,7 +241,20 @@ export function TransactionSheetProvider({
         category,
         description: description.trim() || category,
         owner_confirmed: true,
+      };
+      const requestId =
+        pendingRequestRef.current?.id ??
+        readPendingTransactionRequestId() ??
+        crypto.randomUUID();
+      pendingRequestRef.current = { id: requestId };
+      writePendingTransactionRequestId(requestId);
+
+      await createTx.mutateAsync({
+        ...transactionInput,
+        id: requestId,
       });
+      pendingRequestRef.current = null;
+      writePendingTransactionRequestId(null);
 
       if (txType === "expense" && expenseLimit > 0 && amount >= expenseLimit) {
         toast.warning(
@@ -238,8 +277,17 @@ export function TransactionSheetProvider({
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Gagal menyimpan transaksi.";
-      setFormError(msg);
-      toast.error(msg);
+      if (msg.includes("ID transaksi sudah digunakan untuk data berbeda")) {
+        pendingRequestRef.current = null;
+        writePendingTransactionRequestId(null);
+        const notice =
+          "Percobaan sebelumnya sudah tercatat. Perubahan terbaru belum disimpan; konfirmasi ulang untuk mencatatnya sebagai transaksi baru.";
+        setFormError(notice);
+        toast.warning(notice);
+      } else {
+        setFormError(msg);
+        toast.error(msg);
+      }
     } finally {
       submittingRef.current = false;
     }
