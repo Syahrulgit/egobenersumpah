@@ -57,6 +57,36 @@ export function EgoLogoMark({
   );
 }
 
+
+export function EgoAnimatedMark({
+  size = "md",
+  mode = "idle",
+  className = "",
+}: {
+  size?: "sm" | "md" | "lg";
+  mode?: "idle" | "active" | "processing" | "success" | "warning";
+  className?: string;
+}) {
+  const tone =
+    mode === "success"
+      ? "border-emerald-400/45 shadow-[0_0_24px_rgba(52,211,153,0.22)]"
+      : mode === "warning"
+        ? "border-rose-400/45 shadow-[0_0_24px_rgba(251,113,133,0.2)]"
+        : "border-[#19D8FF]/35 shadow-[0_0_24px_rgba(25,216,255,0.18)]";
+  const motion =
+    mode === "processing"
+      ? "animate-[spin_3s_linear_infinite]"
+      : mode === "active"
+        ? "animate-pulse"
+        : "motion-safe:animate-[ego-breathe_3.6s_ease-in-out_infinite]";
+  return (
+    <span className={`relative inline-flex shrink-0 items-center justify-center rounded-[1.15rem] border bg-[#06132F]/70 p-1 ${tone} ${motion} motion-reduce:animate-none ${className}`} aria-hidden="true">
+      <span className="absolute inset-[-4px] rounded-[1.3rem] border border-[#19D8FF]/20" />
+      <EgoLogoMark size={size} className="relative z-[1]" />
+    </span>
+  );
+}
+
 export function EgoBrand({
   size = "md",
   showSubtitle = false,
@@ -64,7 +94,7 @@ export function EgoBrand({
 }: EgoBrandProps) {
   return (
     <div className={`flex items-center gap-3 min-w-0 ${className}`}>
-      <EgoLogoMark size={size} />
+      <EgoAnimatedMark size={size} mode="idle" />
       <div className="min-w-0">
         <span className="block truncate text-base font-bold tracking-tight text-[#06132F] dark:text-white">
           EGO Personal AI
