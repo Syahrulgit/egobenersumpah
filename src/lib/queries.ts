@@ -1511,7 +1511,7 @@ export function useQueueRecurringBill() {
           .from("owner_commands")
           .insert({
             command_text: `[Tagihan Rutin] ${bill.title} · Rp ${bill.amount.toLocaleString("id-ID")} (Jatuh tempo ${bill.next_due_date})`,
-            status: "pending",
+            // status defaults to pending; omit it to honor the restricted INSERT column grant.
             parsed_draft: draft,
           })
           .select("id")
@@ -1941,7 +1941,7 @@ export function useQueueReminderDraft() {
           .from("owner_commands")
           .insert({
             command_text: `[Pengingat] ${r.title} · Rp ${r.amount.toLocaleString("id-ID")} (Jatuh tempo ${r.due_date})`,
-            status: "pending",
+            // status defaults to pending; omit it to honor the restricted INSERT column grant.
             parsed_draft: draft,
           })
           .select("id")
