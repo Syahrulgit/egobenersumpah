@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AppShell } from "../../components/ego/app-shell";
-import { EgoAnimatedMark } from "../../components/ego/ego-brand";
+import { EgoCompanion } from "../../components/ego/ego-brand";
 import {
   BudgetUsageChart,
   severityBadgeClass,
@@ -219,6 +219,18 @@ export function DashboardPage() {
   );
   const pendingCommands =
     vault?.owner_commands.filter((c) => c.status === "pending").length ?? 0;
+  const egoMood =
+    forecast30.deficitDaysCount > 0
+      ? "alert"
+      : pendingCommands > 0
+        ? "thinking"
+        : "idle";
+  const egoMoodLabel =
+    egoMood === "alert"
+      ? "Ada kondisi keuangan yang perlu diperhatikan"
+      : egoMood === "thinking"
+        ? "Meninjau draf yang menunggu Owner"
+        : "Siap membantu analisis keuangan Owner";
 
   const ownerName = auth?.owner?.full_name?.trim() || "Owner";
   const greeting = getGreetingID();
@@ -909,16 +921,20 @@ export function DashboardPage() {
               search={{ tab: "ai" }}
               className="rounded-2xl border border-[#DCE4F0] bg-white p-4 transition-colors hover:border-[#087BFF]/45 dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/45"
             >
-              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#C7D0E0]/75">
-                <span>EGO AI Core</span>
-                <EgoAnimatedMark size="sm" mode="active" />
+              <div className="flex items-center gap-3">
+                <EgoCompanion size="md" mode={egoMood} />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#C7D0E0]/75">
+                    EGO AI Core
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-[#06132F] dark:text-white">
+                    Konsultan Keuangan AI
+                  </p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-[#087BFF] dark:text-[#19D8FF]">
+                    {egoMoodLabel}
+                  </p>
+                </div>
               </div>
-              <p className="mt-2 text-sm font-bold text-[#06132F] dark:text-white">
-                Konsultan Keuangan AI
-              </p>
-              <p className="mt-1 text-[11px] text-[#087BFF] dark:text-[#19D8FF]">
-                Analisis aktual, estimasi &amp; rekomendasi
-              </p>
             </Link>
           </section>
 
