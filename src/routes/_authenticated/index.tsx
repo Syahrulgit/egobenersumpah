@@ -533,9 +533,10 @@ export function DashboardPage() {
             <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
               <Link
                 to="/aset"
-                className="rounded-2xl border border-[#DCE4F0] bg-white p-4 transition-colors hover:border-[#087BFF]/45 dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/45"
+                className="ego-main-card relative isolate overflow-hidden rounded-2xl border border-[#DCE4F0] bg-white p-4 transition-colors hover:border-[#087BFF]/45 dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/45"
               >
-                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+                <span className="ego-main-card__robo" aria-hidden="true"><EgoCompanion size="md" mode={egoMood} /></span>
+                <div className="relative z-10 flex items-center justify-between text-xs text-slate-500 dark:text-[#C7D0E0]/75">
                   <span>Total Aset</span>
                   <Briefcase className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
                 </div>
@@ -551,9 +552,10 @@ export function DashboardPage() {
 
               <Link
                 to="/utang"
-                className="rounded-2xl border border-[#DCE4F0] bg-white p-4 transition-colors hover:border-[#087BFF]/45 dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/45"
+                className="ego-main-card relative isolate overflow-hidden rounded-2xl border border-[#DCE4F0] bg-white p-4 transition-colors hover:border-[#087BFF]/45 dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/45"
               >
-                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+                <span className="ego-main-card__robo" aria-hidden="true"><EgoCompanion size="md" mode={egoMood} /></span>
+                <div className="relative z-10 flex items-center justify-between text-xs text-slate-500 dark:text-[#C7D0E0]/75">
                   <span>Total Utang</span>
                   <CreditCard className="h-4 w-4 text-rose-500" aria-hidden="true" />
                 </div>
@@ -569,9 +571,10 @@ export function DashboardPage() {
 
               <Link
                 to="/laporan"
-                className="rounded-2xl border border-[#DCE4F0] bg-white p-4 transition-colors hover:border-[#087BFF]/45 dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/45"
+                className="ego-main-card relative isolate overflow-hidden rounded-2xl border border-[#DCE4F0] bg-white p-4 transition-colors hover:border-[#087BFF]/45 dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/45"
               >
-                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+                <span className="ego-main-card__robo" aria-hidden="true"><EgoCompanion size="md" mode={egoMood} /></span>
+                <div className="relative z-10 flex items-center justify-between text-xs text-slate-500 dark:text-[#C7D0E0]/75">
                   <span>Kekayaan Bersih</span>
                   <ShieldCheck className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
                 </div>
@@ -588,9 +591,10 @@ export function DashboardPage() {
               <Link
                 to="/rencana"
                 search={{ tab: "target" }}
-                className="rounded-2xl border border-[#DCE4F0] bg-white p-4 transition-colors hover:border-[#087BFF]/45 dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/45"
+                className="ego-main-card relative isolate overflow-hidden rounded-2xl border border-[#DCE4F0] bg-white p-4 transition-colors hover:border-[#087BFF]/45 dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/45"
               >
-                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+                <span className="ego-main-card__robo" aria-hidden="true"><EgoCompanion size="md" mode={egoMood} /></span>
+                <div className="relative z-10 flex items-center justify-between text-xs text-slate-500 dark:text-[#C7D0E0]/75">
                   <span>Target Keuangan</span>
                   <Target className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
                 </div>
@@ -629,9 +633,10 @@ export function DashboardPage() {
               <Link
                 to="/rencana"
                 search={{ tab: "tagihan" }}
-                className="rounded-2xl border border-[#DCE4F0] bg-white p-4 transition-colors hover:border-[#087BFF]/45 dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/45"
+                className="ego-main-card relative isolate overflow-hidden rounded-2xl border border-[#DCE4F0] bg-white p-4 transition-colors hover:border-[#087BFF]/45 dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/45"
               >
-                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+                <span className="ego-main-card__robo" aria-hidden="true"><EgoCompanion size="md" mode={egoMood} /></span>
+                <div className="relative z-10 flex items-center justify-between text-xs text-slate-500 dark:text-[#C7D0E0]/75">
                   <span>Tagihan Mendatang</span>
                   <CalendarClock
                     className={`h-4 w-4 ${

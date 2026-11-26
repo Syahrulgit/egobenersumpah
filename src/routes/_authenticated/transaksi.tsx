@@ -13,6 +13,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/ego/app-shell";
+import { EgoCompanion } from "../../components/ego/ego-brand";
 import { CategoryBreakdown } from "../../components/ego/category-breakdown";
 import { CategoryIcon } from "../../components/ego/category-icon";
 import { ModalSheet } from "../../components/ego/modal-sheet";
@@ -184,8 +185,9 @@ export function TransaksiPage() {
       }
     >
       <div className="ego-transactions space-y-4">
-        <section className="ego-transaction-panel ego-transaction-summary rounded-[1.65rem] border border-[#DCE4F0] bg-white p-4 shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-5">
-          <div className="mb-4">
+        <section className="ego-transaction-panel ego-transaction-summary ego-main-card relative isolate overflow-hidden rounded-[1.65rem] border border-[#DCE4F0] bg-white p-4 shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-5">
+          <span className="ego-main-card__robo" aria-hidden="true"><EgoCompanion size="md" mode="idle" /></span>
+          <div className="relative z-10 mb-4">
             <p className="text-xs font-semibold text-slate-500 dark:text-[#C7D0E0]/70">Ringkasan transaksi</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
               <div className="rounded-xl bg-[#087BFF]/8 p-3 dark:bg-[#19D8FF]/10">
