@@ -221,14 +221,14 @@ export function validateSessionToken(token: string | undefined): string | null {
 export function revokeSessionToken(token: string | undefined): void {
   if (!token) return;
   const sessions = loadSessions().filter((session) => !matchesSessionToken(session, token));
-  saveSessions(sessions);
+  saveSessions(sessions.map(upgradeLegacySession));
 }
 
 export function rotateSessionsForOwner(ownerId: string, keepToken?: string): void {
   const sessions = loadSessions().filter(
     (session) => session.owner_id !== ownerId || (keepToken !== undefined && matchesSessionToken(session, keepToken))
   );
-  saveSessions(sessions);
+  saveSessions(sessions.map(upgradeLegacySession));
 }
 
 export function clearAllSessions(): void {
