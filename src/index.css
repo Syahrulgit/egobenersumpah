@@ -7,7 +7,22 @@
   --color-ego-navy: #06132F;
   --color-ego-blue: #087BFF;
   --color-ego-cyan: #19D8FF;
-  --color-ego-silver: #C7D0E0;
+}
+
+@keyframes ego-breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 16px rgba(25, 216, 255, 0.12); }
+  50% { transform: scale(1.045); box-shadow: 0 0 28px rgba(25, 216, 255, 0.28); }
+}
+
+@keyframes ego-pop {
+  0% { transform: scale(0.94); }
+  65% { transform: scale(1.07); }
+  100% { transform: scale(1); }
+}
+
+@keyframes ego-splash-glow {
+  0%, 100% { opacity: 0.45; transform: scale(0.94); }
+  50% { opacity: 1; transform: scale(1.08); }
 }
 
 @layer base {
@@ -74,10 +89,15 @@ html.dark #acc-name::placeholder {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-
 /* iOS standalone PWA: keep the sticky header below the translucent status bar. */
 @media (display-mode: standalone) {
   .ego-pwa-header {
     padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ego-splash-glow {
+    animation: none !important;
   }
 }
