@@ -36,6 +36,11 @@ BEGIN
     RAISE EXCEPTION 'Data transaksi tidak valid.' USING ERRCODE = '22023';
   END IF;
 
+  -- Acquire the same request lock before account locks in both RPC paths.
+  PERFORM pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(v_owner::text || ':' || p_id::text, 0)
+  );
+
   -- One stable lock order serializes credits and debits across both accounts.
   PERFORM a.id
   FROM public.accounts AS a
