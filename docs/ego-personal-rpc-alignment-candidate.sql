@@ -353,7 +353,7 @@ BEGIN
     RAISE EXCEPTION 'Akun sumber tidak ditemukan atau tidak aktif.' USING ERRCODE = '22023';
   END IF;
 
-  v_remaining := pg_catalog.greatest(0, pg_catalog.round(v_debt.outstanding_balance - v_amount, 2));
+  v_remaining := GREATEST(0, pg_catalog.round(v_debt.outstanding_balance - v_amount, 2));
 
   INSERT INTO public.transactions (
     owner_id, transaction_type, source_account_id, destination_account_id,
