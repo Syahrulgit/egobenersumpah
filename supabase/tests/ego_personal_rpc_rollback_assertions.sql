@@ -23,15 +23,15 @@ BEGIN
   SELECT p.prosecdef, p.proconfig, p.prosrc, p.proacl
     INTO v_proc FROM pg_catalog.pg_proc AS p WHERE p.oid = v_oid;
 
-  IF v_proc.prosecdef IS DISTINCT FROM FALSE THEN
-    RAISE EXCEPTION 'Rollback did not restore SECURITY INVOKER';
+  IF v_proc.prosecdef IS DISTINCT FROM TRUE THEN
+    RAISE EXCEPTION 'Rollback removed SECURITY DEFINER from the retained debt RPC';
   END IF;
-  IF NOT (COALESCE(v_proc.proconfig, ARRAY[]::text[]) @> ARRAY['search_path=public, pg_temp']) THEN
-    RAISE EXCEPTION 'Rollback did not restore the original search_path: %', v_proc.proconfig;
+  IF NOT (COALESCE(v_proc.proconfig, ARRAY[]::text[]) @> ARRAY['search_path=""']) THEN
+    RAISE EXCEPTION 'Retained debt RPC does not use the hardened empty search_path: %', v_proc.proconfig;
   END IF;
-  IF pg_catalog.strpos(v_proc.prosrc, 'pg_advisory_xact_lock') > 0
+  IF pg_catalog.strpos(v_proc.prosrc, 'pg_advisory_xact_lock') = 0
     OR pg_catalog.strpos(v_proc.prosrc, 'FOR UPDATE') = 0 THEN
-    RAISE EXCEPTION 'Rollback did not restore the original debt RPC implementation';
+    RAISE EXCEPTION 'Rollback did not retain the hardened atomic debt RPC implementation';
   END IF;
   IF NOT pg_catalog.has_function_privilege('authenticated', v_oid, 'EXECUTE')
     OR pg_catalog.has_function_privilege('anon', v_oid, 'EXECUTE') THEN
