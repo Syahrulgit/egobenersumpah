@@ -275,13 +275,15 @@ export function DashboardPage() {
           </div>
         </div>
       ) : (
-        <div className="space-y-5">
+        <div className="ego-dashboard space-y-5">
+          {/* B. Primary Balance Hero Card */}
           <section
-            aria-label="EGO AI Companion"
-            className="ego-companion relative isolate flex items-center gap-3 overflow-hidden rounded-2xl border border-[#1B3163] bg-gradient-to-r from-[#071633] via-[#0A1D47] to-[#082A55] p-3.5 text-white shadow-sm shadow-[#06132F]/15 sm:gap-4 sm:p-4"
+            aria-label="Kartu Saldo Utama"
+            className="ego-card-hero relative overflow-hidden rounded-3xl border border-[#1B3163] p-5 text-white shadow-xl shadow-[#06132F]/20 sm:p-7"
           >
-            <div className="ego-companion-art relative flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl border border-[#19D8FF]/25 bg-[#06132F]/75 sm:h-[88px] sm:w-[88px]">
-              <svg viewBox="0 0 96 96" className="h-[68px] w-[68px] sm:h-[78px] sm:w-[78px]" role="img" aria-label="Maskot robot EGO">
+            <div className="ego-hero-companion pointer-events-none absolute -right-2 bottom-16 z-0 flex h-36 w-32 items-center justify-center sm:bottom-20 sm:right-2 sm:h-44 sm:w-40" aria-hidden="true">
+              <span className="ego-hero-orbit absolute inset-2 rounded-full" />
+              <svg viewBox="0 0 96 96" className="ego-hero-robot-svg h-[112px] w-[112px] sm:h-[142px] sm:w-[142px]" role="img" aria-label="Maskot robot EGO">
                 <defs>
                   <linearGradient id="egoRobotShell" x1="0" y1="0" x2="1" y2="1">
                     <stop offset="0%" stopColor="#F8FCFF" />
@@ -305,26 +307,9 @@ export function DashboardPage() {
                 <path d="M42 75h12" stroke="#19D8FF" strokeWidth="2.5" strokeLinecap="round" />
                 <path d="M28 79l-5 8M68 79l5 8" stroke="#A9C9E8" strokeWidth="5" strokeLinecap="round" />
               </svg>
-              <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-[#071633] bg-emerald-400" aria-hidden="true" />
+              <span className="absolute bottom-1 h-3 w-20 rounded-[50%] bg-[#19D8FF]/20 blur-md sm:w-24" />
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-bold tracking-wide text-white">EGO AI Companion</p>
-                <span className="rounded-full border border-[#19D8FF]/25 bg-[#19D8FF]/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#75E9FF]">Siap membantu</span>
-              </div>
-              <p className="mt-1 text-xs leading-relaxed text-[#D2E3F7] sm:text-sm">
-                Halo, {ownerName}. Saya siap membantu Owner memahami kondisi keuangan dan menjaga tujuan tetap terarah.
-              </p>
-              <p className="mt-1.5 text-[10px] font-medium text-[#75DFFF]/80">Asisten pribadi · Kendali tetap di tangan Owner</p>
-            </div>
-            <span className="hidden shrink-0 text-2xl text-[#19D8FF]/80 sm:block" aria-hidden="true">✦</span>
-          </section>
-          {/* B. Primary Balance Hero Card */}
-          <section
-            aria-label="Kartu Saldo Utama"
-            className="ego-card-hero relative overflow-hidden rounded-3xl border border-[#1B3163] p-5 text-white shadow-xl shadow-[#06132F]/20 sm:p-7"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="relative z-10 flex flex-wrap items-start justify-between gap-4 pr-20 sm:pr-32">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold uppercase tracking-wider text-[#C7D0E0]/80">
@@ -418,7 +403,7 @@ export function DashboardPage() {
             </div>
 
             {/* Per-Account Breakdown inside Hero */}
-            <div className="mt-5 border-t border-white/10 pt-4">
+            <div className="relative z-10 mt-5 border-t border-white/10 pt-4">
               <div className="mb-2.5 flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-[#C7D0E0]/85">
                   Rincian Saldo Akun ({activeAccounts.length} Aktif)
