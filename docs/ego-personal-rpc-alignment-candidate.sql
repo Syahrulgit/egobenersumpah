@@ -159,10 +159,47 @@ BEGIN
 END;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.save_owner_command_draft(
+  p_command_id uuid,
+  p_draft jsonb
+)
+RETURNS public.owner_commands
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $function$
+DECLARE
+  v_owner uuid := auth.uid();
+  v_cmd public.owner_commands%ROWTYPE;
+BEGIN
+  IF v_owner IS NULL THEN
+    RAISE EXCEPTION 'Autentikasi Owner diperlukan.' USING ERRCODE = '28000';
+  END IF;
+  IF p_draft IS NULL OR pg_catalog.jsonb_typeof(p_draft) <> 'object' THEN
+    RAISE EXCEPTION 'Draf transaksi tidak valid.' USING ERRCODE = '22023';
+  END IF;
+  SELECT c.* INTO v_cmd
+  FROM public.owner_commands AS c
+  WHERE c.id = p_command_id AND c.owner_id = v_owner
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Perintah tidak ditemukan.' USING ERRCODE = 'P0002';
+  END IF;
+  IF v_cmd.status <> 'pending' THEN
+    RAISE EXCEPTION 'Draf hanya dapat diubah saat perintah masih pending.' USING ERRCODE = '22023';
+  END IF;
+  UPDATE public.owner_commands AS c
+  SET parsed_draft = p_draft
+  WHERE c.id = p_command_id AND c.owner_id = v_owner
+  RETURNING c.* INTO v_cmd;
+  RETURN v_cmd;
+END;
+$function$;
+
+
 CREATE OR REPLACE FUNCTION public.approve_owner_command(
   p_command_id uuid,
-  p_owner_confirmed boolean,
-  p_draft jsonb DEFAULT NULL
+  p_owner_confirmed boolean
 )
 RETURNS public.transactions
 LANGUAGE plpgsql
@@ -211,7 +248,7 @@ BEGIN
     RAISE EXCEPTION 'Hanya perintah berstatus pending yang dapat disetujui.' USING ERRCODE = '22023';
   END IF;
 
-  v_draft := COALESCE(p_draft, v_cmd.parsed_draft);
+  v_draft := v_cmd.parsed_draft;
   IF v_draft IS NULL OR pg_catalog.jsonb_typeof(v_draft) <> 'object' THEN
     RAISE EXCEPTION 'Draf transaksi tidak tersedia atau formatnya tidak valid.' USING ERRCODE = '22023';
   END IF;
@@ -431,12 +468,14 @@ $function$;
 -- These RPCs are intentional authenticated APIs. No anonymous or PUBLIC EXECUTE.
 REVOKE ALL ON FUNCTION public.create_confirmed_transaction(uuid,text,uuid,uuid,numeric,date,text,text,boolean) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.cancel_confirmed_transaction(uuid) FROM PUBLIC, anon;
-REVOKE ALL ON FUNCTION public.approve_owner_command(uuid,boolean,jsonb) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.save_owner_command_draft(uuid,jsonb) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.approve_owner_command(uuid,boolean) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.reject_owner_command(uuid) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.ego_pay_debt_atomic(uuid,uuid,numeric,uuid,boolean,date,text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.create_confirmed_transaction(uuid,text,uuid,uuid,numeric,date,text,text,boolean) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.cancel_confirmed_transaction(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.approve_owner_command(uuid,boolean,jsonb) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.save_owner_command_draft(uuid,jsonb) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.approve_owner_command(uuid,boolean) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.reject_owner_command(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.ego_pay_debt_atomic(uuid,uuid,numeric,uuid,boolean,date,text) TO authenticated;
 
