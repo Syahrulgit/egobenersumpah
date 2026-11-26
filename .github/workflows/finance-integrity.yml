@@ -148,7 +148,7 @@ jobs:
             -e GOTRUE_API_HOST=0.0.0.0 \
             -e GOTRUE_API_PORT=9999 \
             -e GOTRUE_DB_DRIVER=postgres \
-            -e GOTRUE_DB_DATABASE_URL="postgres://supabase_admin:gotrue_test_only@127.0.0.1:5433/postgres?sslmode=disable" \
+            -e GOTRUE_DB_DATABASE_URL="postgres://supabase_auth_admin:gotrue_test_only@127.0.0.1:5433/postgres?sslmode=disable" \
             -e GOTRUE_SITE_URL="http://127.0.0.1:9999" \
             -e API_EXTERNAL_URL="http://127.0.0.1:9999" \
             -e GOTRUE_JWT_ISSUER="http://127.0.0.1:9999" \
