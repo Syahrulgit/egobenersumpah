@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { EgoAnimatedMark } from "../components/ego/ego-brand";
+import { EgoLogoMark } from "../components/ego/ego-brand";
 import {
   useAuthStatus,
   useLoginOwner,
@@ -128,7 +128,7 @@ export function AuthRoutePage() {
         {/* Midnight Navy Fintech Header Strip */}
         <div className="ego-card-hero border-b border-[#1B3163] px-6 py-6 text-white sm:px-8">
           <div className="flex items-center gap-3.5">
-            <EgoAnimatedMark size="lg" mode={isLoading ? "processing" : "idle"} />
+            <EgoLogoMark size="lg" />
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-bold tracking-tight text-white">
