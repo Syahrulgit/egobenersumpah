@@ -281,35 +281,7 @@ export function DashboardPage() {
             aria-label="Kartu Saldo Utama"
             className="ego-card-hero relative overflow-hidden rounded-3xl border border-[#1B3163] p-5 text-white shadow-xl shadow-[#06132F]/20 sm:p-7"
           >
-            <div className="ego-hero-companion pointer-events-none absolute -right-2 bottom-16 z-0 flex h-36 w-32 items-center justify-center sm:bottom-20 sm:right-2 sm:h-44 sm:w-40" aria-hidden="true">
-              <span className="ego-hero-orbit absolute inset-2 rounded-full" />
-              <svg viewBox="0 0 96 96" className="ego-hero-robot-svg h-[112px] w-[112px] sm:h-[142px] sm:w-[142px]" role="img" aria-label="Maskot robot EGO">
-                <defs>
-                  <linearGradient id="egoRobotShell" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#F8FCFF" />
-                    <stop offset="55%" stopColor="#A9C9E8" />
-                    <stop offset="100%" stopColor="#477BAF" />
-                  </linearGradient>
-                  <linearGradient id="egoRobotFace" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#102B55" />
-                    <stop offset="100%" stopColor="#06132F" />
-                  </linearGradient>
-                </defs>
-                <path d="M48 8v8" stroke="#19D8FF" strokeWidth="3" strokeLinecap="round" />
-                <circle cx="48" cy="6" r="3" fill="#19D8FF" />
-                <rect x="13" y="30" width="9" height="24" rx="4.5" fill="#19D8FF" opacity=".8" />
-                <rect x="74" y="30" width="9" height="24" rx="4.5" fill="#19D8FF" opacity=".8" />
-                <rect x="19" y="17" width="58" height="56" rx="19" fill="url(#egoRobotShell)" stroke="#D9F3FF" strokeWidth="2" />
-                <rect x="25" y="24" width="46" height="39" rx="14" fill="url(#egoRobotFace)" stroke="#19D8FF" strokeOpacity=".55" />
-                <path d="M35 42c3-5 8-5 11 0M51 42c3-5 8-5 11 0" fill="none" stroke="#19D8FF" strokeWidth="4" strokeLinecap="round" />
-                <path d="M39 53q9 7 18 0" fill="none" stroke="#8BEFFF" strokeWidth="2.5" strokeLinecap="round" />
-                <rect x="35" y="69" width="26" height="13" rx="6.5" fill="#0D3970" stroke="#19D8FF" strokeWidth="1.5" />
-                <path d="M42 75h12" stroke="#19D8FF" strokeWidth="2.5" strokeLinecap="round" />
-                <path d="M28 79l-5 8M68 79l5 8" stroke="#A9C9E8" strokeWidth="5" strokeLinecap="round" />
-              </svg>
-              <span className="absolute bottom-1 h-3 w-20 rounded-[50%] bg-[#19D8FF]/20 blur-md sm:w-24" />
-            </div>
-            <div className="relative z-10 flex flex-wrap items-start justify-between gap-4 pr-20 sm:pr-32">
+            <div className="relative z-10 flex flex-wrap items-start justify-between gap-4 pr-0">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold uppercase tracking-wider text-[#C7D0E0]/80">
@@ -402,68 +374,18 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* Per-Account Breakdown inside Hero */}
-            <div className="relative z-10 mt-5 border-t border-white/10 pt-4">
-              <div className="mb-2.5 flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold text-[#C7D0E0]/85">
-                  Rincian Saldo Akun ({activeAccounts.length} Aktif)
-                </span>
-                <Link
-                  to="/akun"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#19D8FF] hover:underline"
-                >
-                  <span>Kelola Akun</span>
-                  <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                </Link>
+            <div className="relative z-10 mt-5 flex items-center justify-between gap-3 border-t border-white/10 pt-4">
+              <div>
+                <p className="text-xs font-semibold text-[#C7D0E0]/85">Akun Terdaftar</p>
+                <p className="mt-0.5 text-sm font-bold text-white">{activeAccounts.length} Akun Aktif</p>
               </div>
-
-              {activeAccounts.length === 0 ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-white/20 bg-white/5 px-4 py-3 text-xs text-[#C7D0E0]">
-                  <span>
-                    Belum ada dompet, rekening bank, atau e-wallet terdaftar.
-                  </span>
-                  <Link
-                    to="/akun"
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#087BFF] px-3 py-1.5 font-semibold text-white hover:bg-[#0666DB]"
-                  >
-                    <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span>Tambah Akun</span>
-                  </Link>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-                  {activeAccounts.slice(0, 4).map((acc) => (
-                    <Link
-                      key={acc.id}
-                      to="/transaksi"
-                      search={{ akun: acc.id }}
-                      className="group flex items-center justify-between gap-3 rounded-2xl border border-white/12 bg-white/7 px-3.5 py-2.5 transition-colors hover:border-[#19D8FF]/45 hover:bg-white/12"
-                    >
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#087BFF]/25 text-[#19D8FF]">
-                          <AccountTypeIcon
-                            type={acc.account_type}
-                            className="h-4 w-4"
-                          />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="truncate text-xs font-semibold text-white">
-                            {acc.account_name}
-                          </p>
-                          <p className="text-[11px] text-[#C7D0E0]/70">
-                            {accountTypeLabel(acc.account_type)}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="shrink-0 font-mono text-xs font-bold tabular-nums text-white">
-                        {balanceHidden
-                          ? "••••••"
-                          : formatIDR(acc.current_balance, true)}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              )}
+              <Link
+                to="/akun"
+                className="inline-flex items-center gap-1 rounded-xl border border-[#19D8FF]/25 bg-[#19D8FF]/10 px-3 py-2 text-xs font-semibold text-[#19D8FF] transition-colors hover:bg-[#19D8FF]/20"
+              >
+                <span>Kelola Akun</span>
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </Link>
             </div>
           </section>
 

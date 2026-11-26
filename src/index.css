@@ -110,44 +110,32 @@ html.dark #acc-name::placeholder {
 }
 
 
-/* EGO dashboard: soft, staggered heartbeat on card surfaces without layout movement. */
-.ego-dashboard :is([class*="rounded-2xl"][class*="border"][class*="bg-white"], [class*="rounded-3xl"][class*="border"], .ego-card-hero) {
-  animation: ego-card-heartbeat 8.4s ease-in-out infinite;
+/* EGO dashboard: visible, gentle double-beat glow on primary cards. */
+.ego-dashboard > section:not([aria-label="Aksi Cepat"]),
+.ego-dashboard > details,
+.ego-dashboard > section[aria-label="Aksi Cepat"] > div > button {
+  animation: ego-card-heartbeat 5.8s ease-in-out infinite;
 }
 
-.ego-dashboard > section:nth-of-type(2) { animation-delay: 0.55s; }
-.ego-dashboard > section:nth-of-type(3) { animation-delay: 1.1s; }
-.ego-dashboard > details { animation-delay: 1.65s; }
-.ego-dashboard > section:nth-of-type(4) { animation-delay: 2.2s; }
-
-.ego-hero-companion {
-  perspective: 700px;
-  transform-style: preserve-3d;
-  filter: drop-shadow(0 12px 16px rgba(0, 0, 0, 0.34));
-}
-
-.ego-hero-robot-svg {
-  position: relative;
-  z-index: 2;
-  overflow: visible;
-  transform: rotateY(-13deg) rotateX(5deg);
-  filter: drop-shadow(0 8px 4px rgba(25, 216, 255, 0.18));
-}
-
-.ego-hero-orbit {
-  border: 1px solid rgba(25, 216, 255, 0.18);
-  background: radial-gradient(circle, rgba(25, 216, 255, 0.12), rgba(25, 216, 255, 0.025) 58%, transparent 72%);
-  box-shadow: inset 0 0 24px rgba(25, 216, 255, 0.08), 0 0 24px rgba(25, 216, 255, 0.08);
-}
+.ego-dashboard > section[aria-label="Aksi Cepat"] > div > button:nth-child(2) { animation-delay: 0.18s; }
+.ego-dashboard > section[aria-label="Aksi Cepat"] > div > button:nth-child(3) { animation-delay: 0.36s; }
+.ego-dashboard > section[aria-label="Aksi Cepat"] > div > button:nth-child(4) { animation-delay: 0.54s; }
+.ego-dashboard > section[aria-label="Aksi Cepat"] > div > button:nth-child(1) { animation-delay: 0s; }
+.ego-dashboard > section[aria-label="Transaksi Terbaru"] { animation-delay: 0.72s; }
+.ego-dashboard > section[aria-label="Kartu Saldo Utama"] { animation-delay: 0s; }
+.ego-dashboard > details { animation-delay: 0.36s; }
 
 @keyframes ego-card-heartbeat {
-  0%, 82%, 100% { box-shadow: 0 0 0 rgba(25, 216, 255, 0); }
-  88% { box-shadow: 0 0 0 1px rgba(25, 216, 255, 0.09), 0 8px 24px rgba(25, 216, 255, 0.07); }
-  94% { box-shadow: 0 0 0 2px rgba(25, 216, 255, 0.045), 0 4px 14px rgba(25, 216, 255, 0.035); }
+  0%, 72%, 100% { box-shadow: 0 2px 10px rgba(25, 216, 255, 0.035); }
+  78% { box-shadow: 0 0 0 2px rgba(25, 216, 255, 0.20), 0 0 22px rgba(25, 216, 255, 0.18), 0 8px 22px rgba(25, 216, 255, 0.10); }
+  84% { box-shadow: 0 0 0 1px rgba(25, 216, 255, 0.10), 0 0 12px rgba(25, 216, 255, 0.09); }
+  90% { box-shadow: 0 0 0 2px rgba(25, 216, 255, 0.16), 0 0 18px rgba(25, 216, 255, 0.14), 0 6px 18px rgba(25, 216, 255, 0.08); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ego-dashboard :is([class*="rounded-2xl"][class*="border"][class*="bg-white"], [class*="rounded-3xl"][class*="border"], .ego-card-hero) {
+  .ego-dashboard > section,
+  .ego-dashboard > details,
+  .ego-dashboard > section[aria-label="Aksi Cepat"] > div > button {
     animation: none !important;
   }
 }
