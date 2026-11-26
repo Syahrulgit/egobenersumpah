@@ -371,6 +371,9 @@ BEGIN
   END IF;
 
   v_amount := pg_catalog.round(p_amount, 2);
+  IF v_amount <= 0 THEN
+    RAISE EXCEPTION 'Nominal pembayaran harus minimal 0,01.' USING ERRCODE = '22023';
+  END IF;
 
   -- Lock by Owner + request UUID first, including retries that target a
   -- different debt. The UUID is the immutable identity of one payment attempt.
