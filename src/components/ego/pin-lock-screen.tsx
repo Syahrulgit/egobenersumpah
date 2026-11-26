@@ -104,7 +104,6 @@ export function PinLockScreen({ ownerName }: PinLockScreenProps) {
 
       <div className="w-full max-w-sm rounded-3xl border border-[#DCE4F0] bg-white p-6 shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-7">
         <div className="flex items-center gap-3">
-          <EgoLogoMark size="md" />
           <div className="min-w-0">
             <p className="inline-flex items-center gap-1 text-xs font-semibold text-[#087BFF] dark:text-[#19D8FF]">
               <Lock className="h-3 w-3" aria-hidden="true" />
@@ -116,7 +115,17 @@ export function PinLockScreen({ ownerName }: PinLockScreenProps) {
           </div>
         </div>
 
-        <div className="mt-6 text-center">
+        <div className="mt-7 flex justify-center" aria-hidden="true">
+          <div className="relative flex h-20 w-20 items-center justify-center rounded-[1.8rem] bg-[#087BFF]/[0.06] shadow-[0_0_32px_rgba(8,123,255,0.16)] ring-1 ring-[#19D8FF]/25 dark:bg-[#19D8FF]/[0.06] dark:shadow-[0_0_38px_rgba(25,216,255,0.18)] motion-reduce:animate-none animate-pulse">
+            <span className="absolute inset-[-7px] rounded-[2.1rem] border border-[#19D8FF]/20" />
+            <EgoLogoMark
+              size="lg"
+              className="h-16 w-16 rounded-[1.35rem] ring-2 ring-[#19D8FF]/40 shadow-lg shadow-[#087BFF]/25"
+            />
+          </div>
+        </div>
+
+        <div className="mt-5 text-center">
           <h1 className="text-lg font-bold tracking-tight text-[#06132F] dark:text-white">
             Masukkan PIN 6 Digit
           </h1>
