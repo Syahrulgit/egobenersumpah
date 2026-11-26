@@ -92,6 +92,7 @@ export function PengingatPage() {
   const [categoryFilter, setCategoryFilter] = useState<ReminderCategory | "all">("all");
   const [statusFilter, setStatusFilter] = useState<ReminderStatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showAllReminders, setShowAllReminders] = useState(false);
   const [notifCapVersion, setNotifCapVersion] = useState(0);
 
   // Create / Edit modal state
@@ -181,6 +182,8 @@ export function PengingatPage() {
 
     return base;
   }, [evaluatedAll, activeTab, categoryFilter, statusFilter, searchQuery]);
+
+  const visibleItems = showAllReminders ? filteredItems : filteredItems.slice(0, 5);
 
   function openCreateModal() {
     setEditingReminder(null);
@@ -770,7 +773,7 @@ export function PengingatPage() {
                 </div>
               ) : (
                 <div className="divide-y divide-[#DCE4F0]/80 dark:divide-[#1B3163]">
-                  {filteredItems.map(({ reminder: r, status, allOffsets, statusText }) => {
+                  {visibleItems.map(({ reminder: r, status, allOffsets, statusText }) => {
                     const meta = reminderCategoryMeta(r.reminder_type);
                     const acc = r.linked_account_id ? accountMap.get(r.linked_account_id) : undefined;
                     const statusBadgeCls =
@@ -936,6 +939,26 @@ export function PengingatPage() {
                   })}
                 </div>
               )}
+              {filteredItems.length > 0 ? (
+                <div className="mt-4 flex flex-col items-center gap-2 border-t border-[#DCE4F0]/80 pt-4 dark:border-[#1B3163]">
+                  <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+                    {showAllReminders
+                      ? `${filteredItems.length} pengingat ditampilkan`
+                      : `${visibleItems.length} dari ${filteredItems.length} pengingat ditampilkan`}
+                  </p>
+                  {filteredItems.length > 5 ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllReminders((current) => !current)}
+                      className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-[#087BFF]/25 bg-[#087BFF]/8 px-4 py-2 text-xs font-semibold text-[#087BFF] transition-colors hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/25 dark:bg-[#19D8FF]/10 dark:text-[#19D8FF]"
+                    >
+                      {showAllReminders
+                        ? "Tampilkan Lebih Sedikit"
+                        : `Lihat Semua Pengingat (${filteredItems.length})`}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </section>
           </div>
         )}
