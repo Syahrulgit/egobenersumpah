@@ -84,9 +84,6 @@ export function UtangPage() {
     [vault?.debts]
   );
   const transactions = vault?.transactions ?? [];
-  const storedPendingDebt = storedPendingPayment
-    ? debts.find((debt) => debt.id === storedPendingPayment.debt_id) ?? null
-    : null;
   const debtLogs = vault?.debt_payment_logs ?? [];
   const activeAccounts = (vault?.accounts ?? []).filter((a) => a.is_active);
   const dateFormat = vault?.preferences.date_format ?? "DD MMM YYYY";
@@ -137,6 +134,10 @@ export function UtangPage() {
         return null;
       }
     });
+
+  const storedPendingDebt = storedPendingPayment
+    ? debts.find((debt) => debt.id === storedPendingPayment.debt_id) ?? null
+    : null;
 
   // History Modal State
   const [historyDebt, setHistoryDebt] = useState<Debt | null>(null);
