@@ -497,4 +497,31 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
 ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
   REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLES FROM anon, authenticated;
 
+
+-- Column-level ACLs survive table-level REVOKE. Remove the explicitly granted
+-- column privileges observed in EGO-PERSONAL as well.
+REVOKE INSERT (id, transaction_date, transaction_type, category, amount,
+  source_account_id, destination_account_id, description, owner_confirmed,
+  status, recorded_at, source_command, created_at, owner_id),
+  UPDATE (id, transaction_date, transaction_type, category, amount,
+  source_account_id, destination_account_id, description, owner_confirmed,
+  status, recorded_at, source_command, created_at, owner_id)
+ON TABLE public.transactions FROM PUBLIC, anon, authenticated;
+
+REVOKE INSERT (id, owner_id, debt_id, transaction_id, amount, principal_paid,
+  interest_paid, remaining_after, notes, created_at, request_id),
+  UPDATE (id, owner_id, debt_id, transaction_id, amount, principal_paid,
+  interest_paid, remaining_after, notes, created_at, request_id)
+ON TABLE public.debt_payment_logs FROM PUBLIC, anon, authenticated;
+
+-- Owner commands may be enqueued directly only through safe columns. Status,
+-- owner identity, confirmation and timestamps remain database-controlled.
+REVOKE INSERT, UPDATE ON TABLE public.owner_commands FROM PUBLIC, anon, authenticated;
+REVOKE INSERT (id, command_text, command_type, status, owner_confirmed,
+  created_at, processed_at, owner_id, parsed_draft),
+  UPDATE (id, command_text, command_type, status, owner_confirmed,
+  created_at, processed_at, owner_id, parsed_draft)
+ON TABLE public.owner_commands FROM PUBLIC, anon, authenticated;
+GRANT INSERT (command_text, parsed_draft) ON TABLE public.owner_commands TO authenticated;
+
 COMMIT;
