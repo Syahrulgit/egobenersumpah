@@ -20,9 +20,10 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'postgres') THEN
     CREATE ROLE postgres NOLOGIN;
   END IF;
-  GRANT anon, authenticated TO authenticator;
 END
 $roles$;
+
+GRANT anon, authenticated TO authenticator;
 
 CREATE TABLE auth.users (id uuid PRIMARY KEY);
 INSERT INTO auth.users (id) VALUES
