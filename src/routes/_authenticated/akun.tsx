@@ -10,6 +10,7 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/ego/app-shell";
+import { EgoCompanion } from "../../components/ego/ego-brand";
 import { ApprovalCheck } from "../../components/ego/approval-check";
 import { AccountTypeIcon, CategoryIcon } from "../../components/ego/category-icon";
 import { ModalSheet } from "../../components/ego/modal-sheet";
@@ -117,8 +118,9 @@ export function AkunPage() {
     >
       <div className="space-y-6">
         {/* Liquidity Hero Banner */}
-        <section className="ego-card-hero flex flex-col justify-between gap-4 rounded-3xl border border-[#1B3163] p-5 text-white shadow-lg shadow-[#06132F]/15 sm:flex-row sm:items-center sm:p-6">
-          <div>
+        <section className="ego-card-hero ego-main-card relative isolate overflow-hidden flex flex-col justify-between gap-4 rounded-3xl border border-[#1B3163] p-5 text-white shadow-lg shadow-[#06132F]/15 sm:flex-row sm:items-center sm:p-6">
+          <span className="ego-main-card__robo ego-main-card__robo--hero" aria-hidden="true"><EgoCompanion size="lg" mode="idle" /></span>
+          <div className="relative z-10">
             <p className="text-xs font-semibold uppercase tracking-wider text-[#C7D0E0]/80">
               Total Likuiditas Aktif
             </p>
@@ -130,7 +132,7 @@ export function AkunPage() {
               {accounts.filter((a) => !a.is_active).length} diarsipkan
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="relative z-10 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => openTransactionSheet({ type: "transfer" })}
@@ -203,7 +205,7 @@ export function AkunPage() {
                       return (
                         <div
                           key={acc.id}
-                          className={`relative overflow-hidden rounded-2xl border p-5 transition-all ${
+                          className={`ego-main-card relative isolate overflow-hidden rounded-2xl border p-5 transition-all ${
                             !acc.is_active
                               ? "border-[#DCE4F0] bg-slate-100/80 opacity-75 dark:border-[#1B3163] dark:bg-[#06132F]/70"
                               : isBankHero
@@ -211,7 +213,8 @@ export function AkunPage() {
                                 : "border-[#DCE4F0] bg-white shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none"
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-2">
+                          <span className="ego-main-card__robo" aria-hidden="true"><EgoCompanion size="md" mode="idle" /></span>
+                          <div className="relative z-10 flex items-start justify-between gap-2">
                             <div className="flex min-w-0 items-center gap-3">
                               <span
                                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
@@ -282,7 +285,7 @@ export function AkunPage() {
                           </div>
 
                           <div
-                            className={`mt-4 border-t pt-3.5 ${
+                            className={`relative z-10 mt-4 border-t pt-3.5 ${
                               isBankHero
                                 ? "border-white/12"
                                 : "border-[#DCE4F0] dark:border-[#1B3163]"
@@ -317,7 +320,7 @@ export function AkunPage() {
                             </p>
                           </div>
 
-                          <div className="mt-4 flex items-center gap-2">
+                          <div className="relative z-10 mt-4 flex items-center gap-2">
                             <button
                               type="button"
                               onClick={() => setSelectedAccount(acc)}
