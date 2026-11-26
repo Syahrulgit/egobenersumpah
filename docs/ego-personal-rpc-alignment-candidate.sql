@@ -492,7 +492,7 @@ GRANT EXECUTE ON FUNCTION public.ego_pay_debt_atomic(uuid,uuid,numeric,uuid,bool
 -- confirmation RPC. SECURITY DEFINER RPCs above perform the required writes.
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.transactions FROM PUBLIC, anon, authenticated;
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.debt_payment_logs FROM PUBLIC, anon, authenticated;
-REVOKE UPDATE ON TABLE public.owner_commands FROM PUBLIC, anon, authenticated;
+REVOKE UPDATE, DELETE ON TABLE public.owner_commands FROM PUBLIC, anon, authenticated;
 
 -- Remove dangerous non-row privileges from every current public table/view.
 -- RLS does not protect TRUNCATE; clients do not need TRIGGER or REFERENCES.
