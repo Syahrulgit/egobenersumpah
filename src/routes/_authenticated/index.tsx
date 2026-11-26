@@ -4,6 +4,7 @@ import {
   ArrowLeftRight,
   ArrowRight,
   BarChart3,
+  BellRing,
   Bot,
   Briefcase,
   Calculator,
