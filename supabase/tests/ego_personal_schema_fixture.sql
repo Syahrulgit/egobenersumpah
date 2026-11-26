@@ -35,7 +35,10 @@ RETURNS uuid
 LANGUAGE sql
 STABLE
 AS $function$
-  SELECT NULLIF(pg_catalog.current_setting('request.jwt.claim.sub', TRUE), '')::uuid
+  SELECT COALESCE(
+    NULLIF(pg_catalog.current_setting('request.jwt.claim.sub', TRUE), '')::uuid,
+    (NULLIF(pg_catalog.current_setting('request.jwt.claims', TRUE), '')::jsonb ->> 'sub')::uuid
+  )
 $function$;
 
 CREATE TABLE public.accounts (
@@ -140,7 +143,8 @@ CREATE POLICY debt_logs_owner ON public.debt_payment_logs
 CREATE POLICY owner_commands_owner ON public.owner_commands
   FOR ALL TO authenticated USING (owner_id = auth.uid()) WITH CHECK (owner_id = auth.uid());
 
-GRANT USAGE ON SCHEMA public, auth TO authenticated;
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT USAGE ON SCHEMA auth TO authenticated;
 GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.accounts, public.debts, public.transactions,
   public.debt_payment_logs, public.owner_commands TO authenticated;
