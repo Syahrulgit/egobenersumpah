@@ -65,6 +65,31 @@ export function DashboardPage() {
   const { openTransactionSheet } = useTransactionSheet();
   const navigate = useNavigate();
 
+  const triggerQuickAction = (
+    button: HTMLButtonElement,
+    type: "expense" | "transfer"
+  ) => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      openTransactionSheet({ type });
+      return;
+    }
+
+    try {
+      button.animate(
+        [
+          { transform: "scale(1)", boxShadow: "0 0 0 0 rgba(25, 216, 255, 0)" },
+          { transform: "scale(0.92)", boxShadow: "0 0 0 6px rgba(25, 216, 255, 0.22)", offset: 0.28 },
+          { transform: "scale(1.06)", boxShadow: "0 0 0 10px rgba(8, 123, 255, 0.12)", offset: 0.68 },
+          { transform: "scale(1)", boxShadow: "0 0 0 0 rgba(25, 216, 255, 0)" },
+        ],
+        { duration: 420, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" }
+      );
+      window.setTimeout(() => openTransactionSheet({ type }), 180);
+    } catch {
+      openTransactionSheet({ type });
+    }
+  };
+
   const [chartMonths, setChartMonths] = useState<3 | 6 | 12>(6);
   const [breakdownType, setBreakdownType] = useState<"income" | "expense">(
     "expense"
@@ -409,7 +434,7 @@ export function DashboardPage() {
             <div className="grid grid-cols-4 gap-2.5">
               <button
                 type="button"
-                onClick={() => openTransactionSheet({ type: "expense" })}
+                onClick={(event) => triggerQuickAction(event.currentTarget, "expense")}
                 className="group flex min-h-[72px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all duration-150 hover:border-[#087BFF]/50 hover:shadow-sm active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100 dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#19D8FF] to-[#087BFF] text-white shadow-xs">
@@ -422,7 +447,7 @@ export function DashboardPage() {
 
               <button
                 type="button"
-                onClick={() => openTransactionSheet({ type: "transfer" })}
+                onClick={(event) => triggerQuickAction(event.currentTarget, "transfer")}
                 className="group flex min-h-[72px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all duration-150 hover:border-[#087BFF]/50 hover:shadow-sm active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100 dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#087BFF]/12 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
