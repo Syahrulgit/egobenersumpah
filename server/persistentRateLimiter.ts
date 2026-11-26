@@ -17,11 +17,11 @@ function storageKey(namespace: string, key: string): string {
   return crypto.createHash("sha256").update(`${namespace}\0${key}`, "utf8").digest("hex");
 }
 
-function readStore(): RateLimitStore {
+function readStore(rateLimitFile: string): RateLimitStore {
   if (!fs.existsSync(rateLimitFile)) return {};
   let parsed: unknown;
   try {
-    parsed = JSON.parse(fs.readFileSync(RATE_LIMIT_FILE, "utf8"));
+    parsed = JSON.parse(fs.readFileSync(rateLimitFile, "utf8"));
   } catch {
     throw new Error("Penyimpanan pembatas percobaan rusak. Login ditahan demi keamanan.");
   }
@@ -45,12 +45,12 @@ function readStore(): RateLimitStore {
   return store;
 }
 
-function writeStore(store: RateLimitStore): void {
-  fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
-  const tmp = `${RATE_LIMIT_FILE}.${process.pid}.${crypto.randomUUID()}.tmp`;
+function writeStore(rateLimitFile: string, store: RateLimitStore): void {
+  fs.mkdirSync(path.dirname(rateLimitFile), { recursive: true, mode: 0o700 });
+  const tmp = `${rateLimitFile}.${process.pid}.${crypto.randomUUID()}.tmp`;
   try {
     fs.writeFileSync(tmp, JSON.stringify(store), { encoding: "utf8", mode: 0o600, flag: "wx" });
-    fs.renameSync(tmp, RATE_LIMIT_FILE);
+    fs.renameSync(tmp, rateLimitFile);
   } catch (error) {
     fs.rmSync(tmp, { force: true });
     throw error;
@@ -94,7 +94,7 @@ export function createPersistentLoginRateLimiter(
 
   return {
     check(key: string, nowMs = Date.now()): LoginRateCheckResult {
-      const store = readStore();
+      const store = readStore(rateLimitFile);
       return evaluate(store[storageKey(namespace, key)], maxAttempts, windowMs, nowMs);
     },
 
@@ -109,7 +109,7 @@ export function createPersistentLoginRateLimiter(
         store[hash] = existing
           ? { count: existing.count + 1, windowStart: existing.windowStart }
           : { count: 1, windowStart: nowMs };
-        writeStore(store);
+        writeStore(rateLimitFile, store);
         return evaluate(store[hash], maxAttempts, windowMs, nowMs);
       });
     },
