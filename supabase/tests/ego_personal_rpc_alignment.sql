@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 
 -- Regression guard: neither anon nor authenticated may retain table-level
--- TRUNCATE, TRIGGER, or REFERENCES on any public relation after the candidate.
+-- MAINTAIN, TRUNCATE, TRIGGER, or REFERENCES on any public relation after the candidate.
 DO $privilege_test$
 DECLARE
   v_rel record;
@@ -15,7 +15,7 @@ BEGIN
     WHERE n.nspname = 'public' AND c.relkind IN ('r','p','v','m','f')
   LOOP
     FOREACH v_role IN ARRAY ARRAY['anon','authenticated'] LOOP
-      FOREACH v_priv IN ARRAY ARRAY['TRUNCATE','TRIGGER','REFERENCES'] LOOP
+      FOREACH v_priv IN ARRAY ARRAY['MAINTAIN','TRUNCATE','TRIGGER','REFERENCES'] LOOP
         IF pg_catalog.has_table_privilege(v_role, v_rel.oid, v_priv) THEN
           RAISE EXCEPTION 'Unexpected % privilege for % on %.%', v_priv, v_role, v_rel.nspname, v_rel.relname;
         END IF;
@@ -39,7 +39,7 @@ BEGIN
       AND d.defaclnamespace = 'public'::regnamespace
       AND d.defaclrole = (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'postgres')
       AND gr.rolname IN ('anon','authenticated')
-      AND a.privilege_type IN ('TRUNCATE','TRIGGER','REFERENCES')
+      AND a.privilege_type IN ('MAINTAIN','TRUNCATE','TRIGGER','REFERENCES')
   ) THEN
     RAISE EXCEPTION 'Dangerous table privileges remain in postgres-owned public-schema default ACLs';
   END IF;
