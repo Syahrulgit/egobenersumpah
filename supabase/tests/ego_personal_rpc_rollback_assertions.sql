@@ -37,11 +37,18 @@ BEGIN
     OR pg_catalog.has_function_privilege('anon', v_oid, 'EXECUTE') THEN
     RAISE EXCEPTION 'Rollback left incorrect debt RPC EXECUTE grants';
   END IF;
-  IF NOT pg_catalog.has_table_privilege('authenticated','public.transactions','INSERT')
-    OR NOT pg_catalog.has_table_privilege('authenticated','public.transactions','UPDATE')
-    OR NOT pg_catalog.has_table_privilege('authenticated','public.debt_payment_logs','DELETE')
-    OR NOT pg_catalog.has_table_privilege('authenticated','public.owner_commands','UPDATE') THEN
-    RAISE EXCEPTION 'Rollback did not restore the pre-alignment authenticated DML grants';
+  -- Rollback deliberately keeps direct DML revoked. Finance writes must
+  -- continue through the authenticated Owner-confirmation RPC contract.
+  IF pg_catalog.has_table_privilege('authenticated','public.transactions','INSERT')
+    OR pg_catalog.has_table_privilege('authenticated','public.transactions','UPDATE')
+    OR pg_catalog.has_table_privilege('authenticated','public.transactions','DELETE')
+    OR pg_catalog.has_table_privilege('authenticated','public.debt_payment_logs','INSERT')
+    OR pg_catalog.has_table_privilege('authenticated','public.debt_payment_logs','UPDATE')
+    OR pg_catalog.has_table_privilege('authenticated','public.debt_payment_logs','DELETE')
+    OR pg_catalog.has_table_privilege('authenticated','public.owner_commands','INSERT')
+    OR pg_catalog.has_table_privilege('authenticated','public.owner_commands','UPDATE')
+    OR pg_catalog.has_table_privilege('authenticated','public.owner_commands','DELETE') THEN
+    RAISE EXCEPTION 'Rollback reopened direct authenticated DML instead of preserving the RPC-only write boundary';
   END IF;
   -- Rollback intentionally retains the candidate's security hardening:
   -- neither API role regains MAINTAIN, TRUNCATE, TRIGGER or REFERENCES.
