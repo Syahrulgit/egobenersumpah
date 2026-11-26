@@ -1,5 +1,5 @@
 -- Rollback for 20261127000100_enforce_available_account_balance.
-DROP FUNCTION public.create_confirmed_transaction(uuid,text,uuid,uuid,numeric,date,text,boolean);
+DROP FUNCTION public.create_confirmed_transaction(uuid,text,uuid,uuid,numeric,date,text,text,boolean);
 ALTER FUNCTION public.create_confirmed_transaction_internal(uuid,text,uuid,uuid,numeric,date,text,text,boolean)
   RENAME TO create_confirmed_transaction;
 GRANT EXECUTE ON FUNCTION public.create_confirmed_transaction(uuid,text,uuid,uuid,numeric,date,text,text,boolean)
