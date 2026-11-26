@@ -165,6 +165,21 @@ BEGIN
     RAISE EXCEPTION 'Owner command did not transition to processed';
   END IF;
   BEGIN
+    PERFORM public.save_owner_command_draft(
+      '12121212-1212-4121-8121-121212121212',
+      '{"transaction_type":"expense","amount":999}'::jsonb
+    );
+    RAISE EXCEPTION 'Processed Owner command draft unexpectedly changed';
+  EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
+  END;
+  BEGIN
+    PERFORM public.approve_owner_command(
+      '12121212-1212-4121-8121-121212121212',FALSE
+    );
+    RAISE EXCEPTION 'Approval without Owner confirmation unexpectedly succeeded';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
     PERFORM public.approve_owner_command('13131313-1313-4131-8131-131313131313',TRUE);
     RAISE EXCEPTION 'Rejected Owner command unexpectedly processed';
   EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
