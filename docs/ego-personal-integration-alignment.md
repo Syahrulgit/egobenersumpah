@@ -167,7 +167,7 @@ The following artifacts are prepared for review; the SQL candidate has **not** b
 
 ### Security design in the candidate
 
-The candidate changes the four finance write RPCs to narrowly-scoped `SECURITY DEFINER` functions with an empty `search_path`, schema-qualified application objects, and explicit `auth.uid()` ownership checks. It revokes `INSERT/UPDATE/DELETE` on `transactions` and `debt_payment_logs` from `anon` and `authenticated`, while retaining authenticated SELECT access. This is necessary because the current app writes ledger rows only through RPCs; leaving direct DML grants would let a client bypass the explicit confirmation RPC. Owner command queue/reject and debt metadata CRUD remain unchanged in this scope.
+The candidate changes the five finance write RPCs to narrowly-scoped `SECURITY DEFINER` functions with an empty `search_path`, schema-qualified application objects, and explicit `auth.uid()` ownership checks. It revokes `INSERT/UPDATE/DELETE` on `transactions` and `debt_payment_logs` from `anon` and `authenticated`, while retaining authenticated SELECT access. This is necessary because the current app writes ledger rows only through RPCs; leaving direct DML grants would let a client bypass the explicit confirmation RPC. Owner command queue remains a direct INSERT of pending drafts; rejection now uses a dedicated `reject_owner_command` RPC, and direct UPDATE on `owner_commands` is revoked. DELETE remains available for the app's existing compensating cleanup when recurring bill/reminder queue creation fails. Debt metadata CRUD remains unchanged.
 
 This deliberately exposed authenticated RPC surface is a privilege boundary and must be reviewed carefully: SECURITY DEFINER bypasses RLS. The body therefore scopes every row lookup/update by `auth.uid()`, validates active account ownership, requires explicit confirmation, and has a fixed empty search path. Function EXECUTE is revoked from PUBLIC and anon and granted only to authenticated. The isolated test job includes checks for direct-write denial and cross-owner access. Supabase security advisors must be re-run on a disposable PERSONAL-equivalent database before production approval.
 
@@ -184,3 +184,12 @@ This deliberately exposed authenticated RPC surface is a privilege boundary and 
 The workflow now has an isolated PostgreSQL 16 fixture job. Its result must be checked on the new PR commit before describing the candidate as tested. This fixture is synthetic and is not a clone of the complete Supabase platform; it verifies the observed table contract, RLS owner predicates, grants, and RPC behavior, but it does not replace an approved disposable Supabase branch test with actual Supabase Auth/PostgREST.
 
 No Supabase development branch was created because branch compute can incur charges and the EGO budget is zero. No changes have been applied to EGO-PERSONAL or EGO-TEST. Production migration, merge, and deployment remain blocked pending Owner review of the exact diff, successful CI evidence, advisor output from a disposable Supabase environment, and explicit approval.
+
+
+### Additional command-state protection
+
+A source audit found that `useRejectCommand` was the only ordinary application path performing a direct UPDATE on `owner_commands`; recurring bill/reminder workflows only insert pending drafts and may delete a just-inserted draft as compensating cleanup. The candidate therefore adds `reject_owner_command(p_command_id)`, which locks the Owner-scoped row and permits only `pending -> rejected` (with idempotent retry of an already rejected row). Direct UPDATE on `owner_commands` is revoked, and the app's rejection mutation now calls the RPC. The rollback script restores the pre-alignment authenticated UPDATE grant.
+
+The latest concurrency test now covers both:
+- Two simultaneous calls with the same request UUID both return successfully but create exactly one payment transaction/log.
+- Two simultaneous calls with different request UUIDs against an insufficient remaining balance allow exactly one payment to commit and prevent overpayment.
