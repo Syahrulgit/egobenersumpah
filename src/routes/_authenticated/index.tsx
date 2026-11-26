@@ -440,16 +440,16 @@ export function DashboardPage() {
 
           {/* C. Quick Actions */}
           <section aria-label="Aksi Cepat">
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-2.5">
               <button
                 type="button"
                 onClick={() => openTransactionSheet({ type: "expense" })}
-                className="flex min-h-[76px] flex-col items-start justify-between rounded-2xl border border-[#DCE4F0] bg-white p-3.5 text-left transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
+                className="flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#19D8FF] to-[#087BFF] text-white shadow-xs">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#19D8FF] to-[#087BFF] text-white shadow-xs">
                   <Plus className="h-4 w-4" aria-hidden="true" />
                 </span>
-                <span className="mt-2 text-xs font-bold text-[#06132F] dark:text-white">
+                <span className="text-[10px] font-bold leading-tight text-[#06132F] dark:text-white">
                   Catat Transaksi
                 </span>
               </button>
@@ -457,48 +457,48 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => openTransactionSheet({ type: "transfer" })}
-                className="flex min-h-[76px] flex-col items-start justify-between rounded-2xl border border-[#DCE4F0] bg-white p-3.5 text-left transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
+                className="flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#087BFF]/12 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#087BFF]/12 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
                   <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
                 </span>
-                <span className="mt-2 text-xs font-bold text-[#06132F] dark:text-white">
+                <span className="text-[10px] font-bold leading-tight text-[#06132F] dark:text-white">
                   Transfer
                 </span>
               </button>
 
               <Link
                 to="/aset"
-                className="flex min-h-[76px] flex-col items-start justify-between rounded-2xl border border-[#DCE4F0] bg-white p-3.5 text-left transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
+                className="flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#087BFF]/12 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#087BFF]/12 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
                   <Briefcase className="h-4 w-4" aria-hidden="true" />
                 </span>
-                <span className="mt-2 text-xs font-bold text-[#06132F] dark:text-white">
+                <span className="text-[10px] font-bold leading-tight text-[#06132F] dark:text-white">
                   Tambah Aset
                 </span>
               </Link>
 
               <Link
                 to="/utang"
-                className="flex min-h-[76px] flex-col items-start justify-between rounded-2xl border border-[#DCE4F0] bg-white p-3.5 text-left transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
+                className="flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400">
                   <CreditCard className="h-4 w-4" aria-hidden="true" />
                 </span>
-                <span className="mt-2 text-xs font-bold text-[#06132F] dark:text-white">
+                <span className="text-[10px] font-bold leading-tight text-[#06132F] dark:text-white">
                   Bayar Utang
                 </span>
               </Link>
 
               <Link
                 to="/laporan"
-                className="col-span-2 flex min-h-[76px] flex-col items-start justify-between rounded-2xl border border-[#DCE4F0] bg-white p-3.5 text-left transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50 sm:col-span-1"
+                className="flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-1.5 py-2 text-center transition-all hover:border-[#087BFF]/50 hover:shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:hover:border-[#19D8FF]/50"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#06132F] text-[#19D8FF] dark:bg-[#122652]">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#06132F] text-[#19D8FF] dark:bg-[#122652]">
                   <BarChart3 className="h-4 w-4" aria-hidden="true" />
                 </span>
-                <span className="mt-2 text-xs font-bold text-[#06132F] dark:text-white">
+                <span className="text-[10px] font-bold leading-tight text-[#06132F] dark:text-white">
                   Lihat Laporan
                 </span>
               </Link>
