@@ -35,6 +35,18 @@
   }
 }
 
+/* iOS Safari: explicitly set the glyph fill and caret for the Add Account
+   text field so typed characters remain visible in dark mode. */
+html.dark #acc-name {
+  color: #F1F5F9 !important;
+  -webkit-text-fill-color: #F1F5F9 !important;
+  caret-color: #19D8FF;
+}
+
+html.dark #acc-name::placeholder {
+  -webkit-text-fill-color: #64748B;
+}
+
 .ego-card-hero {
   background: radial-gradient(circle at 88% 12%, rgba(25, 216, 255, 0.22) 0%, rgba(8, 123, 255, 0.14) 28%, rgba(6, 19, 47, 0) 62%),
     linear-gradient(135deg, #06132F 0%, #0A1D47 52%, #07193D 100%);
