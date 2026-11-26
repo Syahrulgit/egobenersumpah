@@ -208,6 +208,7 @@ jobs:
 
   # Keep this isolated from hosted projects; the disposable fixture models only
   # privileges the local postgres role is actually authorized to alter.
+  # Supabase CLI v3 local_smtp uses a dedicated non-default port in config.toml.
   supabase-local-stack:
     name: Full Supabase Local Stack validation
     runs-on: ubuntu-latest
