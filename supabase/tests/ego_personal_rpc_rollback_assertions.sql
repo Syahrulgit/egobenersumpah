@@ -7,6 +7,7 @@ DECLARE
   v_rel record;
   v_role text;
   v_priv text;
+  v_acl_details text;
 BEGIN
   IF pg_catalog.to_regprocedure('public.create_confirmed_transaction(uuid,text,uuid,uuid,numeric,date,text,text,boolean)') IS NOT NULL
     OR pg_catalog.to_regprocedure('public.cancel_confirmed_transaction(uuid)') IS NOT NULL
@@ -39,21 +40,26 @@ BEGIN
   END IF;
   -- Check table-level ACL entries directly. has_table_privilege() also returns
   -- true for safe column-level INSERT grants, so it is too broad for owner_commands.
-  IF EXISTS (
-    SELECT 1
-    FROM pg_catalog.pg_class AS c
-    JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
-    CROSS JOIN LATERAL pg_catalog.aclexplode(
-      COALESCE(c.relacl, pg_catalog.acldefault('r', c.relowner))
-    ) AS a
-    WHERE n.nspname = 'public'
-      AND c.relname IN ('transactions','debt_payment_logs','owner_commands')
-      AND a.grantee IN (0,
-        (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'anon'),
-        (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'authenticated'))
-      AND a.privilege_type IN ('INSERT','UPDATE','DELETE')
-  ) THEN
-    RAISE EXCEPTION 'Rollback restored table-level direct ledger DML';
+  SELECT pg_catalog.string_agg(
+    pg_catalog.format('%I: grantee=%s privilege=%s grantor=%s', c.relname,
+      CASE WHEN a.grantee = 0 THEN 'PUBLIC' ELSE COALESCE(gr.rolname, a.grantee::text) END,
+      a.privilege_type, COALESCE(g.rolname, a.grantor::text)), '; ')
+  INTO v_acl_details
+  FROM pg_catalog.pg_class AS c
+  JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+  CROSS JOIN LATERAL pg_catalog.aclexplode(
+    COALESCE(c.relacl, pg_catalog.acldefault('r', c.relowner))
+  ) AS a
+  LEFT JOIN pg_catalog.pg_roles AS gr ON gr.oid = a.grantee
+  LEFT JOIN pg_catalog.pg_roles AS g ON g.oid = a.grantor
+  WHERE n.nspname = 'public'
+    AND c.relname IN ('transactions','debt_payment_logs','owner_commands')
+    AND a.grantee IN (0,
+      (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'anon'),
+      (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'authenticated'))
+    AND a.privilege_type IN ('INSERT','UPDATE','DELETE');
+  IF v_acl_details IS NOT NULL THEN
+    RAISE EXCEPTION 'Direct table-level ledger DML remains after rollback: %', v_acl_details;
   END IF;
   -- Ledger tables have no API-role column-level DML grants.
   IF EXISTS (
