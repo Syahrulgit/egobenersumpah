@@ -74,3 +74,47 @@ All runtime tests must use disposable synthetic identities and synthetic rows in
 ## Immediate next step
 
 Prepare a migration proposal specifically for the observed EGO-PERSONAL schema and matching tests, but keep it as an un-applied Draft PR. Do not copy the EGO-TEST migration verbatim. Before any database execution against EGO-PERSONAL, present the SQL diff, rollback/recovery plan, and test evidence to Owner for explicit approval.
+
+
+## Application write-path audit (source: `src/lib/queries.ts` on main)
+
+The runtime uses a mixed write model. This must be reflected in the migration design; it is not correct to treat every direct table write as a posted financial transaction.
+
+| Operation | Current app path | Risk / design implication |
+|---|---|---|
+| Post income/expense/transfer | `create_confirmed_transaction` RPC | RPC missing in PERSONAL; implement validated atomic insert |
+| Cancel transaction | `cancel_confirmed_transaction` RPC | RPC missing; must reject debt-payment transactions linked to payment logs until reversal exists |
+| Pay debt | `pay_debt_atomically` RPC | App RPC absent; PERSONAL has `ego_pay_debt_atomic` with required `p_transaction_date` |
+| Approve queued Owner command | `approve_owner_command` RPC | RPC missing; must atomically create transaction and change command from pending to processed |
+| Queue ordinary Owner command | Direct INSERT into `owner_commands` as pending | Queueing a draft is not a posted financial write; preserve this workflow or replace with a safe narrow RPC |
+| Reject Owner command | Direct UPDATE `owner_commands.status='rejected'` | Ensure owner-scoped RLS and only pending -> rejected transition |
+| Create/update debt metadata | Direct INSERT/UPDATE `debts` | Separate from paying debt; do not break existing metadata forms while tightening ledger writes |
+| Queue recurring bill/reminder | Direct INSERT pending command plus update reminder/bill | Current flow uses multiple requests and compensating DELETE on failure; consider a separate atomic queue RPC later, but not part of critical transaction RPC migration |
+
+The application does not currently issue direct INSERT/UPDATE calls to `transactions` in the inspected Supabase branch; it reads transactions directly and posts/cancels via RPC. This supports a future least-privilege design, but the debt and owner-command direct-write flows mean table grants cannot be globally revoked without first migrating those flows.
+
+## Additional confirmed idempotency detail
+
+EGO-PERSONAL already has a unique partial index:
+`debt_payment_logs_owner_request_id_uidx ON (owner_id, request_id) WHERE request_id IS NOT NULL`.
+Therefore, do not add a duplicate idempotency column/index merely to match EGO-TEST. The existing UUID request identity and unique index are the natural basis for debt-payment retry protection.
+
+## Refined implementation decisions
+
+1. **Debt payment compatibility:** prefer updating the application call to invoke the existing `ego_pay_debt_atomic` contract and explicitly pass `p_transaction_date` (defaulting from the app's `todayISO()`) rather than creating a second independent payment function. Confirm the exact PostgREST argument names and return shape in tests.
+2. **Debt cancellation:** generic cancellation must reject a transaction referenced by `debt_payment_logs.transaction_id`. A dedicated reversal is a separate feature requiring its own accounting policy and Owner approval.
+3. **Owner command approval:** use a row lock on the pending command, verify `owner_id = auth.uid()`, require `p_owner_confirmed IS TRUE`, validate the draft and both account owners/active states, insert exactly one posted confirmed transaction, then transition the command to `processed` in the same database transaction. Reject duplicate approval attempts.
+4. **Owner command queue/reject:** because the app currently performs direct INSERT/UPDATE on `owner_commands`, either retain those limited owner-scoped permissions with strict RLS and state-transition validation, or migrate the queue/reject paths to narrow RPCs before revoking DML. Do not revoke first.
+5. **Debt metadata:** preserve direct debt metadata CRUD as a separate path for now; verify RLS enforces owner scoping. Payment balance updates remain exclusively inside the atomic debt-payment function.
+6. **Security model:** transaction posting should ultimately be protected against a caller setting `owner_confirmed=true` through arbitrary table DML. A reviewed least-privilege design is required. If SECURITY DEFINER is selected for finance RPCs, use a fixed empty/controlled search_path, schema-qualified object names, explicit `auth.uid()` and row-owner checks, narrowly scoped EXECUTE grants, and tests for cross-owner IDs. Do not mechanically convert existing functions or remove grants as part of a broad cleanup.
+
+## Revised migration/test staging
+
+- Stage 0: keep this proposal documentation-only; no SQL changes.
+- Stage 1: create RPC implementations and SQL tests in a disposable local/test database matching EGO-PERSONAL schema. Do not use EGO-TEST as if its schema were equivalent.
+- Stage 2: update application RPC calls on this feature branch, including debt RPC name and transaction date argument; add tests for the application contract.
+- Stage 3: review SQL privilege model and RLS together with all remaining direct writes (owner command queue/reject, debt metadata, recurring bill/reminder queue).
+- Stage 4: only after disposable integration tests pass, publish an unapplied migration candidate in the Draft PR for Owner review.
+- Stage 5: EGO-PERSONAL migration remains blocked until Owner approves the exact SQL diff, test report, and recovery plan.
+
+No SQL migration file has been added to `supabase/migrations` at this stage. This is intentional: the next code artifact must be backed by a complete, tested privilege model rather than speculative production SQL.
