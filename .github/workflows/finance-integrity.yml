@@ -1,0 +1,30 @@
+name: EGO finance integrity checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [fix/finance-integrity-2026-11]
+
+permissions:
+  contents: read
+
+jobs:
+  app-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run unit tests
+        run: npm test
+      - name: TypeScript check
+        run: npm run lint
+      - name: Production build
+        run: npm run build
