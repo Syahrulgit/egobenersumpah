@@ -96,6 +96,41 @@ export function EgoAnimatedMark({
   );
 }
 
+
+export function EgoCompanion({
+  size = "md",
+  mode = "idle",
+  className = "",
+}: {
+  size?: "sm" | "md" | "lg";
+  mode?: "idle" | "thinking" | "happy" | "alert";
+  className?: string;
+}) {
+  const expressionLabel = {
+    idle: "EGO siap membantu",
+    thinking: "EGO sedang memproses",
+    happy: "EGO menyelesaikan proses",
+    alert: "EGO mendeteksi hal yang perlu diperhatikan",
+  }[mode];
+
+  const logoSize = size === "sm" ? "sm" : size === "lg" ? "lg" : "md";
+
+  return (
+    <span
+      className={`ego-companion ego-companion--${size} ego-companion--${mode} ${className}`}
+      role="img"
+      aria-label={expressionLabel}
+    >
+      <span className="ego-companion__orbit" aria-hidden="true" />
+      <span className="ego-companion__orbit ego-companion__orbit--inner" aria-hidden="true" />
+      <span className="ego-companion__core">
+        <EgoLogoMark size={logoSize} />
+      </span>
+      <span className="ego-companion__spark" aria-hidden="true" />
+    </span>
+  );
+}
+
 export function EgoBrand({
   size = "md",
   showSubtitle = false,
