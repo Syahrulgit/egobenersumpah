@@ -211,3 +211,105 @@ html.dark #acc-name::placeholder {
     transition: none !important;
   }
 }
+
+
+/* EGO Visual Transformation 2.0: living hero, tactile surfaces, and restrained motion. */
+.ego-card-hero--living {
+  isolation: isolate;
+  border-color: rgba(25, 216, 255, 0.28);
+  background:
+    radial-gradient(ellipse at 84% 20%, rgba(25, 216, 255, 0.24) 0%, rgba(8, 123, 255, 0.12) 26%, transparent 58%),
+    radial-gradient(ellipse at 12% 100%, rgba(8, 123, 255, 0.18), transparent 48%),
+    linear-gradient(132deg, #050D22 0%, #0A1D46 48%, #071632 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 24px 55px rgba(2,8,24,.28);
+  animation: ego-hero-pulse 8s ease-in-out infinite;
+}
+.ego-card-hero--living::before {
+  position: absolute;
+  inset: 1px;
+  z-index: 0;
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: inherit;
+  content: "";
+  pointer-events: none;
+}
+.ego-card-hero--living::after {
+  position: absolute;
+  top: -42%;
+  right: -16%;
+  width: min(68vw, 390px);
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(25,216,255,.15) 0%, rgba(8,123,255,.07) 38%, transparent 70%);
+  filter: blur(8px);
+  content: "";
+  pointer-events: none;
+  animation: ego-hero-aura 7s ease-in-out infinite;
+}
+.ego-card-hero__companion {
+  position: absolute;
+  top: 50%;
+  right: clamp(12px, 5vw, 58px);
+  z-index: 1;
+  display: grid;
+  width: 112px;
+  height: 112px;
+  place-items: center;
+  opacity: .38;
+  transform: translateY(-50%) scale(1.12);
+  filter: drop-shadow(0 12px 24px rgba(25,216,255,.18));
+  pointer-events: none;
+}
+.ego-card-hero__companion .ego-companion { width: 104px; height: 104px; }
+.ego-card-hero__companion .ego-companion__orbit { border-color: rgba(25,216,255,.38); }
+.ego-card-hero__companion .ego-companion__core { filter: drop-shadow(0 0 18px rgba(25,216,255,.36)); }
+.ego-card-hero--living > .relative.z-10 { position: relative; }
+.ego-dashboard > details,
+.ego-dashboard > section:not([aria-label="Aksi Cepat"]) {
+  animation: ego-surface-pulse 9s ease-in-out infinite;
+  transform-origin: center;
+}
+.ego-dashboard > details:nth-of-type(2n),
+.ego-dashboard > section:nth-of-type(2n) { animation-delay: -3.5s; }
+.ego-transactions > .ego-transaction-panel,
+.ego-transactions > div > .ego-transaction-panel {
+  position: relative;
+  isolation: isolate;
+  box-shadow: 0 10px 28px rgba(2,8,24,.045);
+  transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+}
+.ego-transaction-summary {
+  background-image: radial-gradient(ellipse at 100% 0%, rgba(25,216,255,.075), transparent 44%);
+}
+.ego-transactions > .ego-transaction-panel:focus-within,
+.ego-transactions > div > .ego-transaction-panel:focus-within {
+  border-color: rgba(25,216,255,.48);
+  box-shadow: 0 14px 34px rgba(8,123,255,.09);
+}
+@keyframes ego-hero-pulse {
+  0%, 100% { border-color: rgba(25,216,255,.22); box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 20px 48px rgba(2,8,24,.24); }
+  50% { border-color: rgba(25,216,255,.42); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 24px 58px rgba(2,8,24,.32), 0 0 26px rgba(25,216,255,.055); }
+}
+@keyframes ego-hero-aura {
+  0%, 100% { opacity: .55; transform: scale(.92) translate3d(0,0,0); }
+  50% { opacity: 1; transform: scale(1.08) translate3d(-5px,4px,0); }
+}
+@keyframes ego-surface-pulse {
+  0%, 100% { box-shadow: 0 5px 18px rgba(2,8,24,.025); }
+  50% { box-shadow: 0 9px 24px rgba(8,123,255,.055); }
+}
+@media (max-width: 420px) {
+  .ego-card-hero__companion {
+    right: -8px;
+    opacity: .22;
+    transform: translateY(-50%) scale(.92);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ego-card-hero--living,
+  .ego-card-hero--living::after,
+  .ego-dashboard > details,
+  .ego-dashboard > section:not([aria-label="Aksi Cepat"]) {
+    animation: none !important;
+  }
+}
