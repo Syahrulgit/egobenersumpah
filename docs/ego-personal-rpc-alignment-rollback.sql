@@ -1,8 +1,8 @@
 -- EGO-PERSONAL RPC alignment rollback plan.
 -- Run only after the application release has been rolled back to a version that
 -- no longer calls the new RPC contract. Review against current ACLs before use.
--- Restores the pre-alignment debt RPC implementation from
--- supabase/migrations/20261126000200_atomic_debt_payment.sql and selected DML grants.
+-- Retains the hardened, signature-compatible debt RPC; removes only newer RPCs.
+-- Direct ledger DML remains revoked throughout rollback.
 -- SECURITY HARDENING IS INTENTIONALLY NOT REVERSED: do not restore TRUNCATE,
 -- MAINTAIN, TRIGGER, or REFERENCES for anon/authenticated, and do not restore their
 -- default privileges. Those grants were over-broad and unrelated to app rollback.
