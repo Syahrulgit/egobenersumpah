@@ -282,13 +282,7 @@ html.dark #acc-name::placeholder {
   height: 10px;
 }
 .ego-card-hero--living > .relative.z-10 { position: relative; }
-.ego-dashboard > details,
-.ego-dashboard > section:not([aria-label="Aksi Cepat"]) {
-  animation: ego-surface-pulse 9s ease-in-out infinite;
-  transform-origin: center;
-}
-.ego-dashboard > details:nth-of-type(2n),
-.ego-dashboard > section:nth-of-type(2n) { animation-delay: -3.5s; }
+/* Dashboard data cards stay visually calm; interaction feedback remains tactile. */
 .ego-transactions > .ego-transaction-panel,
 .ego-transactions > div > .ego-transaction-panel {
   position: relative;
@@ -311,10 +305,6 @@ html.dark #acc-name::placeholder {
 @keyframes ego-hero-aura {
   0%, 100% { opacity: .55; transform: scale(.92) translate3d(0,0,0); }
   50% { opacity: 1; transform: scale(1.08) translate3d(-5px,4px,0); }
-}
-@keyframes ego-surface-pulse {
-  0%, 100% { box-shadow: 0 5px 18px rgba(2,8,24,.025); }
-  50% { box-shadow: 0 9px 24px rgba(8,123,255,.055); }
 }
 @media (max-width: 420px) {
   .ego-card-hero__companion {
@@ -346,9 +336,6 @@ html.dark #acc-name::placeholder {
 
 
 /* Robo AI lives inside key financial cards, never as a page-wide watermark. */
-.ego-page-content {
-  animation: ego-page-enter 480ms cubic-bezier(.2,.7,.25,1) both;
-}
 .ego-main-card {
   isolation: isolate;
 }
@@ -390,14 +377,7 @@ html.dark #acc-name::placeholder {
   position: relative;
   z-index: 1;
 }
-@keyframes ego-page-enter {
-  from { opacity: 0; transform: translateY(7px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 @media (max-width: 420px) {
   .ego-main-card__robo { width: 92px; height: 92px; opacity: .12; }
   .ego-main-card__robo--hero { width: 140px; height: 140px; opacity: .16; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ego-page-content { animation: none !important; }
 }
