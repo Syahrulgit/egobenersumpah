@@ -112,6 +112,12 @@ DECLARE
   v_approved_replay public.transactions%ROWTYPE;
   v_balance numeric;
   v_count integer;
+  v_balance_before numeric;
+  v_balance_after numeric;
+  v_expense_before numeric;
+  v_expense_after numeric;
+  v_count_before integer;
+  v_count_after integer;
 BEGIN
 
   -- Column-level ACLs must be revoked independently of table-level grants.
@@ -291,6 +297,10 @@ BEGIN
   IF pg_catalog.to_regprocedure('public.approve_owner_command(uuid,boolean,jsonb)') IS NOT NULL THEN
     RAISE EXCEPTION 'Legacy approval RPC accepting a client draft still exists';
   END IF;
+  IF (SELECT status FROM public.owner_commands WHERE id='12121212-1212-4121-8121-121212121212') <> 'pending'
+    OR EXISTS (SELECT 1 FROM public.transactions WHERE description='Draf uji') THEN
+    RAISE EXCEPTION 'Saving an Owner draft changed the ledger before explicit approval';
+  END IF;
   v_approved := public.approve_owner_command(
     '12121212-1212-4121-8121-121212121212',TRUE
   );
@@ -411,10 +421,44 @@ BEGIN
   END;
 
   -- Ordinary posted transactions may be cancelled; repeating cancellation is safe.
+  -- Verify the derived account balance and monthly cashflow/report aggregates both reverse.
+  SELECT
+    COALESCE(SUM(CASE WHEN destination_account_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' THEN amount ELSE 0 END),0)
+      - COALESCE(SUM(CASE WHEN source_account_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' THEN amount ELSE 0 END),0)
+  INTO v_balance_before
+  FROM public.transactions
+  WHERE owner_id='11111111-1111-4111-8111-111111111111' AND status='posted' AND owner_confirmed IS TRUE;
+  SELECT COALESCE(SUM(amount),0), COUNT(*)::integer
+  INTO v_expense_before, v_count_before
+  FROM public.transactions
+  WHERE owner_id='11111111-1111-4111-8111-111111111111'
+    AND status='posted' AND owner_confirmed IS TRUE
+    AND transaction_type IN ('income','expense')
+    AND transaction_date >= DATE '2026-11-01' AND transaction_date < DATE '2026-12-01'
+    AND transaction_type='expense';
   v_tx := public.cancel_confirmed_transaction('24242424-2424-4242-8242-242424242424');
   IF v_tx.status <> 'cancelled' THEN RAISE EXCEPTION 'Normal transaction was not cancelled'; END IF;
   v_tx := public.cancel_confirmed_transaction('24242424-2424-4242-8242-242424242424');
   IF v_tx.status <> 'cancelled' THEN RAISE EXCEPTION 'Cancellation retry was not idempotent'; END IF;
+  SELECT
+    COALESCE(SUM(CASE WHEN destination_account_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' THEN amount ELSE 0 END),0)
+      - COALESCE(SUM(CASE WHEN source_account_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' THEN amount ELSE 0 END),0)
+  INTO v_balance_after
+  FROM public.transactions
+  WHERE owner_id='11111111-1111-4111-8111-111111111111' AND status='posted' AND owner_confirmed IS TRUE;
+  SELECT COALESCE(SUM(amount),0), COUNT(*)::integer
+  INTO v_expense_after, v_count_after
+  FROM public.transactions
+  WHERE owner_id='11111111-1111-4111-8111-111111111111'
+    AND status='posted' AND owner_confirmed IS TRUE
+    AND transaction_date >= DATE '2026-11-01' AND transaction_date < DATE '2026-12-01'
+    AND transaction_type='expense';
+  IF v_balance_after <> v_balance_before + 20 THEN
+    RAISE EXCEPTION 'Cancelled expense did not restore the derived account balance (before %, after %)', v_balance_before, v_balance_after;
+  END IF;
+  IF v_expense_after <> v_expense_before - 20 OR v_count_after <> v_count_before - 1 THEN
+    RAISE EXCEPTION 'Cancelled expense remains in monthly cashflow/report totals (expense % -> %, count % -> %)', v_expense_before, v_expense_after, v_count_before, v_count_after;
+  END IF;
 
   -- Direct updates/deletes to immutable ledger rows are not permitted.
   BEGIN
