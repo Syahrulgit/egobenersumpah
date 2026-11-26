@@ -15,6 +15,7 @@ CREATE OR REPLACE FUNCTION public.ego_pay_debt_atomic(
   p_amount numeric,
   p_source_account_id uuid,
   p_owner_confirmed boolean,
+  p_transaction_date date,
   p_notes text DEFAULT NULL
 )
 RETURNS jsonb
@@ -44,6 +45,9 @@ BEGIN
   END IF;
   IF p_amount IS NULL OR p_amount <= 0 THEN
     RAISE EXCEPTION 'Nominal pembayaran harus lebih dari Rp 0.' USING ERRCODE = '22023';
+  END IF;
+  IF p_transaction_date IS NULL THEN
+    RAISE EXCEPTION 'Tanggal transaksi pembayaran wajib diisi.' USING ERRCODE = '22023';
   END IF;
 
   v_amount := ROUND(p_amount, 2);
@@ -125,7 +129,7 @@ BEGIN
     p_source_account_id,
     NULL,
     v_amount,
-    CURRENT_DATE,
+    p_transaction_date,
     'Utang & Cicilan',
     'Pembayaran utang ke ' || v_debt.creditor,
     'posted',
@@ -172,6 +176,6 @@ BEGIN
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION public.ego_pay_debt_atomic(uuid, uuid, numeric, uuid, boolean, text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.ego_pay_debt_atomic(uuid, uuid, numeric, uuid, boolean, text) FROM anon;
-GRANT EXECUTE ON FUNCTION public.ego_pay_debt_atomic(uuid, uuid, numeric, uuid, boolean, text) TO authenticated;
+REVOKE ALL ON FUNCTION public.ego_pay_debt_atomic(uuid, uuid, numeric, uuid, boolean, date, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.ego_pay_debt_atomic(uuid, uuid, numeric, uuid, boolean, date, text) FROM anon;
+GRANT EXECUTE ON FUNCTION public.ego_pay_debt_atomic(uuid, uuid, numeric, uuid, boolean, date, text) TO authenticated;
