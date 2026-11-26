@@ -69,3 +69,5 @@ jobs:
         env:
           PGPASSWORD: ego_test_only
         run: psql -h localhost -U ego_test -d ego_finance_test -v ON_ERROR_STOP=1 -f supabase/tests/finance_integrity_integration.sql
+      - name: Test concurrent payments cannot overpay the same debt
+        run: bash supabase/tests/finance_integrity_concurrency.sh
