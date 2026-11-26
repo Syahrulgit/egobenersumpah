@@ -20,6 +20,13 @@ enabled = false
 [studio]
 enabled = false
 
+[local_smtp]
+enabled = true
+# Avoid the runner-reserved/default Supabase mail UI port 54324.
+port = 55324
+smtp_port = 55325
+pop3_port = 55326
+
 [auth]
 enabled = true
 site_url = "http://127.0.0.1:3000"
