@@ -18,10 +18,17 @@ function storageKey(namespace: string, key: string): string {
 }
 
 function readStore(rateLimitFile: string): RateLimitStore {
-  if (!fs.existsSync(rateLimitFile)) return {};
+  let raw: string;
+  try {
+    raw = fs.readFileSync(rateLimitFile, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return {};
+    throw new Error("Penyimpanan pembatas percobaan tidak dapat dibaca. Login ditahan demi keamanan.");
+  }
+
   let parsed: unknown;
   try {
-    parsed = JSON.parse(fs.readFileSync(rateLimitFile, "utf8"));
+    parsed = JSON.parse(raw);
   } catch {
     throw new Error("Penyimpanan pembatas percobaan rusak. Login ditahan demi keamanan.");
   }
