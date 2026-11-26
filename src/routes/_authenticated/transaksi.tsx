@@ -57,6 +57,7 @@ export function TransaksiPage() {
   );
   const [showFilters, setShowFilters] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
   useEffect(() => {
@@ -150,6 +151,12 @@ export function TransaksiPage() {
     [filteredTransactions, dateFormat]
   );
 
+  const displayedGroups = useMemo(() => {
+    const visibleTransactions = showAllTransactions ? filteredTransactions : filteredTransactions.slice(0, 5);
+    const visibleIds = new Set(visibleTransactions.map((tx) => tx.id));
+    return groupedByDate.map((group) => ({ ...group, items: group.items.filter((tx) => visibleIds.has(tx.id)) })).filter((group) => group.items.length > 0);
+  }, [filteredTransactions, groupedByDate, showAllTransactions]);
+
   const periodSummary = useMemo(() => {
     let income = 0;
     let expense = 0;
@@ -190,7 +197,7 @@ export function TransaksiPage() {
                 <p className="mt-1 truncate font-mono text-base font-bold tabular-nums text-rose-600 dark:text-rose-400">-{formatIDR(periodSummary.expense, true)}</p>
               </div>
             </div>
-            <p className="mt-2 text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">{filteredTransactions.length} transaksi ditampilkan</p>
+            <p className="mt-2 text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">{showAllTransactions || filteredTransactions.length <= 5 ? filteredTransactions.length : 5} dari {filteredTransactions.length} transaksi ditampilkan</p>
           </div>
 
           <div role="tablist" aria-label="Jenis transaksi" className="grid grid-cols-4 gap-1 rounded-2xl border border-[#DCE4F0] bg-[#EEF3FA] p-1 dark:border-[#1B3163] dark:bg-[#06132F]">
@@ -344,7 +351,7 @@ export function TransaksiPage() {
           </section>
         ) : (
           <div className="space-y-4">
-            {groupedByDate.map((group) => (
+            {displayedGroups.map((group) => (
               <section
                 key={group.dateKey}
                 className="overflow-hidden rounded-2xl border border-[#DCE4F0] bg-white shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none"
@@ -455,6 +462,12 @@ export function TransaksiPage() {
                 </ul>
               </section>
             ))}
+            {filteredTransactions.length > 5 ? (
+              <button type="button" onClick={() => setShowAllTransactions((value) => !value)} className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[#DCE4F0] bg-white px-4 py-3 text-xs font-semibold text-[#087BFF] shadow-xs transition-colors hover:bg-[#F4F7FB] dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#19D8FF] dark:hover:bg-[#0D1E45]">
+                {showAllTransactions ? "Tampilkan lebih sedikit" : `Lihat Semua Transaksi (${filteredTransactions.length})`}
+                {showAllTransactions ? <ChevronUp className="h-4 w-4" aria-hidden="true" /> : <ChevronDown className="h-4 w-4" aria-hidden="true" />}
+              </button>
+            ) : null}
           </div>
         )}
       </div>
