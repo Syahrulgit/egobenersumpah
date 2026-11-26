@@ -1325,7 +1325,7 @@ export function useApproveCommand() {
         transaction_type: cleanDraft.transaction_type,
         source_account_id: cleanDraft.source_account_id,
         destination_account_id: cleanDraft.destination_account_id,
-        amount: cleanDraft.amount,
+        amount,
         transaction_date: cleanDraft.transaction_date,
         category: cleanDraft.category,
         description: cleanDraft.description,
