@@ -61,9 +61,10 @@ BEGIN
     FROM pg_catalog.pg_class AS c
     JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
     JOIN pg_catalog.pg_attribute AS att ON att.attrelid = c.oid AND att.attnum > 0 AND NOT att.attisdropped
-    CROSS JOIN LATERAL pg_catalog.aclexplode(COALESCE(att.attacl, ARRAY[]::pg_catalog.aclitem[])) AS a
+    CROSS JOIN LATERAL pg_catalog.aclexplode(att.attacl) AS a
     WHERE n.nspname = 'public'
       AND c.relname IN ('transactions','debt_payment_logs')
+      AND att.attacl IS NOT NULL
       AND a.grantee IN (0,
         (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'anon'),
         (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'authenticated'))
@@ -81,6 +82,7 @@ BEGIN
       JOIN pg_catalog.pg_attribute AS att ON att.attrelid = c.oid AND att.attnum > 0 AND NOT att.attisdropped
       CROSS JOIN LATERAL pg_catalog.aclexplode(COALESCE(att.attacl, ARRAY[]::pg_catalog.aclitem[])) AS a
       WHERE n.nspname = 'public' AND c.relname = 'owner_commands'
+        AND att.attacl IS NOT NULL
         AND a.grantee IN (0,
           (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'anon'),
           (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'authenticated'))
