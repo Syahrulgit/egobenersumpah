@@ -6,6 +6,7 @@
 BEGIN;
 
 DROP FUNCTION IF EXISTS public.approve_owner_command(uuid, boolean, jsonb);
+DROP FUNCTION IF EXISTS public.reject_owner_command(uuid);
 DROP FUNCTION IF EXISTS public.cancel_confirmed_transaction(uuid);
 DROP FUNCTION IF EXISTS public.create_confirmed_transaction(uuid, text, uuid, uuid, numeric, date, text, text, boolean);
 
@@ -18,6 +19,7 @@ ALTER FUNCTION public.ego_pay_debt_atomic(uuid, uuid, numeric, uuid, boolean, da
 -- Restore the grants observed before the candidate migration.
 GRANT INSERT, UPDATE ON TABLE public.transactions TO authenticated;
 GRANT INSERT, UPDATE, DELETE ON TABLE public.debt_payment_logs TO authenticated;
+GRANT UPDATE ON TABLE public.owner_commands TO authenticated;
 
 -- Keep the debt RPC callable by authenticated Owner only.
 REVOKE ALL ON FUNCTION public.ego_pay_debt_atomic(uuid, uuid, numeric, uuid, boolean, date, text)
