@@ -428,14 +428,15 @@ BEGIN
   INTO v_balance_before
   FROM public.transactions
   WHERE owner_id='11111111-1111-4111-8111-111111111111' AND status='posted' AND owner_confirmed IS TRUE;
-  SELECT COALESCE(SUM(amount),0), COUNT(*)::integer
+  SELECT
+    COALESCE(SUM(amount) FILTER (WHERE transaction_type='expense'),0),
+    COUNT(*) FILTER (WHERE transaction_type IN ('income','expense'))::integer
   INTO v_expense_before, v_count_before
   FROM public.transactions
   WHERE owner_id='11111111-1111-4111-8111-111111111111'
     AND status='posted' AND owner_confirmed IS TRUE
     AND transaction_type IN ('income','expense')
-    AND transaction_date >= DATE '2026-11-01' AND transaction_date < DATE '2026-12-01'
-    AND transaction_type='expense';
+    AND transaction_date >= DATE '2026-11-01' AND transaction_date < DATE '2026-12-01';
   v_tx := public.cancel_confirmed_transaction('24242424-2424-4242-8242-242424242424');
   IF v_tx.status <> 'cancelled' THEN RAISE EXCEPTION 'Normal transaction was not cancelled'; END IF;
   v_tx := public.cancel_confirmed_transaction('24242424-2424-4242-8242-242424242424');
@@ -446,13 +447,15 @@ BEGIN
   INTO v_balance_after
   FROM public.transactions
   WHERE owner_id='11111111-1111-4111-8111-111111111111' AND status='posted' AND owner_confirmed IS TRUE;
-  SELECT COALESCE(SUM(amount),0), COUNT(*)::integer
+  SELECT
+    COALESCE(SUM(amount) FILTER (WHERE transaction_type='expense'),0),
+    COUNT(*) FILTER (WHERE transaction_type IN ('income','expense'))::integer
   INTO v_expense_after, v_count_after
   FROM public.transactions
   WHERE owner_id='11111111-1111-4111-8111-111111111111'
     AND status='posted' AND owner_confirmed IS TRUE
-    AND transaction_date >= DATE '2026-11-01' AND transaction_date < DATE '2026-12-01'
-    AND transaction_type='expense';
+    AND transaction_type IN ('income','expense')
+    AND transaction_date >= DATE '2026-11-01' AND transaction_date < DATE '2026-12-01';
   IF v_balance_after <> v_balance_before + 20 THEN
     RAISE EXCEPTION 'Cancelled expense did not restore the derived account balance (before %, after %)', v_balance_before, v_balance_after;
   END IF;
