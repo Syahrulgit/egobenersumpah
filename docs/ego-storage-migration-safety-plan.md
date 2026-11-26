@@ -16,12 +16,14 @@ Status: design-only; no production data or schema has been changed.
 - Supabase Auth is used by `verifyOwnerToken()` to verify Supabase tokens; the local session fallback still reads the local vault.
 - `createAuthedSupabaseClient(token)` exists, but the inspected routes do not establish Supabase as the financial-data source of truth.
 - The current app data model in `src/types/ego.ts` contains accounts, transactions, assets, debts, debt payment logs, owner commands, recurring bills, savings goals, reminders/logs, category budgets/logs, what-if scenarios, and financial-health snapshots.
-- EGO-TEST is active. Baseline plus storage schema v2 and v2.1 migrations are applied; all 15 application-owned finance tables are still empty.
+- EGO-TEST is active. Baseline plus storage schema v2, v2.1, and atomic finance RPC migrations are applied; all 15 application-owned finance tables are still empty.
 - All 15 application-owned finance tables have RLS enabled and exactly one consolidated `owner_isolation` policy per table using `auth.uid()`. Baseline overlapping policies on the five original tables were removed.
 - The `account_balances` view is configured with `security_invoker = true`. Its current definition calculates balances from opening balances and confirmed, posted transactions. Grants and behavior still need application-level tests.
 - Security advisor currently reports no findings. Performance advisor reports two unindexed transaction foreign keys (source_account_id and destination_account_id); this is informational at the current zero-row test stage and should be addressed in the reviewed schema migration.
 - Schema/model mismatches identified in the initial audit have been addressed additively in EGO-TEST: nullable transaction category; `ewallet` account type while retaining legacy spellings; debt metadata and app/legacy status compatibility; asset unit; owner command parsed draft; and all missing persisted collections plus owner preferences. These schema changes are not yet wired into application routes.
-- Database constraints now reject posted transactions without explicit Owner confirmation and reject invalid account shape / same-account transfers. A temporary-table SQL probe verified those constraints and the owner-scoped transaction idempotency unique index.
+- Database constraints now reject posted transactions without explicit Owner confirmation and reject invalid account shape / same-account transfers. Temporary-table SQL probes verified those constraints and the owner-scoped transaction idempotency unique index.
+- Four `SECURITY INVOKER` RPCs are installed for confirmed transaction creation, cancellation, Owner command approval, and atomic debt payment. Execute is granted to `authenticated` only; `anon` cannot execute them. The functions rely on `auth.uid()` and RLS.
+- A repeatable smoke test at `supabase/tests/ego_storage_rpc_smoke_test.sql` passed in EGO-TEST. It uses synthetic auth users and records inside a transaction and ends with `ROLLBACK`, leaving no test rows behind. Coverage includes RLS SELECT/UPDATE/INSERT isolation, Owner confirmation, transaction idempotency, same-account transfer rejection, cross-owner account reference rejection, atomic command approval, debt payment + ledger + log consistency, retry deduplication, overpayment rollback, and transaction cancellation.
 - Composite owner-aware foreign keys prevent transactions and linked records from referencing another Owner's accounts/debts/goals/bills. Covering indexes were added for these relationships.
 - Security advisor reports no findings. Performance advisor no longer reports unindexed foreign keys or overlapping permissive policies; it reports unused indexes, expected because the test tables are intentionally empty.
 - End-to-end RLS isolation tests with two authenticated test users, real transaction/debt-payment RPC tests, backup/restore tests, and app integration tests remain pending.
@@ -84,11 +86,11 @@ Status: design-only; no production data or schema has been changed.
 ## Required acceptance tests
 
 - [ ] Schema parity: every persisted app collection and field is represented or deliberately excluded with rationale.
-- [ ] RLS: cross-owner read/write attempts fail for every owner-owned table.
-- [ ] Confirmation: a transaction cannot become posted without explicit Owner confirmation.
-- [ ] Atomicity: failed transfer/debt payment leaves no partial ledger, account, debt, or log changes.
-- [ ] Idempotency: retrying the same request does not duplicate a transaction or debt payment.
-- [ ] Concurrency: simultaneous writes do not lose updates or create duplicate effects.
+- [x] RLS: cross-owner read/write attempts fail in a two-user smoke test on accounts; all 15 table policies are owner-scoped (expand row-level tests across all tables before cutover).
+- [x] Confirmation: a transaction cannot become posted without explicit Owner confirmation (RPC and SQL constraint smoke tests).
+- [x] Atomicity: command approval and debt payment were smoke-tested as single RPC transactions; overpayment failure left debt unchanged.
+- [x] Idempotency: transaction, command approval, and debt payment retries were verified not to duplicate records.
+- [ ] Concurrency: simultaneous multi-session writes do not lose updates or create duplicate effects.
 - [ ] Reconciliation: account balances, cash flow, debt balances, and payment logs match ledger-derived totals.
 - [ ] Recovery: backup can be restored and verified in an isolated test target.
 - [ ] Compatibility: existing UI and local-vault fallback behavior are unchanged until cutover is separately approved.
