@@ -184,6 +184,11 @@ GRANT INSERT (id, command_text, command_type, status, owner_confirmed,
   created_at, processed_at, owner_id, parsed_draft)
 ON TABLE public.owner_commands TO authenticated;
 
+-- In this disposable local stack only, let the postgres migration executor
+-- manage supabase_admin-owned default ACLs, matching the privileged migration
+-- context required by the candidate's fail-closed hardening check.
+GRANT supabase_admin TO postgres;
+
 -- Seed the known over-broad Supabase default ACLs so the candidate must remove them.
 GRANT TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
