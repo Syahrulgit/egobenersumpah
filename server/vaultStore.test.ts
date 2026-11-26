@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  hashSessionToken,
   parseSessionsContent,
   parseVaultContent,
   VaultReadError,
@@ -47,4 +48,12 @@ test("parseSessionsContent accepts legacy plaintext sessions for safe migration"
 test("parseSessionsContent rejects corrupt or malformed session files without clearing them", () => {
   assert.throws(() => parseSessionsContent("{broken"), /File sesi EGO rusak/);
   assert.throws(() => parseSessionsContent(JSON.stringify([{ token: "only-token" }])), /Struktur file sesi EGO/);
+});
+
+test("hashSessionToken stores a one-way digest rather than the original token", () => {
+  const token = "a-private-session-token";
+  const digest = hashSessionToken(token);
+  assert.match(digest, /^[0-9a-f]{64}$/);
+  assert.notEqual(digest, token);
+  assert.equal(hashSessionToken(token), digest);
 });
