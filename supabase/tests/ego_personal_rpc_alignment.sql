@@ -144,12 +144,19 @@ BEGIN
   END;
 
   -- Owner command is processed atomically and can be safely retried.
-  v_approved := public.approve_owner_command(
-    '12121212-1212-4121-8121-121212121212',TRUE,
+  -- The edited draft is persisted first; approval accepts only command ID + Owner confirmation.
+  PERFORM public.save_owner_command_draft(
+    '12121212-1212-4121-8121-121212121212',
     '{"transaction_type":"expense","amount":5,"source_account_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","destination_account_id":null,"transaction_date":"2026-11-26","category":"Tes","description":"Draf uji"}'::jsonb
   );
+  IF pg_catalog.to_regprocedure('public.approve_owner_command(uuid,boolean,jsonb)') IS NOT NULL THEN
+    RAISE EXCEPTION 'Legacy approval RPC accepting a client draft still exists';
+  END IF;
+  v_approved := public.approve_owner_command(
+    '12121212-1212-4121-8121-121212121212',TRUE
+  );
   v_approved_replay := public.approve_owner_command(
-    '12121212-1212-4121-8121-121212121212',TRUE,NULL
+    '12121212-1212-4121-8121-121212121212',TRUE
   );
   IF v_approved.id <> v_approved_replay.id THEN
     RAISE EXCEPTION 'Owner command retry created a second transaction';
@@ -158,7 +165,7 @@ BEGIN
     RAISE EXCEPTION 'Owner command did not transition to processed';
   END IF;
   BEGIN
-    PERFORM public.approve_owner_command('13131313-1313-4131-8131-131313131313',TRUE,NULL);
+    PERFORM public.approve_owner_command('13131313-1313-4131-8131-131313131313',TRUE);
     RAISE EXCEPTION 'Rejected Owner command unexpectedly processed';
   EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
   END;
