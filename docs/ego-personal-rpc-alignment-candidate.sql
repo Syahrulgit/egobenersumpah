@@ -446,4 +446,16 @@ REVOKE INSERT, UPDATE, DELETE ON TABLE public.transactions FROM PUBLIC, anon, au
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.debt_payment_logs FROM PUBLIC, anon, authenticated;
 REVOKE UPDATE ON TABLE public.owner_commands FROM PUBLIC, anon, authenticated;
 
+-- Remove dangerous non-row privileges from every current public table/view.
+-- RLS does not protect TRUNCATE; clients do not need TRIGGER or REFERENCES.
+REVOKE TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public
+  FROM PUBLIC, anon, authenticated;
+
+-- Keep future tables created by the two observed public-schema creator roles
+-- from silently inheriting these privileges again.
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
+  REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLES FROM anon, authenticated;
+
 COMMIT;
