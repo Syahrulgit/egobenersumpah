@@ -37,18 +37,56 @@ BEGIN
     OR pg_catalog.has_function_privilege('anon', v_oid, 'EXECUTE') THEN
     RAISE EXCEPTION 'Rollback left incorrect debt RPC EXECUTE grants';
   END IF;
-  -- Rollback deliberately keeps direct DML revoked. Finance writes must
-  -- continue through the authenticated Owner-confirmation RPC contract.
-  IF pg_catalog.has_table_privilege('authenticated','public.transactions','INSERT')
-    OR pg_catalog.has_table_privilege('authenticated','public.transactions','UPDATE')
-    OR pg_catalog.has_table_privilege('authenticated','public.transactions','DELETE')
-    OR pg_catalog.has_table_privilege('authenticated','public.debt_payment_logs','INSERT')
-    OR pg_catalog.has_table_privilege('authenticated','public.debt_payment_logs','UPDATE')
-    OR pg_catalog.has_table_privilege('authenticated','public.debt_payment_logs','DELETE')
-    OR pg_catalog.has_table_privilege('authenticated','public.owner_commands','INSERT')
-    OR pg_catalog.has_table_privilege('authenticated','public.owner_commands','UPDATE')
-    OR pg_catalog.has_table_privilege('authenticated','public.owner_commands','DELETE') THEN
-    RAISE EXCEPTION 'Rollback reopened direct authenticated DML instead of preserving the RPC-only write boundary';
+  -- Check table-level ACL entries directly. has_table_privilege() also returns
+  -- true for safe column-level INSERT grants, so it is too broad for owner_commands.
+  IF EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_class AS c
+    JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+    CROSS JOIN LATERAL pg_catalog.aclexplode(
+      COALESCE(c.relacl, pg_catalog.acldefault('r', c.relowner))
+    ) AS a
+    WHERE n.nspname = 'public'
+      AND c.relname IN ('transactions','debt_payment_logs','owner_commands')
+      AND a.grantee IN (0,
+        (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'anon'),
+        (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'authenticated'))
+      AND a.privilege_type IN ('INSERT','UPDATE','DELETE')
+  ) THEN
+    RAISE EXCEPTION 'Rollback restored table-level direct ledger DML';
+  END IF;
+  -- Ledger tables have no API-role column-level DML grants.
+  IF EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_class AS c
+    JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+    JOIN pg_catalog.pg_attribute AS att ON att.attrelid = c.oid AND att.attnum > 0 AND NOT att.attisdropped
+    CROSS JOIN LATERAL pg_catalog.aclexplode(COALESCE(att.attacl, ARRAY[]::pg_catalog.aclitem[])) AS a
+    WHERE n.nspname = 'public'
+      AND c.relname IN ('transactions','debt_payment_logs')
+      AND a.grantee IN (0,
+        (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'anon'),
+        (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'authenticated'))
+      AND a.privilege_type IN ('INSERT','UPDATE','REFERENCES')
+  ) THEN
+    RAISE EXCEPTION 'Rollback restored column-level ledger DML';
+  END IF;
+  -- owner_commands may accept only safe command payload columns for INSERT.
+  IF NOT pg_catalog.has_column_privilege('authenticated','public.owner_commands','command_text','INSERT')
+    OR NOT pg_catalog.has_column_privilege('authenticated','public.owner_commands','parsed_draft','INSERT')
+    OR EXISTS (
+      SELECT 1
+      FROM pg_catalog.pg_class AS c
+      JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+      JOIN pg_catalog.pg_attribute AS att ON att.attrelid = c.oid AND att.attnum > 0 AND NOT att.attisdropped
+      CROSS JOIN LATERAL pg_catalog.aclexplode(COALESCE(att.attacl, ARRAY[]::pg_catalog.aclitem[])) AS a
+      WHERE n.nspname = 'public' AND c.relname = 'owner_commands'
+        AND a.grantee IN (0,
+          (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'anon'),
+          (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'authenticated'))
+        AND (a.privilege_type <> 'INSERT' OR att.attname NOT IN ('command_text','parsed_draft'))
+    ) THEN
+    RAISE EXCEPTION 'Rollback changed the safe owner_commands column insert contract';
   END IF;
   -- Rollback intentionally retains the candidate's security hardening:
   -- neither API role regains MAINTAIN, TRUNCATE, TRIGGER or REFERENCES.
@@ -83,5 +121,22 @@ BEGIN
   END IF;
 END
 $rollback_assertions$;
+
+
+-- Exercise the retained debt RPC as the authenticated Owner after rollback.
+-- This catches SECURITY INVOKER + revoked-ledger-DML regressions end to end.
+BEGIN;
+SET LOCAL ROLE authenticated;
+SELECT pg_catalog.set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', TRUE);
+SELECT public.ego_pay_debt_atomic(
+  'abababab-abab-4bab-8bab-abababababab',
+  'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+  5.00,
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  TRUE,
+  CURRENT_DATE,
+  'rollback authenticated RPC smoke test'
+);
+ROLLBACK;
 
 SELECT 'EGO-PERSONAL rollback assertions passed' AS result;
