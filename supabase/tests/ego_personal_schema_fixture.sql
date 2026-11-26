@@ -133,6 +133,7 @@ GRANT USAGE ON SCHEMA public, auth TO authenticated;
 GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.accounts, public.debts, public.transactions,
   public.debt_payment_logs, public.owner_commands TO authenticated;
+GRANT DELETE ON public.debt_payment_logs TO authenticated;
 
 INSERT INTO public.accounts (id, account_name, account_type, owner_id, is_active) VALUES
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','Owner cash','cash','11111111-1111-4111-8111-111111111111',TRUE),
