@@ -12,6 +12,11 @@ port = 54322
 shadow_port = 54320
 major_version = 15
 
+[db.migrations]
+# The full-stack contract test provisions its own isolated fixture after startup.
+# Disable automatic app migrations against the empty local database.
+enabled = false
+
 [studio]
 enabled = false
 
