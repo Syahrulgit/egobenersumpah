@@ -119,6 +119,7 @@ export function AnggaranPage() {
   const [activeTab, setActiveTab] = useState<BudgetTab>("pantauan");
   const [filterStatus, setFilterStatus] = useState<BudgetFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showAllBudgets, setShowAllBudgets] = useState(false);
   const [historyScope, setHistoryScope] = useState<"month" | "all">("month");
 
   // Modal state: Create / Edit Budget
@@ -209,6 +210,8 @@ export function AnggaranPage() {
       return true;
     });
   }, [summary.items, filterStatus, searchQuery]);
+
+  const visibleItems = showAllBudgets ? filteredItems : filteredItems.slice(0, 5);
 
   const filteredLogs = useMemo(() => {
     return alertLogs.filter((l) =>
@@ -698,7 +701,7 @@ export function AnggaranPage() {
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
-                {filteredItems.map((item) => {
+                {visibleItems.map((item) => {
                   const b = item.budget;
                   const fillWidth = Math.min(100, Math.max(0, item.usagePct));
                   const barColor =
@@ -886,6 +889,26 @@ export function AnggaranPage() {
                 })}
               </div>
             )}
+            {filteredItems.length > 0 ? (
+              <div className="mt-4 flex flex-col items-center gap-2 border-t border-[#DCE4F0]/80 pt-4 dark:border-[#1B3163]">
+                <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+                  {showAllBudgets
+                    ? `${filteredItems.length} kategori anggaran ditampilkan`
+                    : `${visibleItems.length} dari ${filteredItems.length} kategori anggaran ditampilkan`}
+                </p>
+                {filteredItems.length > 5 ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllBudgets((current) => !current)}
+                    className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-[#087BFF]/25 bg-[#087BFF]/8 px-4 py-2 text-xs font-semibold text-[#087BFF] transition-colors hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/25 dark:bg-[#19D8FF]/10 dark:text-[#19D8FF]"
+                  >
+                    {showAllBudgets
+                      ? "Tampilkan Lebih Sedikit"
+                      : `Lihat Semua Kategori (${filteredItems.length})`}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
 
             {/* Unbudgeted Categories with Confirmed Expenses */}
             {summary.unbudgetedCategories.length > 0 ? (
