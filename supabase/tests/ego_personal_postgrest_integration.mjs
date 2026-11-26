@@ -34,7 +34,7 @@ function assert(condition, message) {
   console.log("PASS " + message);
 }
 
-const ownerAAccounts = await request("/accounts?select=id,owner_id");
+const ownerAAccounts = await request("/accounts?select=id,owner_id", { role: "authenticated", sub: ownerA });
 assert(ownerAAccounts.status === 200, "authenticated Owner can query accounts through PostgREST");
 const aRows = await ownerAAccounts.json();
 assert(aRows.length === 3 && aRows.every((row) => row.owner_id === ownerA),
