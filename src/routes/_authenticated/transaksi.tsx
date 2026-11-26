@@ -55,6 +55,7 @@ export function TransaksiPage() {
   const [breakdownType, setBreakdownType] = useState<"income" | "expense">(
     routeSearch.jenis === "income" ? "income" : "expense"
   );
+  const [showFilters, setShowFilters] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
@@ -162,226 +163,138 @@ export function TransaksiPage() {
 
   return (
     <AppShell
-      title="Riwayat Transaksi"
-      subtitle="Telusuri, saring, dan periksa seluruh mutasi kas terverifikasi."
+      title="Transaksi"
+      subtitle="Semua uang masuk, keluar, dan perpindahan akun dalam satu tempat."
       action={
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            disabled={filteredTransactions.length === 0}
-            onClick={() => {
-              const csv = transactionsToCsv(filteredTransactions, accounts);
-              triggerBrowserDownload(
-                `ego-transaksi-${todayISO()}.csv`,
-                csv,
-                "text/csv;charset=utf-8;"
-              );
-              toast.success(
-                `${filteredTransactions.length} transaksi diekspor ke CSV.`
-              );
-            }}
-            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#06132F] hover:bg-slate-50 disabled:opacity-50 dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45]"
-          >
-            <Download className="h-3.5 w-3.5" aria-hidden="true" />
-            <span>CSV</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => openTransactionSheet({ redirectOnSuccess: false })}
-            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#087BFF]/20 hover:brightness-110 whitespace-nowrap"
-          >
-            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-            <span>Catat Transaksi</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => openTransactionSheet({ redirectOnSuccess: false })}
+          className="inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-[#087BFF]/20 hover:brightness-110 whitespace-nowrap"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          <span>Catat Transaksi</span>
+        </button>
       }
     >
-      <div className="space-y-5">
-        {/* Period Totals + Filters Card */}
-        <section className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
-          {/* Type Tabs */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div
-              role="tablist"
-              aria-label="Filter jenis mutasi"
-              className="grid grid-cols-4 gap-1 rounded-2xl border border-[#DCE4F0] bg-[#EEF3FA] p-1 dark:border-[#1B3163] dark:bg-[#06132F]"
-            >
-              {(
-                [
-                  { id: "all", label: "Semua" },
-                  { id: "expense", label: "Keluar" },
-                  { id: "income", label: "Masuk" },
-                  { id: "transfer", label: "Transfer" },
-                ] as const
-              ).map((tab) => {
-                const active = filterType === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    onClick={() => {
-                      setFilterType(tab.id);
-                      if (tab.id === "income" || tab.id === "expense") {
-                        setBreakdownType(tab.id);
-                      }
-                    }}
-                    className={`min-h-[38px] rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap ${
-                      active
-                        ? "bg-[#087BFF] text-white shadow-xs"
-                        : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
+      <div className="space-y-4">
+        <section className="rounded-2xl border border-[#DCE4F0] bg-white p-4 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-5">
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-slate-500 dark:text-[#C7D0E0]/70">Ringkasan transaksi</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="rounded-xl bg-[#087BFF]/8 p-3 dark:bg-[#19D8FF]/10">
+                <p className="text-[11px] font-medium text-slate-600 dark:text-[#C7D0E0]/75">Uang masuk</p>
+                <p className="mt-1 truncate font-mono text-base font-bold tabular-nums text-[#087BFF] dark:text-[#19D8FF]">+{formatIDR(periodSummary.income, true)}</p>
+              </div>
+              <div className="rounded-xl bg-rose-500/8 p-3 dark:bg-rose-500/10">
+                <p className="text-[11px] font-medium text-slate-600 dark:text-[#C7D0E0]/75">Uang keluar</p>
+                <p className="mt-1 truncate font-mono text-base font-bold tabular-nums text-rose-600 dark:text-rose-400">-{formatIDR(periodSummary.expense, true)}</p>
+              </div>
             </div>
-
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="rounded-lg bg-[#087BFF]/10 px-2.5 py-1 font-mono font-semibold text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF] tabular-nums">
-                +{formatIDR(periodSummary.income, true)}
-              </span>
-              <span className="rounded-lg bg-rose-500/10 px-2.5 py-1 font-mono font-semibold text-rose-600 dark:bg-rose-500/15 dark:text-rose-400 tabular-nums">
-                -{formatIDR(periodSummary.expense, true)}
-              </span>
-              <span className="font-mono text-slate-500 dark:text-[#C7D0E0]/70 tabular-nums">
-                {filteredTransactions.length} entri
-              </span>
-            </div>
+            <p className="mt-2 text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">{filteredTransactions.length} transaksi ditampilkan</p>
           </div>
 
-          {/* Search, Account, Period Inputs */}
-          <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="relative">
-              <Search
-                className="pointer-events-none absolute top-3.5 left-3 h-4 w-4 text-slate-400 dark:text-[#C7D0E0]/60"
-                aria-hidden="true"
-              />
-              <input
-                type="text"
-                aria-label="Cari transaksi"
-                value={filterSearch}
-                onChange={(e) => setFilterSearch(e.target.value)}
-                placeholder="Cari keterangan atau kategori..."
-                className="min-h-[42px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] py-2 pr-3 pl-9 text-xs text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[#19D8FF]"
-              />
-            </div>
-
-            <select
-              aria-label="Filter akun"
-              value={filterAccountId}
-              onChange={(e) => setFilterAccountId(e.target.value)}
-              className="min-h-[42px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2 text-xs text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
-            >
-              <option value="">Semua Akun</option>
-              {accounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>
-                  {acc.account_name}
-                </option>
-              ))}
-            </select>
-
-            <input
-              type="date"
-              aria-label="Tanggal mulai"
-              value={filterFrom}
-              onChange={(e) => setFilterFrom(e.target.value)}
-              className="min-h-[42px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2 font-mono text-xs text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
-            />
-
-            <input
-              type="date"
-              aria-label="Tanggal akhir"
-              value={filterTo}
-              onChange={(e) => setFilterTo(e.target.value)}
-              className="min-h-[42px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2 font-mono text-xs text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
-            />
+          <div role="tablist" aria-label="Jenis transaksi" className="grid grid-cols-4 gap-1 rounded-2xl border border-[#DCE4F0] bg-[#EEF3FA] p-1 dark:border-[#1B3163] dark:bg-[#06132F]">
+            {(
+              [
+                { id: "all", label: "Semua" },
+                { id: "expense", label: "Keluar" },
+                { id: "income", label: "Masuk" },
+                { id: "transfer", label: "Transfer" },
+              ] as const
+            ).map((tab) => {
+              const active = filterType === tab.id;
+              return (
+                <button key={tab.id} type="button" role="tab" aria-selected={active}
+                  onClick={() => {
+                    setFilterType(tab.id);
+                    if (tab.id === "income" || tab.id === "expense") setBreakdownType(tab.id);
+                  }}
+                  className={`min-h-[40px] rounded-xl px-1.5 py-2 text-xs font-semibold transition-colors whitespace-nowrap ${
+                    active ? "bg-[#087BFF] text-white shadow-xs" : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+                  }`}
+                >{tab.label}</button>
+              );
+            })}
           </div>
 
-          {/* Quick Period Chips & Category Toggle */}
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => applyQuickPeriod("this-month")}
-                className="min-h-[32px] rounded-lg border border-[#DCE4F0] bg-[#F4F7FB] px-2.5 py-1 text-[11px] font-semibold text-[#06132F] hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
-              >
-                Bulan Ini
-              </button>
-              <button
-                type="button"
-                onClick={() => applyQuickPeriod("last-7d")}
-                className="min-h-[32px] rounded-lg border border-[#DCE4F0] bg-[#F4F7FB] px-2.5 py-1 text-[11px] font-semibold text-[#06132F] hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
-              >
-                7 Hari Terakhir
-              </button>
-              <button
-                type="button"
-                onClick={() => applyQuickPeriod("all")}
-                className="min-h-[32px] rounded-lg border border-[#DCE4F0] bg-[#F4F7FB] px-2.5 py-1 text-[11px] font-semibold text-[#06132F] hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
-              >
-                Semua Periode
-              </button>
-              {hasActiveFilter ? (
-                <button
-                  type="button"
-                  onClick={handleResetFilters}
-                  className="inline-flex min-h-[32px] items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10"
-                >
-                  <X className="h-3 w-3" aria-hidden="true" />
-                  <span>Reset</span>
-                </button>
-              ) : null}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowBreakdown((v) => !v)}
-              className="inline-flex min-h-[32px] items-center gap-1 text-xs font-semibold text-[#087BFF] hover:underline dark:text-[#19D8FF]"
-            >
-              <span>{showBreakdown ? "Sembunyikan Ringkasan Kategori" : "Lihat Ringkasan Kategori"}</span>
-              {showBreakdown ? (
-                <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
-              ) : (
-                <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
-              )}
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <button type="button" aria-expanded={showFilters} onClick={() => setShowFilters((value) => !value)}
+              className="inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2 text-xs font-semibold text-[#06132F] dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]">
+              <Search className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Filter &amp; Alat</span>
+              {hasActiveFilter ? <span className="rounded-full bg-[#087BFF]/10 px-1.5 py-0.5 text-[10px] text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">Aktif</span> : null}
+              {showFilters ? <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" /> : <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />}
             </button>
+            {hasActiveFilter ? (
+              <button type="button" onClick={handleResetFilters} className="inline-flex min-h-[38px] items-center gap-1 rounded-xl px-2 text-xs font-semibold text-rose-600 dark:text-rose-400">
+                <X className="h-3.5 w-3.5" aria-hidden="true" /><span>Reset</span>
+              </button>
+            ) : null}
           </div>
 
-          {showBreakdown && !isLoading ? (
-            <div className="mt-4">
-              <CategoryBreakdown
-                embedded
-                title="Rincian Kategori Periode Filter"
-                subtitle="Klik kategori untuk menyaring daftar di bawah"
-                transactions={transactions}
-                type={breakdownType}
-                onTypeChange={(nextType) => {
-                  setBreakdownType(nextType);
-                  if (filterType === "income" || filterType === "expense") {
-                    setFilterType(nextType);
-                  }
-                }}
-                fromDate={filterFrom || undefined}
-                toDate={filterTo || undefined}
-                selectedCategory={filterSearch}
-                showEmptyCta={false}
-                maxItems={8}
-                onSelectCategory={(cat, txType) => {
-                  const isSame =
-                    filterSearch.trim().toLowerCase() === cat.toLowerCase() &&
-                    filterType === txType;
-                  if (isSame) {
-                    setFilterSearch("");
-                    setFilterType("all");
-                  } else {
-                    setFilterSearch(cat);
-                    setFilterType(txType);
-                  }
-                }}
-              />
+          {showFilters ? (
+            <div className="mt-3 space-y-3 rounded-xl border border-[#DCE4F0] bg-[#F8FAFD] p-3 dark:border-[#1B3163] dark:bg-[#06132F]/70">
+              <div>
+                <label className="mb-1.5 block text-[11px] font-semibold text-slate-600 dark:text-[#C7D0E0]/75">Cari transaksi</label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute top-3 left-3 h-4 w-4 text-slate-400" aria-hidden="true" />
+                  <input type="text" aria-label="Cari transaksi" value={filterSearch} onChange={(e) => setFilterSearch(e.target.value)} placeholder="Keterangan atau kategori..."
+                    className="min-h-[42px] w-full rounded-xl border border-[#DCE4F0] bg-white py-2 pr-3 pl-9 text-xs text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:outline-none dark:border-[#1B3163] dark:bg-[#091634] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[#19D8FF]" />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[11px] font-semibold text-slate-600 dark:text-[#C7D0E0]/75">Pilih akun</label>
+                <select aria-label="Filter akun" value={filterAccountId} onChange={(e) => setFilterAccountId(e.target.value)}
+                  className="min-h-[42px] w-full rounded-xl border border-[#DCE4F0] bg-white px-3 py-2 text-xs text-[#06132F] focus:border-[#087BFF] focus:outline-none dark:border-[#1B3163] dark:bg-[#091634] dark:text-white dark:focus:border-[#19D8FF]">
+                  <option value="">Semua Akun</option>
+                  {accounts.map((acc) => <option key={acc.id} value={acc.id}>{acc.account_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <p className="mb-1.5 text-[11px] font-semibold text-slate-600 dark:text-[#C7D0E0]/75">Periode</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button type="button" onClick={() => applyQuickPeriod("this-month")} className="min-h-[34px] rounded-lg border border-[#DCE4F0] bg-white px-2 py-1 text-[11px] font-semibold text-[#06132F] dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0]">Bulan Ini</button>
+                  <button type="button" onClick={() => applyQuickPeriod("last-7d")} className="min-h-[34px] rounded-lg border border-[#DCE4F0] bg-white px-2 py-1 text-[11px] font-semibold text-[#06132F] dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0]">7 Hari</button>
+                  <button type="button" onClick={() => applyQuickPeriod("all")} className="min-h-[34px] rounded-lg border border-[#DCE4F0] bg-white px-2 py-1 text-[11px] font-semibold text-[#06132F] dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0]">Semua</button>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div><label className="mb-1 block text-[10px] text-slate-500 dark:text-[#C7D0E0]/65">Dari tanggal</label><input type="date" aria-label="Tanggal mulai" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="min-h-[40px] w-full rounded-xl border border-[#DCE4F0] bg-white px-2 py-2 font-mono text-[11px] text-[#06132F] dark:border-[#1B3163] dark:bg-[#091634] dark:text-white" /></div>
+                  <div><label className="mb-1 block text-[10px] text-slate-500 dark:text-[#C7D0E0]/65">Sampai tanggal</label><input type="date" aria-label="Tanggal akhir" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="min-h-[40px] w-full rounded-xl border border-[#DCE4F0] bg-white px-2 py-2 font-mono text-[11px] text-[#06132F] dark:border-[#1B3163] dark:bg-[#091634] dark:text-white" /></div>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#DCE4F0] pt-3 dark:border-[#1B3163]">
+                <button type="button" disabled={filteredTransactions.length === 0}
+                  onClick={() => {
+                    const csv = transactionsToCsv(filteredTransactions, accounts);
+                    triggerBrowserDownload(`ego-transaksi-${todayISO()}.csv`, csv, "text/csv;charset=utf-8;");
+                    toast.success(`${filteredTransactions.length} transaksi diekspor ke CSV.`);
+                  }}
+                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-[#DCE4F0] bg-white px-3 py-2 text-[11px] font-semibold text-[#06132F] disabled:opacity-50 dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0]">
+                  <Download className="h-3.5 w-3.5" aria-hidden="true" /><span>Ekspor CSV</span>
+                </button>
+                <button type="button" onClick={() => setShowBreakdown((value) => !value)} className="inline-flex min-h-[36px] items-center gap-1 text-[11px] font-semibold text-[#087BFF] dark:text-[#19D8FF]">
+                  <span>{showBreakdown ? "Tutup ringkasan kategori" : "Ringkasan kategori"}</span>
+                  {showBreakdown ? <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" /> : <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />}
+                </button>
+              </div>
+              {showBreakdown && !isLoading ? (
+                <div className="pt-1">
+                  <CategoryBreakdown embedded title="Ringkasan Kategori" subtitle="Pilih kategori untuk menyaring transaksi"
+                    transactions={transactions} type={breakdownType}
+                    onTypeChange={(nextType) => {
+                      setBreakdownType(nextType);
+                      if (filterType === "income" || filterType === "expense") setFilterType(nextType);
+                    }}
+                    fromDate={filterFrom || undefined} toDate={filterTo || undefined}
+                    selectedCategory={filterSearch} showEmptyCta={false} maxItems={8}
+                    onSelectCategory={(cat, txType) => {
+                      const isSame = filterSearch.trim().toLowerCase() === cat.toLowerCase() && filterType === txType;
+                      if (isSame) { setFilterSearch(""); setFilterType("all"); }
+                      else { setFilterSearch(cat); setFilterType(txType); }
+                    }}
+                  />
+                </div>
+              ) : null}
             </div>
           ) : null}
         </section>
