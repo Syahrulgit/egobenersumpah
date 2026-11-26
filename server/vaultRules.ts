@@ -157,6 +157,7 @@ export interface LoginRateCheckResult {
 
 export interface LoginRateLimiter {
   check: (key: string, nowMs?: number) => LoginRateCheckResult;
+  attempt: (key: string, nowMs?: number) => LoginRateCheckResult;
   recordFailure: (key: string, nowMs?: number) => LoginRateCheckResult;
   reset: (key: string) => void;
 }
@@ -197,6 +198,22 @@ export function createLoginRateLimiter(
         remainingAttempts: 0,
         retryAfterSeconds,
         message: `Terlalu banyak percobaan masuk gagal. Demi keamanan brankas, silakan tunggu sekitar ${waitMinutes} menit sebelum mencoba lagi.`,
+      };
+    },
+
+    attempt(key: string, nowMs = Date.now()): LoginRateCheckResult {
+      const existing = getActiveEntry(key, nowMs);
+      if (existing && existing.count >= maxAttempts) {
+        return this.check(key, nowMs);
+      }
+      const next = existing
+        ? { count: existing.count + 1, windowStart: existing.windowStart }
+        : { count: 1, windowStart: nowMs };
+      attempts.set(key, next);
+      return {
+        allowed: true,
+        remainingAttempts: Math.max(0, maxAttempts - next.count),
+        retryAfterSeconds: 0,
       };
     },
 

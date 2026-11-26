@@ -320,3 +320,20 @@ test("validateResetOwnerConfirmation requires checkbox acknowledgment and HAPUS 
   );
 });
 
+
+test("createLoginRateLimiter reserves attempts before password verification", () => {
+  const limiter = createLoginRateLimiter(2, 60_000);
+  assert.deepEqual(limiter.attempt("ip-reserved", 1_000), {
+    allowed: true,
+    remainingAttempts: 1,
+    retryAfterSeconds: 0,
+  });
+  assert.deepEqual(limiter.attempt("ip-reserved", 2_000), {
+    allowed: true,
+    remainingAttempts: 0,
+    retryAfterSeconds: 0,
+  });
+  assert.equal(limiter.attempt("ip-reserved", 3_000).allowed, false);
+  limiter.reset("ip-reserved");
+  assert.equal(limiter.attempt("ip-reserved", 4_000).remainingAttempts, 1);
+});
