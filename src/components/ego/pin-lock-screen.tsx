@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { markPinSessionUnlocked } from "../../lib/pin-lock";
 import { useLogoutOwner, useVerifyPin } from "../../lib/queries";
 import { ThemeToggleButton } from "../../lib/theme";
-import { EgoLogoMark } from "./ego-brand";
+import { EgoAnimatedMark } from "./ego-brand";
 
 interface PinLockScreenProps {
   ownerName: string;
@@ -104,7 +104,6 @@ export function PinLockScreen({ ownerName }: PinLockScreenProps) {
 
       <div className="w-full max-w-sm rounded-3xl border border-[#DCE4F0] bg-white p-6 shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-7">
         <div className="flex items-center gap-3">
-          <EgoLogoMark size="md" />
           <div className="min-w-0">
             <p className="inline-flex items-center gap-1 text-xs font-semibold text-[#087BFF] dark:text-[#19D8FF]">
               <Lock className="h-3 w-3" aria-hidden="true" />
@@ -116,7 +115,11 @@ export function PinLockScreen({ ownerName }: PinLockScreenProps) {
           </div>
         </div>
 
-        <div className="mt-6 text-center">
+        <div className="mt-7 flex justify-center">
+          <EgoAnimatedMark size="lg" mode={verifyPin.isPending ? "processing" : errorMsg ? "warning" : "active"} className="p-2" />
+        </div>
+
+        <div className="mt-5 text-center">
           <h1 className="text-lg font-bold tracking-tight text-[#06132F] dark:text-white">
             Masukkan PIN 6 Digit
           </h1>

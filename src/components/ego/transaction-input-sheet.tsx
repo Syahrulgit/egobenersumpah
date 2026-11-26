@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { formatDateID, formatIDR, todayISO } from "../../lib/finance";
 import { useCreateTransaction, useVaultSnapshot } from "../../lib/queries";
 import type { TransactionType } from "../../types/ego";
+import { EgoAnimatedMark } from "./ego-brand";
 import { ApprovalCheck } from "./approval-check";
 import { ModalSheet } from "./modal-sheet";
 import { MoneyInput } from "./money-input";
@@ -263,7 +264,7 @@ export function TransactionSheetProvider({
           )}).`
         );
       } else {
-        toast.success("Transaksi terverifikasi dan riwayat telah diperbarui.");
+        toast.success("Transaksi terverifikasi dan riwayat telah diperbarui.", { icon: <EgoAnimatedMark size="sm" mode="success" /> });
       }
 
       setAmount(0);
