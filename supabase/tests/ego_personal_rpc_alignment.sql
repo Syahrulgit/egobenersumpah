@@ -320,6 +320,18 @@ BEGIN
   EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
   END;
 
+  -- Internal unchecked helpers must never be callable by client roles.
+  IF pg_catalog.has_function_privilege('authenticated',
+      'public.create_confirmed_transaction_internal(uuid,text,uuid,uuid,numeric,date,text,text,boolean)'::regprocedure,'EXECUTE')
+    OR pg_catalog.has_function_privilege('anon',
+      'public.create_confirmed_transaction_internal(uuid,text,uuid,uuid,numeric,date,text,text,boolean)'::regprocedure,'EXECUTE')
+    OR pg_catalog.has_function_privilege('authenticated',
+      'public.ego_pay_debt_atomic_internal(uuid,uuid,numeric,uuid,boolean,date,text)'::regprocedure,'EXECUTE')
+    OR pg_catalog.has_function_privilege('anon',
+      'public.ego_pay_debt_atomic_internal(uuid,uuid,numeric,uuid,boolean,date,text)'::regprocedure,'EXECUTE') THEN
+    RAISE EXCEPTION 'Internal unchecked finance helper is exposed to client roles';
+  END IF;
+
   -- Cross-Owner IDOR regression: Owner A must not read, replace, or approve
   -- Owner B's pending command, even when B's UUID is known to the caller.
   BEGIN
@@ -412,6 +424,24 @@ BEGIN
     RAISE EXCEPTION 'Debt payment amount rounding to zero unexpectedly succeeded';
   EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
   END;
+
+  -- Debt payment is also an outflow and must respect the source account balance.
+  BEGIN
+    PERFORM public.ego_pay_debt_atomic(
+      '63636363-6363-4363-8363-636363636363',
+      'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      9999999999999.99,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      TRUE,DATE '2026-11-26','Insufficient funds debt payment'
+    );
+    RAISE EXCEPTION 'Debt payment exceeding available balance unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
+  END;
+  IF EXISTS (
+    SELECT 1 FROM public.debt_payment_logs
+    WHERE request_id='63636363-6363-4363-8363-636363636363'
+  ) THEN
+    RAISE EXCEPTION 'Rejected debt payment left a payment log';
+  END IF;
 
   -- Debt payment updates debt + transaction + payment log atomically.
   v_payment := public.ego_pay_debt_atomic(
