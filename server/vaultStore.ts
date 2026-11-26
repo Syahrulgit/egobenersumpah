@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { withFileLock } from "./fileLock";
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -8,6 +9,11 @@ import {
 
 const DATA_DIR = path.resolve(process.cwd(), "data");
 const VAULT_FILE = path.join(DATA_DIR, "ego-vault.json");
+const VAULT_MUTATION_LOCK = path.join(DATA_DIR, "ego-vault-mutation.lock");
+
+export function withVaultMutationLock<T>(operation: () => T): T {
+  return withFileLock(VAULT_MUTATION_LOCK, operation);
+}
 
 const VAULT_COLLECTIONS = [
   "accounts",
