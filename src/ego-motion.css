@@ -1,0 +1,93 @@
+/* EGO Hybrid Motion Experience — transition-only layer.
+   Intentionally isolated from card layout, colors, data, and business logic. */
+
+.ego-page-content {
+  position: relative;
+  animation: ego-hybrid-page-enter 420ms cubic-bezier(.2,.82,.22,1) both;
+  will-change: opacity, transform;
+}
+
+.ego-page-content::after {
+  position: absolute;
+  top: 0;
+  left: -45%;
+  z-index: 20;
+  width: 38%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(25,216,255,.92), rgba(8,123,255,.62), transparent);
+  box-shadow: 0 0 14px rgba(25,216,255,.35);
+  content: "";
+  pointer-events: none;
+  animation: ego-hybrid-energy-sweep 620ms cubic-bezier(.2,.7,.2,1) 1 both;
+}
+
+@keyframes ego-hybrid-page-enter {
+  0% { opacity: 0; transform: translate3d(18px, 7px, 0) scale(.985); }
+  68% { opacity: 1; transform: translate3d(-2px, 0, 0) scale(1.002); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes ego-hybrid-energy-sweep {
+  0% { opacity: 0; transform: translateX(0) scaleX(.72); }
+  18% { opacity: .9; }
+  100% { opacity: 0; transform: translateX(390%) scaleX(1); }
+}
+
+/* The active destination responds with a small, tactile emphasis. */
+aside nav a[aria-current="page"],
+nav[aria-label="Navigasi Mobile"] a[aria-current="page"] {
+  transition: color 220ms ease, background-color 220ms ease, transform 260ms cubic-bezier(.2,.8,.2,1);
+}
+
+aside nav a[aria-current="page"] svg,
+nav[aria-label="Navigasi Mobile"] a[aria-current="page"] svg {
+  animation: ego-hybrid-nav-pop 360ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes ego-hybrid-nav-pop {
+  0% { transform: scale(.82); }
+  72% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+
+/* Mobile bottom navigation gets a moving energy marker without changing its geometry. */
+nav[aria-label="Navigasi Mobile"] a {
+  position: relative;
+}
+
+nav[aria-label="Navigasi Mobile"] a[aria-current="page"]::before {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 26px;
+  height: 2px;
+  border-radius: 0 0 999px 999px;
+  background: #19D8FF;
+  box-shadow: 0 0 10px rgba(25,216,255,.58);
+  content: "";
+  transform: translateX(-50%);
+  animation: ego-hybrid-marker-in 280ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes ego-hybrid-marker-in {
+  from { opacity: 0; transform: translateX(-50%) scaleX(.2); }
+  to { opacity: 1; transform: translateX(-50%) scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ego-page-content {
+    animation: none !important;
+    will-change: auto;
+  }
+  .ego-page-content::after,
+  aside nav a[aria-current="page"] svg,
+  nav[aria-label="Navigasi Mobile"] a[aria-current="page"] svg,
+  nav[aria-label="Navigasi Mobile"] a[aria-current="page"]::before {
+    animation: none !important;
+  }
+  aside nav a[aria-current="page"],
+  nav[aria-label="Navigasi Mobile"] a[aria-current="page"] {
+    transition: none !important;
+  }
+}
