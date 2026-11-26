@@ -124,3 +124,10 @@ Do not choose one silently; document the intended accounting behavior and test i
 - The current EGO-TEST smoke-test script completed through the Supabase SQL tool without a SQL error. The script itself wraps its synthetic fixtures in a transaction and ends with ROLLBACK.
 - A separate direct-write runtime probe did not complete: the first attempt stopped at a synthetic account foreign-key failure, and the follow-up probe was blocked by a safety check. Therefore, the direct-write finding is based on catalog privilege inspection plus the current RLS policy definition, not a completed exploit simulation.
 - The Draft PR triggered GitHub Actions. At the time of this note, `database-integration` was in progress and `app-checks` was queued; no passing conclusion is claimed yet.
+
+
+## Owner confirmation: runtime target is EGO-PERSONAL
+
+Owner confirmed on 2026-11-26 that the running application uses EGO-PERSONAL. EGO-PERSONAL is therefore the canonical runtime target for alignment; EGO-TEST is reference/test only. The target-specific contract and migration decisions are documented in [`ego-personal-integration-alignment.md`](./ego-personal-integration-alignment.md).
+
+The earlier sequence item that proposed compatibility work on EGO-TEST is superseded: compatibility design must now be based on the observed EGO-PERSONAL schema. No migration or schema change is authorized by this confirmation. EGO-PERSONAL remains read-only until Owner separately approves a specific SQL diff and test/recovery plan.
