@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { advanceDueDate, computeAccountBalances, roundCurrency, todayISO } from "./finance";
 import { fromDatabaseAccountType, toDatabaseAccountType } from "./account-types";
-import { isSameConfirmedTransactionRequest, isValidTransactionRequestId } from "./transaction-idempotency";
+import { isValidTransactionRequestId } from "./transaction-idempotency";
 import {
   clearPinSessionState,
   hashPinWebCrypto,
@@ -1301,18 +1301,6 @@ export function useApproveCommand() {
         category: (input.draft.category || "Lainnya").trim(),
         description: (input.draft.description || "Transaksi Owner").trim(),
       };
-      const transactionRequest = {
-        transaction_type: cleanDraft.transaction_type,
-        source_account_id: cleanDraft.source_account_id,
-        destination_account_id: cleanDraft.destination_account_id,
-        amount,
-        transaction_date: cleanDraft.transaction_date,
-        category: cleanDraft.category,
-        description: cleanDraft.description,
-        status: "posted" as const,
-        owner_confirmed: true,
-      };
-
       if (isSupabaseConfigured && supabase) {
         const { data, error } = await supabase.rpc("approve_owner_command", {
           p_command_id: input.id,
