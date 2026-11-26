@@ -34,6 +34,8 @@ AS $function$
 DECLARE
   v_owner uuid := auth.uid();
   v_existing public.transactions%ROWTYPE;
+  -- Match transactions.amount numeric(15,2) before idempotency checks.
+  v_amount numeric(15,2);
   v_category text := COALESCE(NULLIF(pg_catalog.btrim(p_category), ''), 'Lainnya');
   v_description text := NULLIF(pg_catalog.btrim(p_description), '');
 BEGIN
@@ -45,6 +47,10 @@ BEGIN
   END IF;
   IF p_id IS NULL OR p_amount IS NULL OR p_amount <= 0 OR p_transaction_date IS NULL THEN
     RAISE EXCEPTION 'Data transaksi tidak valid.' USING ERRCODE = '22023';
+  END IF;
+  v_amount := pg_catalog.round(p_amount, 2);
+  IF v_amount <= 0 THEN
+    RAISE EXCEPTION 'Nominal transaksi harus minimal 0,01.' USING ERRCODE = '22023';
   END IF;
   IF p_transaction_type IS NULL OR p_transaction_type NOT IN ('income', 'expense', 'transfer') THEN
     RAISE EXCEPTION 'Jenis transaksi tidak valid.' USING ERRCODE = '22023';
@@ -87,7 +93,7 @@ BEGIN
     IF v_existing.transaction_type = p_transaction_type
       AND v_existing.source_account_id IS NOT DISTINCT FROM p_source_account_id
       AND v_existing.destination_account_id IS NOT DISTINCT FROM p_destination_account_id
-      AND v_existing.amount = p_amount
+      AND v_existing.amount = v_amount
       AND v_existing.transaction_date = p_transaction_date
       AND v_existing.category = v_category
       AND v_existing.description IS NOT DISTINCT FROM v_description
@@ -103,7 +109,7 @@ BEGIN
     amount, transaction_date, category, description, status, owner_confirmed
   ) VALUES (
     p_id, v_owner, p_transaction_type, p_source_account_id, p_destination_account_id,
-    p_amount, p_transaction_date, v_category, v_description, 'posted', TRUE
+    v_amount, p_transaction_date, v_category, v_description, 'posted', TRUE
   )
   RETURNING * INTO v_existing;
 
