@@ -101,3 +101,10 @@ html.dark #acc-name::placeholder {
     animation: none !important;
   }
 }
+
+
+@keyframes ego-appear {
+  0% { opacity: 0; transform: translateY(7px) scale(0.94); }
+  70% { opacity: 1; transform: translateY(-1px) scale(1.015); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
