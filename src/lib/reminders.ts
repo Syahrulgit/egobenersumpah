@@ -347,6 +347,7 @@ export interface ReminderDashboardSummary {
   upcomingBillsCount: number;
   nearestReminder: ReminderDashboardItem | null;
   nextSavingsDeposit: ReminderDashboardItem | null;
+  priorityItems: ReminderDashboardItem[];
 }
 
 export function summarizeRemindersForDashboard(
@@ -448,6 +449,14 @@ export function summarizeRemindersForDashboard(
     upcomingBillsCount,
     nearestReminder,
     nextSavingsDeposit,
+    priorityItems: sorted
+      .filter((item) => !item.isSavings && item.daysRemaining !== null && item.daysRemaining <= 7)
+      .sort((a, b) => {
+        const aPriority = a.isOverdue ? -1 : a.daysRemaining === 0 ? 0 : 1;
+        const bPriority = b.isOverdue ? -1 : b.daysRemaining === 0 ? 0 : 1;
+        return aPriority - bPriority || (a.daysRemaining ?? 9999) - (b.daysRemaining ?? 9999);
+      })
+      .slice(0, 3),
   };
 }
 
