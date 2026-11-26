@@ -205,3 +205,96 @@ jobs:
         env:
           PGPASSWORD: ego_test_only
         run: psql -h localhost -U ego_test -d ego_finance_test -v ON_ERROR_STOP=1 -f supabase/tests/ego_personal_rpc_rollback_assertions.sql
+
+  supabase-local-stack:
+    name: Full Supabase Local Stack validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v5
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Start pinned Supabase CLI local stack (no hosted project link)
+        run: |
+          npx --yes supabase@3.4.0 --version
+          npx --yes supabase@3.4.0 start
+      - name: Capture local-only API key
+        shell: bash
+        run: |
+          npx --yes supabase@3.4.0 status -o env > "$RUNNER_TEMP/ego-supabase-local.env"
+          KEY="$(sed -n 's/^ANON_KEY=//p; s/^SUPABASE_ANON_KEY=//p' "$RUNNER_TEMP/ego-supabase-local.env" | head -n 1 | tr -d '"')"
+          if [[ -z "$KEY" ]]; then
+            echo "Could not read the local Supabase anon key from CLI status output"
+            exit 1
+          fi
+          echo "EGO_SUPABASE_API_KEY=$KEY" >> "$GITHUB_ENV"
+      - name: Prepare disposable EGO-PERSONAL schema in local Supabase Postgres
+        env:
+          PGPASSWORD: postgres
+          PGHOST: 127.0.0.1
+          PGPORT: 54322
+          PGUSER: postgres
+          PGDATABASE: postgres
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/ego_personal_schema_fixture.sql
+      - name: Apply candidate SQL only to disposable local stack
+        env:
+          PGPASSWORD: postgres
+          PGHOST: 127.0.0.1
+          PGPORT: 54322
+          PGUSER: postgres
+          PGDATABASE: postgres
+        run: psql -v ON_ERROR_STOP=1 -f docs/ego-personal-rpc-alignment-candidate.sql
+      - name: Verify finance RPC, RLS, grants, replay and rollback contract
+        env:
+          PGPASSWORD: postgres
+          PGHOST: 127.0.0.1
+          PGPORT: 54322
+          PGUSER: postgres
+          PGDATABASE: postgres
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/ego_personal_rpc_alignment.sql
+      - name: Verify concurrent debt-payment replay and overpayment protection
+        env:
+          PGPASSWORD: postgres
+          PGHOST: 127.0.0.1
+          PGPORT: 54322
+          PGUSER: postgres
+          PGDATABASE: postgres
+        run: bash supabase/tests/ego_personal_rpc_concurrency.sh
+      - name: Verify real local GoTrue signup, login and JWT through Supabase gateway
+        env:
+          EGO_GOTRUE_URL: http://127.0.0.1:54321/auth/v1
+          EGO_POSTGREST_URL: http://127.0.0.1:54321/rest/v1
+        run: node supabase/tests/ego_personal_gotrue_integration.mjs
+      - name: Verify local PostgREST RPC, RLS and direct-write denial through gateway
+        env:
+          EGO_POSTGREST_URL: http://127.0.0.1:54321/rest/v1
+          EGO_TEST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
+        run: node supabase/tests/ego_personal_postgrest_integration.mjs
+      - name: Apply rollback only to disposable local stack
+        env:
+          PGPASSWORD: postgres
+          PGHOST: 127.0.0.1
+          PGPORT: 54322
+          PGUSER: postgres
+          PGDATABASE: postgres
+        run: psql -v ON_ERROR_STOP=1 -f docs/ego-personal-rpc-alignment-rollback.sql
+      - name: Verify rollback restores original RPC and grants
+        env:
+          PGPASSWORD: postgres
+          PGHOST: 127.0.0.1
+          PGPORT: 54322
+          PGUSER: postgres
+          PGDATABASE: postgres
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/ego_personal_rpc_rollback_assertions.sql
+      - name: Stop Supabase Local Stack
+        if: always()
+        run: npx --yes supabase@3.4.0 stop
