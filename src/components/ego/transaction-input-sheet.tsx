@@ -261,7 +261,8 @@ export function TransactionSheetProvider({
         toast.warning(
           `Transaksi tersimpan. Nominal melebihi batas pengingat (${formatIDR(
             expenseLimit
-          )}).`
+          )}).`,
+          { icon: <EgoAnimatedMark size="sm" mode="warning" /> }
         );
       } else {
         toast.success("Transaksi terverifikasi dan riwayat telah diperbarui.", { icon: <EgoAnimatedMark size="sm" mode="success" /> });
