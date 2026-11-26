@@ -1,7 +1,10 @@
 -- EGO-PERSONAL RPC alignment rollback plan.
 -- Run only after the application release has been rolled back to a version that
 -- no longer calls the new RPC contract. Review against current ACLs before use.
--- This restores the pre-alignment table DML grants observed on 2026-11-26.
+-- This restores selected pre-alignment DML grants observed on 2026-11-26.
+-- SECURITY HARDENING IS INTENTIONALLY NOT REVERSED: do not restore TRUNCATE,
+-- TRIGGER, or REFERENCES for anon/authenticated, and do not restore their
+-- default privileges. Those grants were over-broad and unrelated to app rollback.
 
 BEGIN;
 
