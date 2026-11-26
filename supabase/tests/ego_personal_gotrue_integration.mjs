@@ -2,6 +2,7 @@ const authUrl = process.env.EGO_GOTRUE_URL ?? "http://127.0.0.1:9999";
 const postgrestUrl = process.env.EGO_POSTGREST_URL ?? "http://127.0.0.1:3000";
 const email = "ego-gotrue-owner@example.test";
 const password = "Ego-Test-Only-Password-2026!";
+const apiKey = process.env.EGO_SUPABASE_API_KEY;
 
 function assert(condition, message) {
   if (!condition) throw new Error("ASSERTION FAILED: " + message);
@@ -11,7 +12,10 @@ function assert(condition, message) {
 async function jsonRequest(url, body) {
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: {
+      "Content-Type": "application/json", Accept: "application/json",
+      ...(apiKey ? { apikey: apiKey } : {}),
+    },
     body: JSON.stringify(body),
   });
   const raw = await response.text();
@@ -64,6 +68,7 @@ const apiResponse = await fetch(postgrestUrl + "/accounts?select=id,owner_id", {
   headers: {
     Authorization: "Bearer " + login.data.access_token,
     Accept: "application/json",
+    ...(apiKey ? { apikey: apiKey } : {}),
   },
 });
 assert(apiResponse.status === 200,
