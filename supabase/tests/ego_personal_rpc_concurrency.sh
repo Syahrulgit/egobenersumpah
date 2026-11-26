@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export PGPASSWORD=ego_test_only
-PSQL=(psql -h localhost -U ego_test -d ego_finance_test -v ON_ERROR_STOP=1 -q)
+export PGPASSWORD="${PGPASSWORD:-ego_test_only}"
+PSQL=(psql -h "${PGHOST:-localhost}" -p "${PGPORT:-5432}" -U "${PGUSER:-ego_test}" -d "${PGDATABASE:-ego_finance_test}" -v ON_ERROR_STOP=1 -q)
 OWNER=11111111-1111-4111-8111-111111111111
 DEBT=ffffffff-ffff-4fff-8fff-ffffffffffff
 ACCOUNT=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
