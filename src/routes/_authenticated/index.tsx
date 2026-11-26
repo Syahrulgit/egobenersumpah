@@ -210,7 +210,7 @@ export function DashboardPage() {
     ]
   );
 
-  const recentTx = transactions.slice(0, 5);
+  const recentTx = transactions.slice(0, 3);
   const activeAccounts = accounts.filter((a) => a.is_active);
   const accountMap = useMemo(
     () => new Map(accounts.map((a) => [a.id, a])),
@@ -505,6 +505,19 @@ export function DashboardPage() {
             </div>
           </section>
 
+          <details className="group rounded-2xl border border-[#DCE4F0] bg-white shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
+            <summary className="flex min-h-[58px] cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3 [&::-webkit-details-marker]:hidden">
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-[#06132F] dark:text-white">Analisis &amp; Perencanaan</span>
+                <span className="mt-0.5 block text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">Grafik, ringkasan keuangan, pengingat, target, dan anggaran</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2 text-xs font-semibold text-[#087BFF] dark:text-[#19D8FF]">
+                <span className="group-open:hidden">Lihat</span>
+                <span className="hidden group-open:inline">Tutup</span>
+                <ArrowRight className="h-4 w-4 transition-transform group-open:rotate-90" aria-hidden="true" />
+              </span>
+            </summary>
+            <div className="space-y-5 border-t border-[#DCE4F0] p-3 dark:border-[#1B3163] sm:p-4">
           {/* D. Financial Charts */}
           <section className="grid gap-5 lg:grid-cols-12">
             <div className="lg:col-span-7">
@@ -1141,6 +1154,9 @@ export function DashboardPage() {
               </div>
             )}
           </section>
+
+            </div>
+          </details>
 
           {/* F. Recent Transactions */}
           <section
