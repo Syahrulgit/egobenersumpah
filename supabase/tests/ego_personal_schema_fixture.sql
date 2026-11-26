@@ -14,9 +14,13 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'supabase_admin') THEN
     CREATE ROLE supabase_admin NOLOGIN;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'authenticator') THEN
+    CREATE ROLE authenticator LOGIN NOINHERIT PASSWORD 'ego_postgrest_test_only';
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'postgres') THEN
     CREATE ROLE postgres NOLOGIN;
   END IF;
+  GRANT anon, authenticated TO authenticator;
 END
 $roles$;
 
