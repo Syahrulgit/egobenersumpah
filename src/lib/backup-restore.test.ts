@@ -8,7 +8,7 @@ import {
 } from "./backup-restore";
 
 function makeBackup(overrides: Record<string, unknown> = {}) {
-  const data = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
+  const data: Record<string, unknown[]> = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
   data.accounts = [{ id: "account-1", account_name: "Tunai" }];
   return JSON.stringify({
     app: EGO_BACKUP_APP,
@@ -45,14 +45,14 @@ test("rejects backups from another Owner account", () => {
 });
 
 test("rejects missing collections, malformed rows, and duplicate IDs", () => {
-  const missing = Object.fromEntries(BACKUP_COLLECTIONS.filter((key) => key !== "debts").map((key) => [key, []]));
+  const missing: Record<string, unknown[]> = Object.fromEntries(BACKUP_COLLECTIONS.filter((key) => key !== "debts").map((key) => [key, []]));
   assert.throws(() => parseEgoBackupPreview(makeBackup({ data: missing })), /debts/);
 
-  const malformed = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
+  const malformed: Record<string, unknown[]> = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
   malformed.accounts = [null];
   assert.throws(() => parseEgoBackupPreview(makeBackup({ data: malformed })), /Baris 1/);
 
-  const duplicate = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
+  const duplicate: Record<string, unknown[]> = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
   duplicate.accounts = [{ id: "same" }, { id: "same" }];
   assert.throws(() => parseEgoBackupPreview(makeBackup({ data: duplicate })), /ID ganda/);
 });
