@@ -243,3 +243,6 @@ END
 $restore_contract$;
 
 select 'EGO atomic backup restore contract: PASS' as result;
+
+-- Keep the shared disposable fixture pristine for subsequent PostgREST checks.
+rollback;
