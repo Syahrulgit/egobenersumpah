@@ -84,7 +84,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * Validates an EGO JSON backup without mutating any data.
- * Restore must still be performed by an atomic, owner-authorized backend operation.
  */
 export function parseEgoBackupPreview(
   raw: string,
