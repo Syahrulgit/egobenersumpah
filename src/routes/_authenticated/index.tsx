@@ -461,9 +461,6 @@ export function DashboardPage() {
 
             <div className="relative z-10 mt-5 flex items-center justify-between gap-2 border-t border-white/10 pt-4">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="shrink-0 text-lg font-extrabold leading-none tabular-nums text-white" aria-label={`${activeAccounts.length} akun aktif`}>
-                  {activeAccounts.length}
-                </span>
                 <button
                   type="button"
                   onClick={(e) => {
@@ -500,7 +497,11 @@ export function DashboardPage() {
                 to="/akun"
                 className="relative -top-0.5 inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border border-[#D4AF37]/35 bg-[#D4AF37]/12 px-3.5 py-2 text-xs font-semibold text-[#E6C768] transition-colors hover:bg-[#D4AF37]/22 whitespace-nowrap"
               >
-                <span>Kelola Akun</span>
+                <span>Kelola</span>
+                <span className="inline-flex min-w-5 items-center justify-center rounded-md border border-[#D4AF37]/35 bg-[#D4AF37]/15 px-1.5 py-0.5 text-[11px] font-extrabold leading-none tabular-nums text-white" aria-label={`${activeAccounts.length} akun`}>
+                  {activeAccounts.length}
+                </span>
+                <span>Akun</span>
                 <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </Link>
             </div>
