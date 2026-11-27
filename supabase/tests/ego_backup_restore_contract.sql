@@ -1,5 +1,7 @@
 \set ON_ERROR_STOP on
 
+begin;
+
 -- Synthetic-only contract test for the additive, atomic EGO restore RPC.
 DO $restore_contract$
 DECLARE
