@@ -43,7 +43,7 @@ export function PWAInstallButton({
         <button
           type="button"
           onClick={() => setShowIOSGuide(true)}
-          className={`inline-flex min-h-[40px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-medium text-[#101827] transition-colors hover:border-[#D4AF37]/50 hover:bg-[#D4AF37]/10 whitespace-nowrap dark:border-[#1E293B] dark:bg-[#162032] dark:text-slate-200 dark:hover:border-[#D4AF37]/40 ${
+          className={`inline-flex min-w-0 min-h-[40px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-medium text-[#101827] transition-colors hover:border-[#D4AF37]/50 hover:bg-[#D4AF37]/10 whitespace-nowrap dark:border-[#1E293B] dark:bg-[#162032] dark:text-slate-200 dark:hover:border-[#D4AF37]/40 ${
             fullWidth ? "w-full" : ""
           } ${className}`}
         >
