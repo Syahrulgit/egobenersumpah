@@ -82,9 +82,10 @@ test("restore payload converts UI ewallet values to database enum values", () =>
   }];
   const preview = parseEgoBackupPreview(makeBackup({ data }));
   const payload = createEgoRestorePayload(preview);
-  assert.equal(payload.data.accounts[0].account_type, "e_wallet");
-  assert.equal(payload.data.accounts[0].owner_id, undefined);
-  assert.equal(payload.data.accounts[0].current_balance, undefined);
+  const restoredAccount = payload.data.accounts[0] as Record<string, unknown>;
+  assert.equal(restoredAccount.account_type, "e_wallet");
+  assert.equal(restoredAccount.owner_id, undefined);
+  assert.equal(restoredAccount.current_balance, undefined);
   assert.equal(payload.owner_email, "owner@example.com");
 });
 
