@@ -103,7 +103,7 @@ export function ThemeToggleButton({
         type="button"
         aria-pressed={theme === "dark"}
         onClick={() => setTheme("dark")}
-        className={`inline-flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap ${
+        className={`inline-flex ${compact ? "h-7 w-7 min-h-7 flex-none rounded-md p-0" : "min-h-[36px] flex-1 gap-1.5 rounded-lg px-2.5 py-1.5"} items-center justify-center text-xs font-semibold transition-colors whitespace-nowrap ${
           theme === "dark"
             ? "bg-[#101827] text-[#E6C768] shadow-xs ring-1 ring-[#D4AF37]/40"
             : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
