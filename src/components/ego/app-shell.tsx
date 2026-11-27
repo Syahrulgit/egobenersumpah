@@ -43,7 +43,7 @@ import { setPinLocked } from "../../lib/pin-lock";
 import { useAuthStatus, useLogoutOwner, useVaultSnapshot } from "../../lib/queries";
 import { summarizeRemindersForDashboard } from "../../lib/reminders";
 import { ThemeToggleButton } from "../../lib/theme";
-import { EgoBrand, EgoLogoMark } from "./ego-brand";
+import { EgoBrand, EgoCompanion, EgoLogoMark } from "./ego-brand";
 import {
   EGO_EASE,
   getRouteOrderIndex,
@@ -788,9 +788,12 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
 
                 <div className="mb-4 overflow-hidden rounded-2xl border border-[#D4AF37]/25 bg-gradient-to-br from-[#101827] via-[#17243A] to-[#101827] p-4 text-white shadow-lg shadow-[#101827]/10">
                   <div className="relative flex min-h-12 items-center justify-center">
-                    <p className="text-center text-base font-bold tracking-tight">Pusat Kendali EGO</p>
-                    <div className="absolute right-0 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#D4AF37]/35 bg-[#D4AF37]/10 shadow-inner shadow-[#D4AF37]/10">
-                      <ShieldCheck className="h-6 w-6 text-[#E6C768]" aria-hidden="true" />
+                    <div className="absolute left-0 flex h-10 w-10 shrink-0 items-center justify-center">
+                      <EgoCompanion size="sm" mode="idle" />
+                    </div>
+                    <p className="px-11 text-center text-base font-bold tracking-tight">Pusat Kendali EGO</p>
+                    <div className="absolute right-0 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#D4AF37]/35 bg-[#D4AF37]/10 shadow-inner shadow-[#D4AF37]/10">
+                      <ShieldCheck className="h-5 w-5 text-[#E6C768]" aria-hidden="true" />
                     </div>
                   </div>
                                   </div>
