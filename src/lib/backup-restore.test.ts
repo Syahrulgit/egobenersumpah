@@ -4,6 +4,7 @@ import {
   BACKUP_COLLECTIONS,
   EGO_BACKUP_APP,
   EGO_BACKUP_VERSION,
+  createEgoRestorePayload,
   parseEgoBackupPreview,
 } from "./backup-restore";
 
@@ -63,4 +64,31 @@ test("counts conflicts against current data without modifying it", () => {
   const preview = parseEgoBackupPreview(makeBackup(), current);
   assert.equal(preview.existingIdConflicts.accounts, 1);
   assert.equal(JSON.stringify(current), before);
+});
+
+
+test("restore payload converts UI ewallet values to database enum values", () => {
+  const data: Record<string, unknown[]> = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
+  data.accounts = [{
+    id: "account-1",
+    account_name: "Dompet",
+    account_type: "ewallet",
+    opening_balance: 0,
+    currency: "IDR",
+    is_active: true,
+    created_at: "2026-11-27T05:00:00.000Z",
+    owner_id: "untrusted-owner",
+    current_balance: 0,
+  }];
+  const preview = parseEgoBackupPreview(makeBackup({ data }));
+  const payload = createEgoRestorePayload(preview);
+  assert.equal(payload.data.accounts[0].account_type, "e_wallet");
+  assert.equal(payload.data.accounts[0].owner_id, "untrusted-owner");
+  assert.equal(payload.data.accounts[0].current_balance, 0);
+  assert.equal(payload.owner_email, "owner@example.com");
+});
+
+test("restore payload refuses backups without an Owner identity", () => {
+  const preview = parseEgoBackupPreview(makeBackup({ owner_email: null }));
+  assert.throws(() => createEgoRestorePayload(preview), /identitas Owner/);
 });
