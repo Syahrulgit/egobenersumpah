@@ -282,6 +282,7 @@ export function TransactionSheetProvider({
       if (msg.includes("ID transaksi sudah digunakan untuk data berbeda")) {
         pendingRequestRef.current = null;
         writePendingTransactionRequestId(null);
+        setOwnerConfirmed(false);
         const notice =
           "Percobaan sebelumnya sudah tercatat. Perubahan terbaru belum disimpan; konfirmasi ulang untuk mencatatnya sebagai transaksi baru.";
         setFormError(notice);

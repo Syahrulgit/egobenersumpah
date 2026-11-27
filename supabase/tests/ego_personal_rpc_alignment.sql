@@ -259,6 +259,32 @@ BEGIN
   EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
   END;
 
+  -- Outflows must not overdraw the source account; failures leave no ledger rows.
+  BEGIN
+    PERFORM public.create_confirmed_transaction(
+      '61616161-6161-4161-8161-616161616161','expense',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',NULL,9999999999999.99,
+      '2026-11-26','Tes','Insufficient funds expense',TRUE
+    );
+    RAISE EXCEPTION 'Expense exceeding available balance unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
+  END;
+  IF EXISTS (SELECT 1 FROM public.transactions WHERE id='61616161-6161-4161-8161-616161616161') THEN
+    RAISE EXCEPTION 'Rejected expense left a transaction row';
+  END IF;
+  BEGIN
+    PERFORM public.create_confirmed_transaction(
+      '62626262-6262-4262-8262-626262626262','transfer',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      9999999999999.99,'2026-11-26','Tes','Insufficient funds transfer',TRUE
+    );
+    RAISE EXCEPTION 'Transfer exceeding available balance unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
+  END;
+  IF EXISTS (SELECT 1 FROM public.transactions WHERE id='62626262-6262-4262-8262-626262626262') THEN
+    RAISE EXCEPTION 'Rejected transfer left a transaction row';
+  END IF;
+
   -- Reject missing confirmation, invalid account ownership, inactive account and bad shape.
   BEGIN
     PERFORM public.create_confirmed_transaction(
@@ -293,6 +319,18 @@ BEGIN
     RAISE EXCEPTION 'Invalid transfer unexpectedly succeeded';
   EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
   END;
+
+  -- Internal unchecked helpers must never be callable by client roles.
+  IF pg_catalog.has_function_privilege('authenticated',
+      'public.create_confirmed_transaction_internal(uuid,text,uuid,uuid,numeric,date,text,text,boolean)'::regprocedure,'EXECUTE')
+    OR pg_catalog.has_function_privilege('anon',
+      'public.create_confirmed_transaction_internal(uuid,text,uuid,uuid,numeric,date,text,text,boolean)'::regprocedure,'EXECUTE')
+    OR pg_catalog.has_function_privilege('authenticated',
+      'public.ego_pay_debt_atomic_internal(uuid,uuid,numeric,uuid,boolean,date,text)'::regprocedure,'EXECUTE')
+    OR pg_catalog.has_function_privilege('anon',
+      'public.ego_pay_debt_atomic_internal(uuid,uuid,numeric,uuid,boolean,date,text)'::regprocedure,'EXECUTE') THEN
+    RAISE EXCEPTION 'Internal unchecked finance helper is exposed to client roles';
+  END IF;
 
   -- Cross-Owner IDOR regression: Owner A must not read, replace, or approve
   -- Owner B's pending command, even when B's UUID is known to the caller.
@@ -386,6 +424,24 @@ BEGIN
     RAISE EXCEPTION 'Debt payment amount rounding to zero unexpectedly succeeded';
   EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
   END;
+
+  -- Debt payment is also an outflow and must respect the source account balance.
+  BEGIN
+    PERFORM public.ego_pay_debt_atomic(
+      '63636363-6363-4363-8363-636363636363',
+      'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      9999999999999.99,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      TRUE,DATE '2026-11-26','Insufficient funds debt payment'
+    );
+    RAISE EXCEPTION 'Debt payment exceeding available balance unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
+  END;
+  IF EXISTS (
+    SELECT 1 FROM public.debt_payment_logs
+    WHERE request_id='63636363-6363-4363-8363-636363636363'
+  ) THEN
+    RAISE EXCEPTION 'Rejected debt payment left a payment log';
+  END IF;
 
   -- Debt payment updates debt + transaction + payment log atomically.
   v_payment := public.ego_pay_debt_atomic(

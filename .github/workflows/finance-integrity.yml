@@ -120,6 +120,10 @@ jobs:
         env:
           PGPASSWORD: ego_test_only
         run: psql -h localhost -U ego_test -d ego_finance_test -v ON_ERROR_STOP=1 -f docs/ego-personal-rpc-alignment-candidate.sql
+      - name: Apply available-balance guard to isolated fixture
+        env:
+          PGPASSWORD: ego_test_only
+        run: psql -h localhost -U ego_test -d ego_finance_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127000100_enforce_available_account_balance.sql
       - name: Start isolated PostgREST API
         run: |
           docker run -d --name ego-postgrest --network host \
@@ -197,6 +201,10 @@ jobs:
         run: psql -h localhost -U ego_test -d ego_finance_test -v ON_ERROR_STOP=1 -f supabase/tests/ego_personal_rpc_alignment.sql
       - name: Verify concurrent duplicate debt-payment requests
         run: bash supabase/tests/ego_personal_rpc_concurrency.sh
+      - name: Roll back available-balance guard in isolated fixture
+        env:
+          PGPASSWORD: ego_test_only
+        run: psql -h localhost -U ego_test -d ego_finance_test -v ON_ERROR_STOP=1 -f docs/ego-available-balance-rollback.sql
       - name: Apply rollback candidate in isolated fixture
         env:
           PGPASSWORD: ego_test_only
@@ -255,6 +263,14 @@ jobs:
           PGUSER: postgres
           PGDATABASE: postgres
         run: psql -v ON_ERROR_STOP=1 -f docs/ego-personal-rpc-alignment-candidate.sql
+      - name: Apply available-balance guard only to disposable local stack
+        env:
+          PGPASSWORD: postgres
+          PGHOST: 127.0.0.1
+          PGPORT: 54322
+          PGUSER: postgres
+          PGDATABASE: postgres
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261127000100_enforce_available_account_balance.sql
       - name: Verify finance RPC, RLS, grants, replay and rollback contract
         env:
           PGPASSWORD: postgres
@@ -282,6 +298,14 @@ jobs:
           EGO_POSTGREST_URL: http://127.0.0.1:54321/rest/v1
           EGO_TEST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
         run: node supabase/tests/ego_personal_postgrest_integration.mjs
+      - name: Roll back available-balance guard only in disposable local stack
+        env:
+          PGPASSWORD: postgres
+          PGHOST: 127.0.0.1
+          PGPORT: 54322
+          PGUSER: postgres
+          PGDATABASE: postgres
+        run: psql -v ON_ERROR_STOP=1 -f docs/ego-available-balance-rollback.sql
       - name: Apply rollback only to disposable local stack
         env:
           PGPASSWORD: postgres

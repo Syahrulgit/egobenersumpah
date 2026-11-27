@@ -203,11 +203,11 @@ $default_acl_fixture$;
 CREATE TABLE public.security_privilege_probe (id integer PRIMARY KEY);
 GRANT MAINTAIN, TRUNCATE, TRIGGER, REFERENCES ON public.security_privilege_probe TO anon, authenticated;
 
-INSERT INTO public.accounts (id, account_name, account_type, owner_id, is_active) VALUES
-  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','Owner cash','cash','11111111-1111-4111-8111-111111111111',TRUE),
-  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','Owner bank','bank','11111111-1111-4111-8111-111111111111',TRUE),
-  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','Other owner bank','bank','22222222-2222-4222-8222-222222222222',TRUE),
-  ('dddddddd-dddd-4ddd-8ddd-dddddddddddd','Inactive account','bank','11111111-1111-4111-8111-111111111111',FALSE);
+INSERT INTO public.accounts (id, account_name, account_type, owner_id, opening_balance, is_active) VALUES
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','Owner cash','cash','11111111-1111-4111-8111-111111111111',100000,TRUE),
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','Owner bank','bank','11111111-1111-4111-8111-111111111111',50000,TRUE),
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','Other owner bank','bank','22222222-2222-4222-8222-222222222222',0,TRUE),
+  ('dddddddd-dddd-4ddd-8ddd-dddddddddddd','Inactive account','bank','11111111-1111-4111-8111-111111111111',0,FALSE);
 
 INSERT INTO public.debts (id, owner_id, creditor, original_amount, outstanding_balance, status) VALUES
   ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','11111111-1111-4111-8111-111111111111','Test creditor',100.00,100.00,'active'),
