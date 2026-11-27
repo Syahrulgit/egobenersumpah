@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
+  AlertTriangle,
   CheckCircle2,
   Database,
   Download,
@@ -26,6 +27,7 @@ import {
   vaultSnapshotToBackupJson,
 } from "../../lib/export";
 import { todayISO } from "../../lib/finance";
+import { parseEgoBackupPreview, type EgoBackupPreview } from "../../lib/backup-restore";
 import {
   isAutoLockEnabled,
   setAutoLockEnabled,
@@ -66,6 +68,8 @@ export function PengaturanPage() {
 
   const [dateFormat, setDateFormat] = useState<DateFormatPref>("DD MMM YYYY");
   const [expenseLimit, setExpenseLimit] = useState(5_000_000);
+  const [backupPreview, setBackupPreview] = useState<EgoBackupPreview | null>(null);
+  const [backupValidationError, setBackupValidationError] = useState<string | null>(null);
 
   // Edit Owner profile form state
   const [editingProfile, setEditingProfile] = useState(false);
@@ -202,6 +206,30 @@ export function PengaturanPage() {
     toast.success("Cadangan lengkap brankas (JSON) berhasil diunduh.");
   }
 
+  async function handleValidateBackupFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    setBackupPreview(null);
+    setBackupValidationError(null);
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setBackupValidationError("Ukuran file cadangan maksimal 10 MB.");
+      return;
+    }
+    try {
+      const raw = await file.text();
+      const preview = parseEgoBackupPreview(
+        raw,
+        vault as unknown as Partial<Record<import("../../lib/backup-restore").BackupCollection, unknown[]>>,
+        auth?.owner?.email ?? null
+      );
+      setBackupPreview(preview);
+      toast.success("Cadangan lolos validasi awal. Belum ada data yang diubah.");
+    } catch (error) {
+      setBackupValidationError(error instanceof Error ? error.message : "Cadangan tidak dapat divalidasi.");
+    }
+  }
+
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
     if (!currentPassword) {
@@ -317,9 +345,9 @@ export function PengaturanPage() {
     {
       label: "Kebijakan Keamanan & RLS",
       status: isSupabaseConfigured
-        ? "RLS owner_id = auth.uid() Aktif"
-        : "Single-Owner + Pembatas Login Aktif",
-      ok: true,
+        ? "Belum dapat diverifikasi dari perangkat"
+        : "Mode lokal: RLS Supabase tidak digunakan",
+      ok: false,
     },
     {
       label: "Mode Aplikasi Harian (PWA)",
@@ -723,10 +751,11 @@ export function PengaturanPage() {
                     {item.label}
                   </span>
                   <span className="inline-flex items-center gap-1.5 font-semibold text-[#087BFF] dark:text-[#19D8FF]">
-                    <CheckCircle2
-                      className="h-3.5 w-3.5 shrink-0"
-                      aria-hidden="true"
-                    />
+                    {item.ok ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    ) : (
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden="true" />
+                    )}
                     <span>{item.status}</span>
                   </span>
                 </li>
@@ -743,8 +772,8 @@ export function PengaturanPage() {
               </div>
               <p className="mt-1.5 leading-relaxed">
                 {isSupabaseConfigured
-                  ? "Supabase Cloud sudah terhubung aktif. Seluruh mutasi Anda dilindungi RLS owner_id = auth.uid()."
-                  : "Untuk penyimpanan cloud permanen: (1) Jalankan skrip docs/ego-supabase-setup.sql di Supabase SQL Editor, lalu (2) Isi VITE_SUPABASE_URL dan VITE_SUPABASE_PUBLISHABLE_KEY pada panel Secrets sebelum mempublikasikan."}
+                  ? "Supabase Cloud terhubung. Status kebijakan RLS tidak dapat dipastikan dari browser; pemeriksaan kebijakan dan hak akses harus dilakukan melalui audit server-side/Supabase Advisor."
+                  : "Aplikasi sedang menggunakan mode server lokal. RLS Supabase tidak berlaku pada mode ini."}
               </p>
             </div>
           </div>
@@ -865,6 +894,37 @@ export function PengaturanPage() {
                 <Download className="h-4 w-4" aria-hidden="true" />
                 <span>Cadangan Brankas Lengkap (JSON)</span>
               </button>
+            </div>
+            <div className="mt-5 border-t border-[#DCE4F0] pt-4 dark:border-[#1B3163]">
+              <h3 className="text-sm font-bold text-[#06132F] dark:text-white">Pemulihan Cadangan — Validasi & Pratinjau</h3>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+                Pilih file JSON EGO untuk memeriksa versi, identitas Owner, struktur, ID ganda, dan konflik. Tahap ini hanya membaca file; tidak menulis atau mengubah data.
+              </p>
+              <label className="mt-3 block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]">
+                File cadangan EGO (.json)
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={handleValidateBackupFile}
+                  className="mt-2 block w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-2 text-xs dark:border-[#1B3163] dark:bg-[#06132F]"
+                />
+              </label>
+              {backupValidationError ? (
+                <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-950/30 dark:text-red-300">{backupValidationError}</p>
+              ) : null}
+              {backupPreview ? (
+                <div className="mt-3 rounded-xl border border-emerald-300/60 bg-emerald-50/60 p-3 text-xs dark:border-emerald-700/50 dark:bg-emerald-950/20">
+                  <p className="font-bold text-emerald-800 dark:text-emerald-300">Validasi awal berhasil — {backupPreview.totalRecords} baris data</p>
+                  <p className="mt-1 text-slate-600 dark:text-[#C7D0E0]/75">Ekspor: {new Date(backupPreview.exportedAt).toLocaleString("id-ID")} · Owner: {backupPreview.ownerEmail ?? "tidak dicantumkan"}</p>
+                  <ul className="mt-2 grid grid-cols-2 gap-1 text-slate-700 dark:text-[#C7D0E0]">
+                    {Object.entries(backupPreview.counts).map(([name, count]) => (
+                      <li key={name}>{name}: <strong>{count}</strong></li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 font-semibold">Konflik ID yang sudah ada: {Object.values(backupPreview.existingIdConflicts).reduce((sum, count) => sum + count, 0)}</p>
+                  <p className="mt-1 text-amber-700 dark:text-amber-300">Pemulihan belum dijalankan. Restore cloud memerlukan operasi database atomik dan persetujuan Owner terpisah; pratinjau ini tidak mengubah data.</p>
+                </div>
+              ) : null}
             </div>
           </div>
 
