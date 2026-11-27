@@ -870,12 +870,14 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                             }`}
                           >
                             {item.label === "Tagihan" ? (
-                              <span className="flex h-11 items-center justify-center gap-0">
+                              <span className="flex h-11 items-center justify-center gap-2">
                                 <span className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${toneClass}`}>
                                   <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
                                   {active ? <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border-2 border-white bg-[#D4AF37] dark:border-[#162032]" /> : null}
                                 </span>
-                                <EgoCompanion size="sm" mode="idle" className="scale-[0.78] -ml-1" />
+                                <span className="flex h-9 w-8 shrink-0 items-center justify-center overflow-visible">
+                                  <EgoCompanion size="sm" mode="idle" className="scale-[0.72]" />
+                                </span>
                               </span>
                             ) : (
                               <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${toneClass}`}>
