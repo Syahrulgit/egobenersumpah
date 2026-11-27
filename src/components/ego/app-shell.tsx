@@ -888,14 +888,14 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                 ))}
 
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                  <div className="flex min-h-[42px] items-center justify-between gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 dark:border-[#1E293B] dark:bg-[#162032]">
-                    <span className="text-[10px] font-semibold leading-tight text-[#101827] dark:text-slate-200">
+                  <div className="flex min-h-[38px] items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 dark:border-[#1E293B] dark:bg-[#162032]">
+                    <span className="text-[9px] font-semibold leading-none text-[#101827] dark:text-slate-200">
                       Mode Tampilan
                     </span>
-                    <ThemeToggleButton />
+                    <ThemeToggleButton compact />
                   </div>
 
-                  <PWAInstallButton className="!flex-col !min-w-0 !min-h-[52px] !h-auto !w-full !gap-1 !whitespace-normal !rounded-xl !px-2 !py-2 !text-center !text-[10px] !leading-tight [&>span]:whitespace-normal" />
+                  <PWAInstallButton className="!flex-col !min-w-0 !min-h-[38px] !h-auto !w-full !gap-0.5 !whitespace-normal !rounded-lg !px-1.5 !py-1.5 !text-center !text-[9px] !leading-tight [&>span]:whitespace-normal" />
 
                   {auth?.hasPin ? (
                     <button
