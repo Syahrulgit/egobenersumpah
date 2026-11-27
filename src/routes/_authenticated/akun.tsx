@@ -120,7 +120,7 @@ export function AkunPage() {
         <button
           type="button"
           onClick={() => setCreateModalOpen(true)}
-          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#087BFF]/20 hover:brightness-110 whitespace-nowrap"
+          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B88D20] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#D4AF37]/20 hover:brightness-110 whitespace-nowrap"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Tambah Akun</span>
@@ -147,14 +147,14 @@ export function AkunPage() {
             <button
               type="button"
               onClick={() => openTransactionSheet({ type: "transfer" })}
-              className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-[#19D8FF]/35 bg-[#19D8FF]/15 px-4 py-2 text-xs font-semibold text-[#19D8FF] transition-colors hover:bg-[#19D8FF]/25"
+              className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-[#D4AF37]/35 bg-[#D4AF37]/15 px-4 py-2 text-xs font-semibold text-[#D4AF37] transition-colors hover:bg-[#D4AF37]/25"
             >
               <span>Transfer Antar-Akun</span>
             </button>
             <button
               type="button"
               onClick={() => setCreateModalOpen(true)}
-              className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0666DB]"
+              className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#D4AF37] px-4 py-2 text-xs font-semibold text-white hover:bg-[#B88D20]"
             >
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Akun Baru</span>
@@ -245,7 +245,7 @@ export function AkunPage() {
           </div>
         ) : accounts.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#DCE4F0] bg-white p-10 text-center dark:border-[#1B3163] dark:bg-[#091634]">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D4AF37]/10 text-[#D4AF37] dark:bg-[#D4AF37]/15 dark:text-[#D4AF37]">
               <Wallet className="h-6 w-6" aria-hidden="true" />
             </div>
             <h2 className="mt-3.5 text-base font-bold text-[#06132F] dark:text-white">
@@ -257,7 +257,7 @@ export function AkunPage() {
             <button
               type="button"
               onClick={() => setCreateModalOpen(true)}
-              className="mt-4 inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0666DB]"
+              className="mt-4 inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#D4AF37] px-4 py-2 text-xs font-semibold text-white hover:bg-[#B88D20]"
             >
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Tambah Akun Pertama</span>
@@ -273,7 +273,7 @@ export function AkunPage() {
                   <div className="flex items-center gap-2">
                     <AccountTypeIcon
                       type={groupType}
-                      className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]"
+                      className="h-4 w-4 text-[#D4AF37] dark:text-[#D4AF37]"
                     />
                     <h2 className="text-sm font-bold text-[#06132F] dark:text-white">
                       {accountTypeLabel(groupType)} ({items.length})
@@ -301,8 +301,8 @@ export function AkunPage() {
                               <span
                                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                                   isBankHero
-                                    ? "bg-[#19D8FF]/15 text-[#19D8FF]"
-                                    : "bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                                    ? "bg-[#D4AF37]/15 text-[#D4AF37]"
+                                    : "bg-[#D4AF37]/10 text-[#D4AF37] dark:bg-[#D4AF37]/15 dark:text-[#D4AF37]"
                                 }`}
                               >
                                 <AccountTypeIcon
@@ -423,7 +423,7 @@ export function AkunPage() {
                                     sourceAccountId: acc.id,
                                   })
                                 }
-                                className="inline-flex min-h-[38px] items-center justify-center rounded-xl bg-[#087BFF] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#0666DB]"
+                                className="inline-flex min-h-[38px] items-center justify-center rounded-xl bg-[#D4AF37] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#B88D20]"
                               >
                                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                               </button>
@@ -463,7 +463,7 @@ export function AkunPage() {
               value={accountName}
               onChange={(e) => setAccountName(e.target.value)}
               placeholder="Contoh: BCA Utama / GoPay / Dompet"
-              className="min-h-[44px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-[#F4F7FB] focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[#19D8FF] dark:focus:bg-[#06132F]"
+              className="min-h-[44px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#D4AF37] focus:bg-[#F4F7FB] focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[#D4AF37] dark:focus:bg-[#06132F]"
             />
           </div>
 
@@ -478,7 +478,7 @@ export function AkunPage() {
               id="acc-type"
               value={accountType}
               onChange={(e) => setAccountType(e.target.value as AccountType)}
-              className="min-h-[44px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+              className="min-h-[44px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#D4AF37]"
             >
               <option value="bank">Bank</option>
               <option value="ewallet">E-Wallet</option>
@@ -502,7 +502,7 @@ export function AkunPage() {
           <button
             type="submit"
             disabled={!ownerConfirmed || createAccount.isPending}
-            className="flex min-h-[46px] w-full items-center justify-center gap-2 rounded-xl bg-[#087BFF] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0666DB] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-[#122652] dark:disabled:text-slate-500"
+            className="flex min-h-[46px] w-full items-center justify-center gap-2 rounded-xl bg-[#D4AF37] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#B88D20] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-[#122652] dark:disabled:text-slate-500"
           >
             {createAccount.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -546,7 +546,7 @@ export function AkunPage() {
                         <span
                           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
                             incoming
-                              ? "bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                              ? "bg-[#D4AF37]/10 text-[#D4AF37] dark:bg-[#D4AF37]/15 dark:text-[#D4AF37]"
                               : "bg-rose-500/10 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400"
                           }`}
                         >
@@ -577,7 +577,7 @@ export function AkunPage() {
                           isCancelled
                             ? "text-slate-400 line-through"
                             : incoming
-                              ? "text-[#087BFF] dark:text-[#19D8FF]"
+                              ? "text-[#D4AF37] dark:text-[#D4AF37]"
                               : "text-rose-600 dark:text-rose-400"
                         }`}
                       >
@@ -594,7 +594,7 @@ export function AkunPage() {
               to="/transaksi"
               search={{ akun: selectedAccount.id }}
               onClick={() => setSelectedAccount(null)}
-              className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#087BFF] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#0666DB]"
+              className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#D4AF37] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#B88D20]"
             >
               <span>Lihat Semua Transaksi Akun Ini</span>
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
