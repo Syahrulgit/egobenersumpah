@@ -185,14 +185,85 @@ BEGIN
     RAISE EXCEPTION 'Unconfirmed restore wrote data';
   END IF;
 
-  -- The backup Owner email must match the current authenticated JWT.
-  v_conflict_backup := pg_catalog.jsonb_set(v_backup, '{owner_email}', '"other@example.com"'::jsonb);
+  -- Backup email is editable metadata, not an authentication factor.
+  -- The authenticated UID remains the only destination Owner identity.
+  v_conflict_backup := pg_catalog.jsonb_set(v_backup, '{owner_email}', '"edited-metadata@example.net"'::jsonb);
+  v_result := public.ego_restore_backup(v_conflict_backup, true);
+  IF (v_result->>'inserted')::integer <> 0 OR (v_result->>'skipped_identical')::integer <> 5 THEN
+    RAISE EXCEPTION 'Edited descriptive email metadata changed restore authorization or idempotency: %', v_result;
+  END IF;
+
+  -- Unknown fields are rejected instead of being silently discarded by
+  -- jsonb_populate_record.
+  v_conflict_backup := pg_catalog.jsonb_set(
+    v_backup,
+    '{data,accounts}',
+    pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+      'id', '09090909-0909-4909-8909-090909090909',
+      'account_name', 'Unknown field probe',
+      'account_type', 'cash',
+      'opening_balance', 0,
+      'currency', 'IDR',
+      'is_active', true,
+      'created_at', '2026-11-27T05:00:00Z',
+      'unexpected_field', 'must be rejected'
+    ))
+  );
   BEGIN
     PERFORM public.ego_restore_backup(v_conflict_backup, true);
-    RAISE EXCEPTION 'Wrong-Owner backup unexpectedly succeeded';
+    RAISE EXCEPTION 'Unknown backup field unexpectedly succeeded';
+  EXCEPTION WHEN invalid_parameter_value THEN
+    NULL;
+  END;
+
+  -- A valid FK to another user's account must still be rejected.
+  INSERT INTO public.accounts (
+    id, owner_id, account_name, account_type, opening_balance, currency, is_active, created_at
+  ) VALUES (
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    v_other,
+    'Foreign-owner account fixture',
+    'cash',
+    0,
+    'IDR',
+    true,
+    '2026-11-27T05:00:00Z'
+  );
+
+  v_conflict_backup := pg_catalog.jsonb_set(
+    pg_catalog.jsonb_set(
+      v_backup,
+      '{data,accounts}',
+      '[]'::jsonb
+    ),
+    '{data,transactions}',
+    pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+      'id', 'abababab-abab-4bab-8bab-abababababab',
+      'transaction_date', '2026-11-27',
+      'transaction_type', 'expense',
+      'category', 'Cross-owner FK probe',
+      'amount', 1,
+      'source_account_id', null,
+      'destination_account_id', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      'description', 'Must be rejected',
+      'owner_confirmed', true,
+      'status', 'posted',
+      'recorded_at', '2026-11-27T05:00:00Z',
+      'source_command', null,
+      'created_at', '2026-11-27T05:00:00Z'
+    ))
+  );
+  BEGIN
+    PERFORM public.ego_restore_backup(v_conflict_backup, true);
+    RAISE EXCEPTION 'Cross-owner foreign key unexpectedly succeeded';
   EXCEPTION WHEN insufficient_privilege THEN
     NULL;
   END;
+  SELECT EXISTS(SELECT 1 FROM public.transactions WHERE id = 'abababab-abab-4bab-8bab-abababababab')
+    INTO v_has_row;
+  IF v_has_row THEN
+    RAISE EXCEPTION 'Cross-owner foreign key probe wrote a transaction';
+  END IF;
 
   -- A different row using an existing ID aborts the whole restore. The new
   -- first row in this same call must be rolled back with the later conflict.
