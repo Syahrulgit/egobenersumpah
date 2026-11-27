@@ -220,7 +220,7 @@ BEGIN
   INSERT INTO public.accounts (
     id, owner_id, account_name, account_type, opening_balance, currency, is_active, created_at
   ) VALUES (
-    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    'fefefefe-fefe-4efe-8efe-fefefefefefe',
     v_other,
     'Foreign-owner account fixture',
     'cash',
@@ -244,7 +244,7 @@ BEGIN
       'category', 'Cross-owner FK probe',
       'amount', 1,
       'source_account_id', null,
-      'destination_account_id', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      'destination_account_id', 'fefefefe-fefe-4efe-8efe-fefefefefefe',
       'description', 'Must be rejected',
       'owner_confirmed', true,
       'status', 'posted',
