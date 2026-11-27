@@ -205,7 +205,6 @@ $function$;
 
 revoke all on function public.ego_restore_backup(jsonb, boolean) from public;
 revoke all on function public.ego_restore_backup(jsonb, boolean) from anon;
-revoke all on function public.ego_restore_backup(jsonb, boolean) from service_role;
 grant execute on function public.ego_restore_backup(jsonb, boolean) to authenticated;
 
 comment on function public.ego_restore_backup(jsonb, boolean) is
