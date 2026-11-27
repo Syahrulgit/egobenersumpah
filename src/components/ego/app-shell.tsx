@@ -895,7 +895,7 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                     <ThemeToggleButton />
                   </div>
 
-                  <PWAInstallButton className="!min-h-[42px] !w-full !gap-1 !rounded-xl !px-2 !py-2 !text-[10px]" />
+                  <PWAInstallButton className="!flex-col !min-w-0 !min-h-[52px] !h-auto !w-full !gap-1 !whitespace-normal !rounded-xl !px-2 !py-2 !text-center !text-[10px] !leading-tight [&>span]:whitespace-normal" />
 
                   {auth?.hasPin ? (
                     <button
