@@ -876,7 +876,7 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                               <span className={`block truncate text-[12px] font-bold leading-tight ${active ? isAiItem ? "text-[#C026A5] dark:text-[#FF9EEA]" : "text-[#85620A] dark:text-[#E6C768]" : "text-[#101827] dark:text-slate-100"}`}>{item.label}</span>
                             </span>
                             {item.badge > 0 ? (
-                              <span className={`absolute right-2 top-2 rounded-md px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums ${isAiItem ? "bg-[#FF4DDE] text-white" : "bg-[#101827] text-[#E6C768] dark:bg-[#D4AF37] dark:text-[#101827]"}`}>
+                              <span className={`absolute ${item.label === "Tagihan" ? "left-1/2 -translate-x-1/2" : "right-2"} top-2 rounded-md px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums ${isAiItem ? "bg-[#FF4DDE] text-white" : "bg-[#101827] text-[#E6C768] dark:bg-[#D4AF37] dark:text-[#101827]"}`}>
                                 {item.badge}
                               </span>
                             ) : null}
