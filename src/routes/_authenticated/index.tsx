@@ -459,14 +459,11 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="relative z-10 mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
-              <div className="flex items-center gap-3">
-                <div>
-                  <p className="text-xs font-medium text-slate-300">Akun Terdaftar</p>
-                  <p className="mt-0.5 text-sm font-bold text-white">
-                    {activeAccounts.length} Akun Aktif
-                  </p>
-                </div>
+            <div className="relative z-10 mt-5 flex items-center justify-between gap-2 border-t border-white/10 pt-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="shrink-0 text-lg font-extrabold leading-none tabular-nums text-white" aria-label={`${activeAccounts.length} akun aktif`}>
+                  {activeAccounts.length}
+                </span>
                 <button
                   type="button"
                   onClick={(e) => {
@@ -501,7 +498,7 @@ export function DashboardPage() {
               </div>
               <Link
                 to="/akun"
-                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#D4AF37]/35 bg-[#D4AF37]/12 px-3.5 py-2 text-xs font-semibold text-[#E6C768] transition-colors hover:bg-[#D4AF37]/22 whitespace-nowrap"
+                className="relative -top-0.5 inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border border-[#D4AF37]/35 bg-[#D4AF37]/12 px-3.5 py-2 text-xs font-semibold text-[#E6C768] transition-colors hover:bg-[#D4AF37]/22 whitespace-nowrap"
               >
                 <span>Kelola Akun</span>
                 <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
