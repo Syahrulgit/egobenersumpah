@@ -1,8 +1,8 @@
+import type { AccountType } from "../types/ego";
+import { toDatabaseAccountType } from "./account-types";
+
 export const EGO_BACKUP_APP = "EGO Personal AI" as const;
 export const EGO_BACKUP_VERSION = "1.0" as const;
-
-import { toDatabaseAccountType } from "./account-types";
-import type { AccountType } from "../types/ego";
 
 export const BACKUP_COLLECTIONS = [
   "accounts",
@@ -46,21 +46,34 @@ export function createEgoRestorePayload(preview: EgoBackupPreview): EgoRestorePa
   if (!preview.ownerEmail) {
     throw new Error("Cadangan tidak mencantumkan identitas Owner.");
   }
-  const accounts = preview.data.accounts.map((row) => {
-    if (!isRecord(row) || typeof row.account_type !== "string") {
-      throw new Error("Jenis akun pada cadangan tidak valid.");
-    }
-    return {
-      ...row,
-      account_type: toDatabaseAccountType(row.account_type as AccountType),
-    };
-  });
+  const safeData = Object.fromEntries(
+    BACKUP_COLLECTIONS.map((collection) => [
+      collection,
+      preview.data[collection].map((row) => {
+        if (!isRecord(row)) {
+          throw new Error(`Baris pada koleksi "${collection}" tidak valid.`);
+        }
+        const safeRow = Object.fromEntries(
+          Object.entries(row).filter(([key]) =>
+            key !== "owner_id" && !(collection === "accounts" && key === "current_balance")
+          )
+        );
+        if (collection === "accounts") {
+          if (typeof safeRow.account_type !== "string") {
+            throw new Error("Jenis akun pada cadangan tidak valid.");
+          }
+          safeRow.account_type = toDatabaseAccountType(safeRow.account_type as AccountType);
+        }
+        return safeRow;
+      }),
+    ])
+  ) as Record<string, unknown[]>;
   return {
     app: EGO_BACKUP_APP,
     version: EGO_BACKUP_VERSION,
     exported_at: preview.exportedAt,
     owner_email: preview.ownerEmail,
-    data: { ...preview.data, accounts },
+    data: safeData,
   };
 }
 
