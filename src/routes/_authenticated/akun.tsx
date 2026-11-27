@@ -295,14 +295,15 @@ export function AkunPage() {
                                 : "border-[#DCE4F0] bg-white shadow-sm hover:border-[#D4AF37]/45 dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none"
                           }`}
                         >
+                          <span className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37]/80 to-transparent opacity-80" aria-hidden="true" />
                           <span className="ego-main-card__robo" aria-hidden="true"><EgoCompanion size="md" mode="idle" /></span>
                           <div className="relative z-10 flex items-start justify-between gap-2">
                             <div className="flex min-w-0 items-center gap-3">
                               <span
-                                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ring-1 shadow-sm ${
                                   isBankHero
-                                    ? "bg-[#D4AF37]/15 text-[#D4AF37]"
-                                    : "bg-[#D4AF37]/10 text-[#D4AF37] dark:bg-[#D4AF37]/15 dark:text-[#D4AF37]"
+                                    ? "bg-[#D4AF37]/15 text-[#E8C96A] ring-[#D4AF37]/25 shadow-[#D4AF37]/10"
+                                    : "bg-[#D4AF37]/10 text-[#B88D20] ring-[#D4AF37]/20 dark:bg-[#D4AF37]/15 dark:text-[#E8C96A]"
                                 }`}
                               >
                                 <AccountTypeIcon
@@ -320,16 +321,15 @@ export function AkunPage() {
                                 >
                                   {acc.account_name}
                                 </h3>
-                                <p
-                                  className={`mt-0.5 text-xs ${
-                                    isBankHero
-                                      ? "text-[#C7D0E0]/80"
-                                      : "text-slate-500 dark:text-[#C7D0E0]/70"
-                                  }`}
-                                >
-                                  {accountTypeLabel(acc.account_type)} ·{" "}
-                                  {acc.is_active ? "Aktif" : "Diarsipkan"}
-                                </p>
+                                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                  <span className={`text-[11px] ${isBankHero ? "text-[#C7D0E0]/75" : "text-slate-500 dark:text-[#C7D0E0]/65"}`}>
+                                    {accountTypeLabel(acc.account_type)}
+                                  </span>
+                                  <span className={`h-1 w-1 rounded-full ${isBankHero ? "bg-white/35" : "bg-slate-300 dark:bg-white/25"}`} />
+                                  <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${acc.is_active ? (isBankHero ? "bg-emerald-400/15 text-emerald-200" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300") : "bg-slate-500/10 text-slate-500 dark:text-slate-400"}`}>
+                                    {acc.is_active ? "Aktif" : "Arsip"}
+                                  </span>
+                                </div>
                               </div>
                             </div>
 
@@ -383,7 +383,7 @@ export function AkunPage() {
                               Saldo Aktual
                             </p>
                             <p
-                              className={`mt-0.5 font-mono text-xl font-bold tabular-nums ${
+                              className={`mt-1 font-mono text-[1.45rem] font-bold tracking-tight tabular-nums ${
                                 isBankHero
                                   ? "text-white"
                                   : "text-[#06132F] dark:text-white"
@@ -392,13 +392,13 @@ export function AkunPage() {
                               {formatIDR(acc.current_balance)}
                             </p>
                             <p
-                              className={`mt-1 font-mono text-[11px] tabular-nums ${
+                              className={`mt-1.5 font-mono text-[10px] tabular-nums ${
                                 isBankHero
-                                  ? "text-[#C7D0E0]/65"
-                                  : "text-slate-500 dark:text-[#C7D0E0]/60"
+                                  ? "text-[#C7D0E0]/60"
+                                  : "text-slate-500 dark:text-[#C7D0E0]/55"
                               }`}
                             >
-                              Saldo awal: {formatIDR(acc.opening_balance)}
+                              Saldo awal · {formatIDR(acc.opening_balance)}
                             </p>
                           </div>
 
@@ -406,10 +406,10 @@ export function AkunPage() {
                             <button
                               type="button"
                               onClick={() => setSelectedAccount(acc)}
-                              className={`flex-1 min-h-[38px] rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
+                              className={`flex-1 min-h-[40px] rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] ${
                                 isBankHero
                                   ? "bg-white/12 text-white hover:bg-white/20"
-                                  : "border border-[#DCE4F0] bg-[#F4F7FB] text-[#06132F] hover:bg-slate-100 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                                  : "border-[#DCE4F0] bg-[#F4F7FB] text-[#06132F] hover:border-[#D4AF37]/45 hover:bg-white dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
                               }`}
                             >
                               Riwayat Akun
@@ -423,7 +423,7 @@ export function AkunPage() {
                                     sourceAccountId: acc.id,
                                   })
                                 }
-                                className="inline-flex min-h-[38px] items-center justify-center rounded-xl bg-[#D4AF37] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#B88D20]"
+                                className="inline-flex min-h-[40px] items-center justify-center rounded-xl bg-gradient-to-br from-[#E2C15C] to-[#B88D20] px-3 py-1.5 text-xs font-semibold text-[#101827] shadow-sm shadow-[#D4AF37]/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.96]"
                               >
                                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                               </button>
