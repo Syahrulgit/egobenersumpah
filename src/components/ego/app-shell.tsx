@@ -832,7 +832,7 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                       <p className="text-[10px] font-extrabold tracking-[0.16em] text-[#9A7411] dark:text-[#E6C768]">{group.title}</p>
                       <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">{group.items.length.toString().padStart(2, "0")}</span>
                     </div>
-                    <div className={`grid ${group.title === "KEUANGAN & INSIGHT" ? "grid-cols-4 gap-1.5" : "grid-cols-2 gap-2.5"} ${group.title === "ASET & KEWAJIBAN" ? "auto-rows-[76px]" : ""}`}>
+                    <div className={`grid ${group.title === "ASET & KEWAJIBAN" ? "grid-cols-5 gap-1" : "grid-cols-4 gap-1.5"}`}>
                       {group.items.map((item) => {
                         const Icon = item.icon;
                         const active = pathname.startsWith(item.to);
@@ -858,7 +858,7 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                               });
                               setMobileMenuOpen(false);
                             }}
-                            className={`ego-nav-item group relative flex h-full ${group.title === "KEUANGAN & INSIGHT" ? "min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-xl p-1.5 text-center" : `min-h-[76px] ${item.label === "Tagihan" ? "flex-col items-center justify-center gap-1.5 text-center" : "items-center gap-2.5"} p-3`} overflow-hidden border transition-all duration-200 active:scale-[0.97] ${
+                            className={`ego-nav-item group relative flex h-full min-h-[72px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border p-1.5 text-center transition-all duration-200 active:scale-[0.97] ${
                               active
                                 ? isAiItem
                                   ? "border-[#FF4DDE]/55 bg-[#FF4DDE]/10 shadow-[0_5px_18px_rgba(255,77,222,0.10)] dark:bg-[#FF4DDE]/15"
