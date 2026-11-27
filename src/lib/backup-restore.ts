@@ -32,6 +32,14 @@ export interface EgoBackupPreview {
   totalRecords: number;
   data: Record<string, unknown[]>;
   preferences: OwnerPreferences | null;
+  ownerMetadataMismatch: boolean;
+  financialSummary: {
+    postedIncome: number;
+    postedExpenses: number;
+    netCashflow: number;
+    outstandingDebt: number;
+    assetValue: number;
+  };
 }
 
 export interface EgoRestorePayload {
@@ -112,13 +120,11 @@ export function parseEgoBackupPreview(
   if (parsed.owner_email !== null && typeof parsed.owner_email !== "string") {
     throw new Error("Identitas Owner pada cadangan tidak valid.");
   }
-  if (
+  const ownerMetadataMismatch = Boolean(
     currentOwnerEmail &&
     typeof parsed.owner_email === "string" &&
     parsed.owner_email.toLowerCase() !== currentOwnerEmail.toLowerCase()
-  ) {
-    throw new Error("Cadangan berasal dari akun Owner yang berbeda.");
-  }
+  );
   if (!isRecord(parsed.data)) {
     throw new Error("Bagian data cadangan tidak valid.");
   }
@@ -147,8 +153,13 @@ export function parseEgoBackupPreview(
       if (!isRecord(row)) {
         throw new Error(`Baris ${index + 1} pada "${collection}" tidak valid.`);
       }
-      if (typeof row.id !== "string" || row.id.trim().length === 0) {
-        throw new Error(`ID baris ${index + 1} pada "${collection}" tidak valid.`);
+      if (typeof row.id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(row.id)) {
+        throw new Error(`ID baris ${index + 1} pada "${collection}" harus berupa UUID yang valid.`);
+      }
+      for (const field of ["amount", "opening_balance", "current_balance", "original_amount", "outstanding_balance", "current_value", "quantity", "interest_rate", "interest_rate_annual", "monthly_fee", "installment_amount", "principal_paid", "interest_paid", "remaining_after", "target_amount", "current_amount"]) {
+        if (field in row && row[field] !== null && (typeof row[field] !== "number" || !Number.isFinite(row[field]) || row[field] < 0)) {
+          throw new Error(`Nilai ${field} pada baris ${index + 1} koleksi "${collection}" tidak valid.`);
+        }
       }
       if (seen.has(row.id)) duplicateIds.push(`${collection}:${row.id}`);
       seen.add(row.id);
@@ -186,6 +197,23 @@ export function parseEgoBackupPreview(
     };
   }
 
+  const sum = (rows: unknown[], field: string, predicate?: (row: Record<string, unknown>) => boolean) =>
+    rows.reduce((total, value) => {
+      if (!isRecord(value) || (predicate && !predicate(value))) return total;
+      const amount = value[field];
+      return typeof amount === "number" && Number.isFinite(amount) ? total + amount : total;
+    }, 0);
+  const posted = (row: Record<string, unknown>) => row.status === "posted";
+  const postedIncome = sum(data.transactions, "amount", (row) => posted(row) && row.transaction_type === "income");
+  const postedExpenses = sum(data.transactions, "amount", (row) => posted(row) && row.transaction_type === "expense");
+  const financialSummary = {
+    postedIncome,
+    postedExpenses,
+    netCashflow: postedIncome - postedExpenses,
+    outstandingDebt: sum(data.debts, "outstanding_balance"),
+    assetValue: sum(data.assets, "current_value"),
+  };
+
   return {
     exportedAt: parsed.exported_at,
     ownerEmail: parsed.owner_email as string | null,
@@ -195,5 +223,7 @@ export function parseEgoBackupPreview(
     totalRecords,
     data,
     preferences,
+    ownerMetadataMismatch,
+    financialSummary,
   };
 }
