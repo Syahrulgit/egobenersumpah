@@ -1,6 +1,9 @@
 export const EGO_BACKUP_APP = "EGO Personal AI" as const;
 export const EGO_BACKUP_VERSION = "1.0" as const;
 
+import { toDatabaseAccountType } from "./account-types";
+import type { AccountType } from "../types/ego";
+
 export const BACKUP_COLLECTIONS = [
   "accounts",
   "transactions",
@@ -28,6 +31,37 @@ export interface EgoBackupPreview {
   existingIdConflicts: Record<BackupCollection, number>;
   totalRecords: number;
   data: Record<string, unknown[]>;
+}
+
+export interface EgoRestorePayload {
+  app: typeof EGO_BACKUP_APP;
+  version: typeof EGO_BACKUP_VERSION;
+  exported_at: string;
+  owner_email: string;
+  data: Record<string, unknown[]>;
+}
+
+/** Build the database payload from a validated preview; no existing row is changed. */
+export function createEgoRestorePayload(preview: EgoBackupPreview): EgoRestorePayload {
+  if (!preview.ownerEmail) {
+    throw new Error("Cadangan tidak mencantumkan identitas Owner.");
+  }
+  const accounts = preview.data.accounts.map((row) => {
+    if (!isRecord(row) || typeof row.account_type !== "string") {
+      throw new Error("Jenis akun pada cadangan tidak valid.");
+    }
+    return {
+      ...row,
+      account_type: toDatabaseAccountType(row.account_type as AccountType),
+    };
+  });
+  return {
+    app: EGO_BACKUP_APP,
+    version: EGO_BACKUP_VERSION,
+    exported_at: preview.exportedAt,
+    owner_email: preview.ownerEmail,
+    data: { ...preview.data, accounts },
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
