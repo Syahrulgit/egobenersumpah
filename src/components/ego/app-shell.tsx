@@ -834,7 +834,7 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                       </div>
                       <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">{group.items.length.toString().padStart(2, "0")}</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className={`grid grid-cols-2 gap-2.5 ${group.title === "ASET & KEWAJIBAN" ? "auto-rows-[76px]" : ""}`}>
                       {group.items.map((item) => {
                         const Icon = item.icon;
                         const active = pathname.startsWith(item.to);
@@ -860,7 +860,7 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                               });
                               setMobileMenuOpen(false);
                             }}
-                            className={`ego-nav-item group relative flex min-h-[76px] ${item.label === "Tagihan" ? "flex-col items-center justify-center gap-1.5 text-center" : "items-center gap-2.5"} overflow-hidden rounded-2xl border p-3 transition-all duration-200 active:scale-[0.97] ${
+                            className={`ego-nav-item group relative flex h-full min-h-[76px] ${group.title === "ASET & KEWAJIBAN" && item.label === "Tagihan" ? "col-span-2 mx-auto w-[calc(50%-0.3125rem)] flex-col items-center justify-center gap-1.5 text-center" : item.label === "Tagihan" ? "flex-col items-center justify-center gap-1.5 text-center" : "items-center gap-2.5"} overflow-hidden rounded-2xl border p-3 transition-all duration-200 active:scale-[0.97] ${
                               active
                                 ? isAiItem
                                   ? "border-[#FF4DDE]/55 bg-[#FF4DDE]/10 shadow-[0_5px_18px_rgba(255,77,222,0.10)] dark:bg-[#FF4DDE]/15"
