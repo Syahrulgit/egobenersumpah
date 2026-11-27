@@ -10,7 +10,7 @@ import {
 
 function makeBackup(overrides: Record<string, unknown> = {}) {
   const data: Record<string, unknown[]> = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
-  data.accounts = [{ id: "account-1", account_name: "Tunai" }];
+  data.accounts = [{ id: "01010101-0101-4101-8101-010101010101", account_name: "Tunai" }];
   return JSON.stringify({
     app: EGO_BACKUP_APP,
     version: EGO_BACKUP_VERSION,
@@ -24,7 +24,7 @@ function makeBackup(overrides: Record<string, unknown> = {}) {
 test("valid backup produces a read-only preview, collection counts, and Owner preferences", () => {
   const preview = parseEgoBackupPreview(makeBackup({
     data: {
-      ...Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, key === "accounts" ? [{ id: "account-1", account_name: "Tunai" }] : []])),
+      ...Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, key === "accounts" ? [{ id: "01010101-0101-4101-8101-010101010101", account_name: "Tunai" }] : []])),
       preferences: { date_format: "DD MMM YYYY", expense_alert_limit: 5_000_000 },
     },
   }));
@@ -44,11 +44,42 @@ test("rejects unsupported version and invalid export timestamp", () => {
   assert.throws(() => parseEgoBackupPreview(makeBackup({ exported_at: "invalid" })), /Waktu ekspor/);
 });
 
-test("rejects backups from another Owner account", () => {
-  assert.throws(
-    () => parseEgoBackupPreview(makeBackup(), undefined, "different@example.com"),
-    /akun Owner yang berbeda/
-  );
+test("treats the backup email as editable metadata, not authentication", () => {
+  const preview = parseEgoBackupPreview(makeBackup(), undefined, "different@example.com");
+  assert.equal(preview.ownerMetadataMismatch, true);
+  assert.equal(preview.ownerEmail, "owner@example.com");
+});
+
+test("rejects invalid UUIDs and non-finite or negative financial values", () => {
+  const invalidId: Record<string, unknown[]> = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
+  invalidId.accounts = [{ id: "not-a-uuid" }];
+  assert.throws(() => parseEgoBackupPreview(makeBackup({ data: invalidId })), /UUID yang valid/);
+
+  const invalidAmount: Record<string, unknown[]> = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
+  invalidAmount.transactions = [{
+    id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    amount: -1,
+  }];
+  assert.throws(() => parseEgoBackupPreview(makeBackup({ data: invalidAmount })), /Nilai amount/);
+});
+
+test("calculates a read-only financial impact summary from posted records", () => {
+  const data: Record<string, unknown[]> = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
+  data.transactions = [
+    { id: "11111111-1111-4111-8111-111111111111", transaction_type: "income", status: "posted", amount: 500 },
+    { id: "22222222-2222-4222-8222-222222222222", transaction_type: "expense", status: "posted", amount: 125 },
+    { id: "33333333-3333-4333-8333-333333333333", transaction_type: "income", status: "pending", amount: 999 },
+  ];
+  data.debts = [{ id: "44444444-4444-4444-8444-444444444444", outstanding_balance: 250 }];
+  data.assets = [{ id: "55555555-5555-4555-8555-555555555555", current_value: 700 }];
+  const preview = parseEgoBackupPreview(makeBackup({ data }));
+  assert.deepEqual(preview.financialSummary, {
+    postedIncome: 500,
+    postedExpenses: 125,
+    netCashflow: 375,
+    outstandingDebt: 250,
+    assetValue: 700,
+  });
 });
 
 test("rejects missing collections, malformed rows, and duplicate IDs", () => {
@@ -60,12 +91,12 @@ test("rejects missing collections, malformed rows, and duplicate IDs", () => {
   assert.throws(() => parseEgoBackupPreview(makeBackup({ data: malformed })), /Baris 1/);
 
   const duplicate: Record<string, unknown[]> = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
-  duplicate.accounts = [{ id: "same" }, { id: "same" }];
+  duplicate.accounts = [{ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }, { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }];
   assert.throws(() => parseEgoBackupPreview(makeBackup({ data: duplicate })), /ID ganda/);
 });
 
 test("counts conflicts against current data without modifying it", () => {
-  const current = { accounts: [{ id: "account-1" }] };
+  const current = { accounts: [{ id: "01010101-0101-4101-8101-010101010101" }] };
   const before = JSON.stringify(current);
   const preview = parseEgoBackupPreview(makeBackup(), current);
   assert.equal(preview.existingIdConflicts.accounts, 1);
@@ -76,7 +107,7 @@ test("counts conflicts against current data without modifying it", () => {
 test("restore payload converts UI ewallet values to database enum values", () => {
   const data: Record<string, unknown[]> = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
   data.accounts = [{
-    id: "account-1",
+    id: "01010101-0101-4101-8101-010101010101",
     account_name: "Dompet",
     account_type: "ewallet",
     opening_balance: 0,
