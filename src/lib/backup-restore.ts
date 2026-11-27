@@ -1,4 +1,4 @@
-import type { AccountType } from "../types/ego";
+import type { AccountType, DateFormatPref, OwnerPreferences } from "../types/ego";
 import { toDatabaseAccountType } from "./account-types";
 
 export const EGO_BACKUP_APP = "EGO Personal AI" as const;
@@ -31,6 +31,7 @@ export interface EgoBackupPreview {
   existingIdConflicts: Record<BackupCollection, number>;
   totalRecords: number;
   data: Record<string, unknown[]>;
+  preferences: OwnerPreferences | null;
 }
 
 export interface EgoRestorePayload {
@@ -167,6 +168,25 @@ export function parseEgoBackupPreview(
     );
   }
 
+  let preferences: OwnerPreferences | null = null;
+  if (isRecord(parsed.data.preferences)) {
+    const dateFormat = parsed.data.preferences.date_format;
+    const expenseAlertLimit = parsed.data.preferences.expense_alert_limit;
+    if (
+      (dateFormat !== "DD/MM/YYYY" && dateFormat !== "YYYY-MM-DD" && dateFormat !== "DD MMM YYYY") ||
+      typeof expenseAlertLimit !== "number" ||
+      !Number.isFinite(expenseAlertLimit) ||
+      expenseAlertLimit < 0 ||
+      expenseAlertLimit > 100_000_000
+    ) {
+      throw new Error("Preferensi Owner pada cadangan tidak valid.");
+    }
+    preferences = {
+      date_format: dateFormat as DateFormatPref,
+      expense_alert_limit: expenseAlertLimit,
+    };
+  }
+
   return {
     exportedAt: parsed.exported_at,
     ownerEmail: parsed.owner_email as string | null,
@@ -175,5 +195,6 @@ export function parseEgoBackupPreview(
     existingIdConflicts,
     totalRecords,
     data,
+    preferences,
   };
 }
