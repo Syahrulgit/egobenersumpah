@@ -198,7 +198,7 @@ export function parseEgoBackupPreview(
   }
 
   const sum = (rows: unknown[], field: string, predicate?: (row: Record<string, unknown>) => boolean) =>
-    rows.reduce((total, value) => {
+    rows.reduce<number>((total, value) => {
       if (!isRecord(value) || (predicate && !predicate(value))) return total;
       const amount = value[field];
       return typeof amount === "number" && Number.isFinite(amount) ? total + amount : total;
