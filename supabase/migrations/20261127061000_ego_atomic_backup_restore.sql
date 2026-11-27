@@ -137,7 +137,7 @@ begin
       order by item.ordinal
     loop
       if pg_catalog.jsonb_typeof(v_row) <> 'object'
-        or pg_catalog.nullif(v_row->>'id', '') is null then
+        or NULLIF(v_row->>'id', '') is null then
         raise exception 'Baris atau ID tidak valid pada koleksi "%".', v_table using errcode = '22023';
       end if;
 
