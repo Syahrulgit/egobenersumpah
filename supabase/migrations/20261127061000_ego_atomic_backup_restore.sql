@@ -14,8 +14,9 @@ set search_path = ''
 as $function$
 declare
   v_owner uuid := auth.uid();
-  v_claim_email text;
-  v_owner_email text;
+  v_fk record;
+  v_fk_violation boolean;
+  v_unknown_keys text[];
   v_table text;
   v_rows jsonb;
   v_row jsonb;
@@ -57,15 +58,13 @@ begin
     raise exception 'Waktu ekspor cadangan wajib tersedia.' using errcode = '22023';
   end if;
 
-  v_owner_email := pg_catalog.lower(NULLIF(p_backup->>'owner_email', ''));
-  v_claim_email := pg_catalog.lower(
-    COALESCE(
-      NULLIF(pg_catalog.current_setting('request.jwt.claims', true), '')::jsonb ->> 'email',
-      pg_catalog.current_setting('request.jwt.claim.email', true)
-    )
-  );
-  if v_owner_email is null or v_claim_email is null or v_owner_email <> v_claim_email then
-    raise exception 'Cadangan bukan milik akun Owner yang sedang masuk.' using errcode = '42501';
+  -- owner_email/exported_at are descriptive metadata, not proof of file
+  -- authenticity. Authorization is the live authenticated UID plus the
+  -- explicit confirmation below; a JSON file can be edited by its holder.
+  if p_backup ? 'owner_email'
+    and p_backup->'owner_email' <> 'null'::jsonb
+    and pg_catalog.jsonb_typeof(p_backup->'owner_email') <> 'string' then
+    raise exception 'Metadata email Owner tidak valid.' using errcode = '22023';
   end if;
 
   if pg_catalog.jsonb_typeof(p_backup->'data') is distinct from 'object' then
@@ -151,6 +150,79 @@ begin
         true
       );
 
+      -- Reject unknown fields rather than silently discarding them during
+      -- jsonb_populate_record. The only legacy client-only field allowed is
+      -- accounts.current_balance, which is intentionally not persisted.
+      select pg_catalog.array_agg(keys.key order by keys.key)
+        into v_unknown_keys
+      from pg_catalog.jsonb_object_keys(v_row) as keys(key)
+      where not exists (
+        select 1
+        from pg_catalog.pg_attribute a
+        where a.attrelid = pg_catalog.to_regclass(pg_catalog.format('public.%I', v_table))
+          and a.attname = keys.key
+          and a.attnum > 0
+          and not a.attisdropped
+      )
+      and not (v_table = 'accounts' and keys.key = 'current_balance');
+
+      if v_unknown_keys is not null then
+        raise exception 'Field tidak dikenal pada koleksi "%": %',
+          v_table, pg_catalog.array_to_string(v_unknown_keys, ', ')
+          using errcode = '22023';
+      end if;
+
+      -- Foreign keys into another Owner's rows must never be accepted.
+      -- Discover single-column references to public tables that carry owner_id.
+      for v_fk in
+        select
+          child_att.attname as child_column,
+          parent.relname as parent_table,
+          parent_att.attname as parent_column
+        from pg_catalog.pg_constraint c
+        join pg_catalog.pg_class child on child.oid = c.conrelid
+        join pg_catalog.pg_namespace child_ns on child_ns.oid = child.relnamespace
+        join pg_catalog.pg_class parent on parent.oid = c.confrelid
+        join pg_catalog.pg_namespace parent_ns on parent_ns.oid = parent.relnamespace
+        join unnest(c.conkey) with ordinality child_key(attnum, ord) on true
+        join unnest(c.confkey) with ordinality parent_key(attnum, ord)
+          on parent_key.ord = child_key.ord
+        join pg_catalog.pg_attribute child_att
+          on child_att.attrelid = child.oid and child_att.attnum = child_key.attnum
+        join pg_catalog.pg_attribute parent_att
+          on parent_att.attrelid = parent.oid and parent_att.attnum = parent_key.attnum
+        where c.contype = 'f'
+          and c.conrelid = pg_catalog.to_regclass(pg_catalog.format('public.%I', v_table))
+          and child_ns.nspname = 'public'
+          and parent_ns.nspname = 'public'
+          and pg_catalog.cardinality(c.conkey) = 1
+          and exists (
+            select 1 from pg_catalog.pg_attribute owner_att
+            where owner_att.attrelid = parent.oid
+              and owner_att.attname = 'owner_id'
+              and owner_att.attnum > 0
+              and not owner_att.attisdropped
+          )
+      loop
+        execute pg_catalog.format(
+          'select (r.%I is not null and not exists (' ||
+          'select 1 from public.%I p where p.%I = r.%I and p.owner_id = $2)) ' ||
+          'from pg_catalog.jsonb_populate_record(null::public.%I, $1) as r',
+          v_fk.child_column,
+          v_fk.parent_table,
+          v_fk.parent_column,
+          v_fk.child_column,
+          v_table
+        )
+        into v_fk_violation
+        using v_row, v_owner;
+
+        if v_fk_violation then
+          raise exception 'Referensi pada kolom "%" koleksi "%" bukan milik Owner aktif.',
+            v_fk.child_column, v_table using errcode = '42501';
+        end if;
+      end loop;
+
       execute pg_catalog.format(
         'select pg_catalog.to_jsonb(r) from pg_catalog.jsonb_populate_record(null::public.%I, $1) as r',
         v_table
@@ -208,6 +280,6 @@ revoke all on function public.ego_restore_backup(jsonb, boolean) from anon;
 grant execute on function public.ego_restore_backup(jsonb, boolean) to authenticated;
 
 comment on function public.ego_restore_backup(jsonb, boolean) is
-  'Atomic additive-only EGO backup restore. Requires authenticated Owner, matching JWT email, explicit Owner confirmation; skips identical rows and aborts on conflicts.';
+  'Atomic additive-only EGO backup restore. Requires authenticated Owner UID and explicit Owner confirmation; treats backup metadata as untrusted, enforces known columns and same-Owner single-column foreign keys, skips identical rows and aborts on conflicts.';
 
 commit;
