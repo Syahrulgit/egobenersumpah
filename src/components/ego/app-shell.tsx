@@ -832,7 +832,7 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                       <p className="text-[10px] font-extrabold tracking-[0.16em] text-[#9A7411] dark:text-[#E6C768]">{group.title}</p>
                       <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">{group.items.length.toString().padStart(2, "0")}</span>
                     </div>
-                    <div className={`grid ${group.title === "ASET & KEWAJIBAN" ? "grid-cols-5 gap-1" : "grid-cols-4 gap-1.5"}`}>
+                    <div className={`grid ${group.title === "ASET & KEWAJIBAN" ? "grid-cols-3 gap-1.5" : "grid-cols-4 gap-1.5"}`}>
                       {group.items.map((item) => {
                         const Icon = item.icon;
                         const active = pathname.startsWith(item.to);
