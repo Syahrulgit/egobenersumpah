@@ -21,11 +21,17 @@ function makeBackup(overrides: Record<string, unknown> = {}) {
   });
 }
 
-test("valid backup produces a read-only preview and collection counts", () => {
-  const preview = parseEgoBackupPreview(makeBackup());
+test("valid backup produces a read-only preview, collection counts, and Owner preferences", () => {
+  const preview = parseEgoBackupPreview(makeBackup({
+    data: {
+      ...Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, key === "accounts" ? [{ id: "account-1", account_name: "Tunai" }] : []])),
+      preferences: { date_format: "DD MMM YYYY", expense_alert_limit: 5_000_000 },
+    },
+  }));
   assert.equal(preview.totalRecords, 1);
   assert.equal(preview.counts.accounts, 1);
   assert.equal(preview.counts.transactions, 0);
+  assert.deepEqual(preview.preferences, { date_format: "DD MMM YYYY", expense_alert_limit: 5_000_000 });
 });
 
 test("rejects malformed JSON and wrong app identifier", () => {
@@ -92,4 +98,15 @@ test("restore payload converts UI ewallet values to database enum values", () =>
 test("restore payload refuses backups without an Owner identity", () => {
   const preview = parseEgoBackupPreview(makeBackup({ owner_email: null }));
   assert.throws(() => createEgoRestorePayload(preview), /identitas Owner/);
+});
+
+
+test("rejects malformed Owner preferences instead of applying them", () => {
+  const data = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
+  assert.throws(
+    () => parseEgoBackupPreview(makeBackup({
+      data: { ...data, preferences: { date_format: "invalid", expense_alert_limit: -1 } },
+    })),
+    /Preferensi Owner/
+  );
 });
