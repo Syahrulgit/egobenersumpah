@@ -828,11 +828,20 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                   ] as const
                 ).map((group) => (
                   <section key={group.title} className="mb-4">
-                    <div className="mb-2.5 flex items-end justify-between gap-2 px-0.5">
-                      <div>
-                        <p className="text-[10px] font-extrabold tracking-[0.16em] text-[#9A7411] dark:text-[#E6C768]">{group.title}</p>
-                      </div>
-                      <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">{group.items.length.toString().padStart(2, "0")}</span>
+                    <div className="mb-2.5 flex items-center gap-2 px-0.5">
+                      {group.title === "KEUANGAN & INSIGHT" ? (
+                        <div className="grid min-w-0 flex-1 grid-cols-2 gap-2">
+                          <div className="flex min-h-8 items-center justify-center rounded-lg border border-[#D4AF37]/25 bg-[#D4AF37]/10 px-2">
+                            <span className="text-[10px] font-extrabold tracking-[0.14em] text-[#9A7411] dark:text-[#E6C768]">KEUANGAN</span>
+                          </div>
+                          <div className="flex min-h-8 items-center justify-center rounded-lg border border-sky-500/20 bg-sky-500/10 px-2">
+                            <span className="text-[10px] font-extrabold tracking-[0.14em] text-sky-700 dark:text-sky-300">INSIGHT</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="min-w-0 flex-1 text-[10px] font-extrabold tracking-[0.16em] text-[#9A7411] dark:text-[#E6C768]">{group.title}</p>
+                      )}
+                      <span className="shrink-0 font-mono text-[10px] text-slate-400 dark:text-slate-500">{group.items.length.toString().padStart(2, "0")}</span>
                     </div>
                     <div className={`grid grid-cols-2 gap-2.5 ${group.title === "ASET & KEWAJIBAN" ? "auto-rows-[76px]" : ""}`}>
                       {group.items.map((item) => {
