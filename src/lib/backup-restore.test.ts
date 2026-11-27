@@ -1,0 +1,66 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import {
+  BACKUP_COLLECTIONS,
+  EGO_BACKUP_APP,
+  EGO_BACKUP_VERSION,
+  parseEgoBackupPreview,
+} from "./backup-restore";
+
+function makeBackup(overrides: Record<string, unknown> = {}) {
+  const data = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
+  data.accounts = [{ id: "account-1", account_name: "Tunai" }];
+  return JSON.stringify({
+    app: EGO_BACKUP_APP,
+    version: EGO_BACKUP_VERSION,
+    exported_at: "2026-11-27T05:00:00.000Z",
+    owner_email: "owner@example.com",
+    data,
+    ...overrides,
+  });
+}
+
+test("valid backup produces a read-only preview and collection counts", () => {
+  const preview = parseEgoBackupPreview(makeBackup());
+  assert.equal(preview.totalRecords, 1);
+  assert.equal(preview.counts.accounts, 1);
+  assert.equal(preview.counts.transactions, 0);
+});
+
+test("rejects malformed JSON and wrong app identifier", () => {
+  assert.throws(() => parseEgoBackupPreview("{"), /JSON yang valid/);
+  assert.throws(() => parseEgoBackupPreview(JSON.stringify({ app: "other" })), /bukan cadangan resmi/);
+});
+
+test("rejects unsupported version and invalid export timestamp", () => {
+  assert.throws(() => parseEgoBackupPreview(makeBackup({ version: "9.0" })), /Versi cadangan/);
+  assert.throws(() => parseEgoBackupPreview(makeBackup({ exported_at: "invalid" })), /Waktu ekspor/);
+});
+
+test("rejects backups from another Owner account", () => {
+  assert.throws(
+    () => parseEgoBackupPreview(makeBackup(), undefined, "different@example.com"),
+    /akun Owner yang berbeda/
+  );
+});
+
+test("rejects missing collections, malformed rows, and duplicate IDs", () => {
+  const missing = Object.fromEntries(BACKUP_COLLECTIONS.filter((key) => key !== "debts").map((key) => [key, []]));
+  assert.throws(() => parseEgoBackupPreview(makeBackup({ data: missing })), /debts/);
+
+  const malformed = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
+  malformed.accounts = [null];
+  assert.throws(() => parseEgoBackupPreview(makeBackup({ data: malformed })), /Baris 1/);
+
+  const duplicate = Object.fromEntries(BACKUP_COLLECTIONS.map((key) => [key, []]));
+  duplicate.accounts = [{ id: "same" }, { id: "same" }];
+  assert.throws(() => parseEgoBackupPreview(makeBackup({ data: duplicate })), /ID ganda/);
+});
+
+test("counts conflicts against current data without modifying it", () => {
+  const current = { accounts: [{ id: "account-1" }] };
+  const before = JSON.stringify(current);
+  const preview = parseEgoBackupPreview(makeBackup(), current);
+  assert.equal(preview.existingIdConflicts.accounts, 1);
+  assert.equal(JSON.stringify(current), before);
+});
