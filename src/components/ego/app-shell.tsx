@@ -869,10 +869,20 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                                 : "border-slate-200 bg-white shadow-sm shadow-slate-900/[0.025] hover:-translate-y-0.5 hover:border-[#D4AF37]/35 hover:shadow-md dark:border-[#263449] dark:bg-[#162032]"
                             }`}
                           >
-                            <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${item.label === "Tagihan" ? "mx-auto self-center" : ""} ${toneClass}`}>
-                              <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
-                              {active ? <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border-2 border-white bg-[#D4AF37] dark:border-[#162032]" /> : null}
-                            </span>
+                            {item.label === "Tagihan" ? (
+                              <span className="flex h-11 items-center justify-center gap-0">
+                                <span className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${toneClass}`}>
+                                  <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+                                  {active ? <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border-2 border-white bg-[#D4AF37] dark:border-[#162032]" /> : null}
+                                </span>
+                                <EgoCompanion size="sm" mode="idle" className="scale-[0.78] -ml-1" />
+                              </span>
+                            ) : (
+                              <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${toneClass}`}>
+                                <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+                                {active ? <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border-2 border-white bg-[#D4AF37] dark:border-[#162032]" /> : null}
+                              </span>
+                            )}
                             <span className="w-full min-w-0 flex-none self-center text-center">
                               <span className={`block line-clamp-2 break-words text-[9px] font-bold leading-tight ${active ? isAiItem ? "text-[#C026A5] dark:text-[#FF9EEA]" : "text-[#85620A] dark:text-[#E6C768]" : "text-[#101827] dark:text-slate-100"}`}>{item.label}</span>
                             </span>
