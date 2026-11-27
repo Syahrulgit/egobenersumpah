@@ -129,7 +129,7 @@ export function AkunPage() {
     >
       <div className="space-y-6">
         {/* Liquidity Hero Banner */}
-        <section className="ego-card-hero ego-main-card relative isolate overflow-hidden flex flex-col justify-between gap-4 rounded-3xl border border-[#1B3163] p-5 text-white shadow-lg shadow-[#06132F]/15 sm:flex-row sm:items-center sm:p-6">
+        <section className="ego-card-hero ego-main-card relative isolate overflow-hidden flex flex-col justify-between gap-4 rounded-[1.75rem] border border-[#D4AF37]/25 p-5 text-white shadow-xl shadow-[#06132F]/25 ring-1 ring-white/5 sm:flex-row sm:items-center sm:p-6">
           <span className="ego-main-card__robo ego-main-card__robo--hero" aria-hidden="true"><EgoCompanion size="lg" mode="idle" /></span>
           <div className="relative z-10">
             <p className="text-xs font-semibold uppercase tracking-wider text-[#C7D0E0]/80">
@@ -180,7 +180,7 @@ export function AkunPage() {
             </div>
 
             <div
-              className="flex h-3.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-[#06132F]"
+              className="flex h-3.5 w-full overflow-hidden rounded-full border border-[#D4AF37]/15 bg-slate-100 shadow-inner dark:bg-[#06132F]"
               role="img"
               aria-label={accountMix.map((item) => `${accountTypeLabel(item.type)} ${item.percentage.toFixed(1)} persen`).join(", ")}
             >
@@ -287,12 +287,12 @@ export function AkunPage() {
                       return (
                         <div
                           key={acc.id}
-                          className={`ego-main-card relative isolate overflow-hidden rounded-2xl border p-5 transition-all ${
+                          className={`ego-main-card group relative isolate overflow-hidden rounded-[1.5rem] border p-5 transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 hover:shadow-xl active:scale-[0.99] ${
                             !acc.is_active
                               ? "border-[#DCE4F0] bg-slate-100/80 opacity-75 dark:border-[#1B3163] dark:bg-[#06132F]/70"
                               : isBankHero
-                                ? "ego-card-hero border-[#1B3163] text-white shadow-md shadow-[#06132F]/15"
-                                : "border-[#DCE4F0] bg-white shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none"
+                                ? "ego-card-hero border-[#D4AF37]/25 text-white shadow-lg shadow-[#06132F]/25 ring-1 ring-white/5"
+                                : "border-[#DCE4F0] bg-white shadow-sm hover:border-[#D4AF37]/45 dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none"
                           }`}
                         >
                           <span className="ego-main-card__robo" aria-hidden="true"><EgoCompanion size="md" mode="idle" /></span>
