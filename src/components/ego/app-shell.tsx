@@ -787,11 +787,9 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                 </div>
 
                 <div className="mb-4 overflow-hidden rounded-2xl border border-[#D4AF37]/25 bg-gradient-to-br from-[#101827] via-[#17243A] to-[#101827] p-4 text-white shadow-lg shadow-[#101827]/10">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-base font-bold tracking-tight">Pusat Kendali EGO</p>
-                    </div>
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#D4AF37]/35 bg-[#D4AF37]/10 shadow-inner shadow-[#D4AF37]/10">
+                  <div className="relative flex min-h-12 items-center justify-center">
+                    <p className="text-center text-base font-bold tracking-tight">Pusat Kendali EGO</p>
+                    <div className="absolute right-0 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#D4AF37]/35 bg-[#D4AF37]/10 shadow-inner shadow-[#D4AF37]/10">
                       <ShieldCheck className="h-6 w-6 text-[#E6C768]" aria-hidden="true" />
                     </div>
                   </div>
@@ -862,7 +860,7 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                               });
                               setMobileMenuOpen(false);
                             }}
-                            className={`ego-nav-item group relative flex min-h-[76px] items-center gap-2.5 overflow-hidden rounded-2xl border p-3 transition-all duration-200 active:scale-[0.97] ${
+                            className={`ego-nav-item group relative flex min-h-[76px] ${item.label === "Tagihan" ? "flex-col items-center justify-center gap-1.5 text-center" : "items-center gap-2.5"} overflow-hidden rounded-2xl border p-3 transition-all duration-200 active:scale-[0.97] ${
                               active
                                 ? isAiItem
                                   ? "border-[#FF4DDE]/55 bg-[#FF4DDE]/10 shadow-[0_5px_18px_rgba(255,77,222,0.10)] dark:bg-[#FF4DDE]/15"
@@ -874,7 +872,7 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                               <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
                               {active ? <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border-2 border-white bg-[#D4AF37] dark:border-[#162032]" /> : null}
                             </span>
-                            <span className="min-w-0 flex-1">
+                            <span className={`min-w-0 ${item.label === "Tagihan" ? "w-full text-center" : "flex-1"}`}>
                               <span className={`block truncate text-[12px] font-bold leading-tight ${active ? isAiItem ? "text-[#C026A5] dark:text-[#FF9EEA]" : "text-[#85620A] dark:text-[#E6C768]" : "text-[#101827] dark:text-slate-100"}`}>{item.label}</span>
                             </span>
                             {item.badge > 0 ? (
