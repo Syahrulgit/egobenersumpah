@@ -887,36 +887,37 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                   </section>
                 ))}
 
-                <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 dark:border-[#1E293B] dark:bg-[#162032]">
-                  <span className="text-xs font-semibold text-[#101827] dark:text-slate-200">
-                    Mode Tampilan
-                  </span>
-                  <ThemeToggleButton />
-                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="flex min-h-[42px] items-center justify-between gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 dark:border-[#1E293B] dark:bg-[#162032]">
+                    <span className="text-[10px] font-semibold leading-tight text-[#101827] dark:text-slate-200">
+                      Mode Tampilan
+                    </span>
+                    <ThemeToggleButton />
+                  </div>
 
-                <div className="mt-3">
-                  <PWAInstallButton fullWidth />
-                </div>
+                  <PWAInstallButton className="!min-h-[42px] !w-full !gap-1 !rounded-xl !px-2 !py-2 !text-[10px]" />
 
-                {auth?.hasPin ? (
+                  {auth?.hasPin ? (
+                    <button
+                      type="button"
+                      onClick={handleQuickLock}
+                      className="ego-pressable flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37]/12 px-2 py-2 text-[11px] font-semibold leading-tight text-[#85620A] dark:border-[#D4AF37]/40 dark:bg-[#D4AF37]/15 dark:text-[#E6C768]"
+                    >
+                      <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      <span>Kunci Layar (PIN)</span>
+                    </button>
+                  ) : null}
+
                   <button
                     type="button"
-                    onClick={handleQuickLock}
-                    className="ego-pressable mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-[#D4AF37]/40 bg-[#D4AF37]/12 px-4 py-2.5 text-sm font-semibold text-[#85620A] dark:border-[#D4AF37]/40 dark:bg-[#D4AF37]/15 dark:text-[#E6C768]"
+                    onClick={handleLogout}
+                    disabled={logout.isPending}
+                    className="ego-pressable flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-xl border border-[#EF4444]/25 bg-[#EF4444]/10 px-2 py-2 text-[11px] font-semibold leading-tight text-[#DC2626] dark:border-[#EF4444]/30 dark:bg-[#EF4444]/12 dark:text-[#FCA5A5]"
                   >
-                    <Lock className="h-4 w-4" aria-hidden="true" />
-                    <span>Kunci Layar (PIN)</span>
+                    <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span>Kunci &amp; Keluar</span>
                   </button>
-                ) : null}
-
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="ego-pressable mt-2.5 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-[#EF4444]/25 bg-[#EF4444]/10 px-4 py-2.5 text-sm font-semibold text-[#DC2626] dark:border-[#EF4444]/30 dark:bg-[#EF4444]/12 dark:text-[#FCA5A5]"
-                >
-                  <LogOut className="h-4 w-4" aria-hidden="true" />
-                  <span>Kunci &amp; Keluar</span>
-                </button>
+                </div>
               </motion.div>
             </motion.div>
           ) : null}
