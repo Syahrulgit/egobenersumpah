@@ -57,10 +57,10 @@ begin
     raise exception 'Waktu ekspor cadangan wajib tersedia.' using errcode = '22023';
   end if;
 
-  v_owner_email := pg_catalog.lower(pg_catalog.nullif(p_backup->>'owner_email', ''));
+  v_owner_email := pg_catalog.lower(NULLIF(p_backup->>'owner_email', ''));
   v_claim_email := pg_catalog.lower(
-    pg_catalog.coalesce(
-      pg_catalog.nullif(pg_catalog.current_setting('request.jwt.claims', true), '')::jsonb ->> 'email',
+    COALESCE(
+      NULLIF(pg_catalog.current_setting('request.jwt.claims', true), '')::jsonb ->> 'email',
       pg_catalog.current_setting('request.jwt.claim.email', true)
     )
   );
@@ -68,7 +68,7 @@ begin
     raise exception 'Cadangan bukan milik akun Owner yang sedang masuk.' using errcode = '42501';
   end if;
 
-  if pg_catalog.jsonb_typeof(p_backup->'data') <> 'object' then
+  if pg_catalog.jsonb_typeof(p_backup->'data') is distinct from 'object' then
     raise exception 'Struktur data cadangan tidak valid.' using errcode = '22023';
   end if;
 
@@ -98,7 +98,7 @@ begin
   ]
   loop
     v_rows := p_backup->'data'->v_table;
-    if pg_catalog.jsonb_typeof(v_rows) <> 'array' then
+    if pg_catalog.jsonb_typeof(v_rows) is distinct from 'array' then
       raise exception 'Koleksi cadangan "%" hilang atau bukan array.', v_table using errcode = '22023';
     end if;
 
