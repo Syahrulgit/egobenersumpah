@@ -246,12 +246,21 @@ export function PengaturanPage() {
         p_owner_confirmed: true,
       });
       if (error) throw error;
+      let preferencesRestored = false;
+      if (backupPreview.preferences) {
+        try {
+          await updatePrefs.mutateAsync(backupPreview.preferences);
+          preferencesRestored = true;
+        } catch {
+          toast.warning("Data keuangan pulih, tetapi preferensi perangkat tidak berhasil dipulihkan.");
+        }
+      }
       await qc.invalidateQueries({ queryKey: egoKeys.vault });
       setBackupRestoreConfirmed(false);
       setBackupPreview(null);
       const inserted = Number(data?.inserted ?? 0);
       const skipped = Number(data?.skipped_identical ?? 0);
-      toast.success(`Pemulihan selesai: ${inserted} data ditambahkan, ${skipped} data identik dilewati.`);
+      toast.success(`Pemulihan selesai: ${inserted} data ditambahkan, ${skipped} data identik dilewati.${preferencesRestored ? " Preferensi Owner juga dipulihkan." : ""}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Pemulihan dibatalkan. Tidak ada perubahan parsial yang disimpan.");
     } finally {
