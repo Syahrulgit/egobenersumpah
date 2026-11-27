@@ -178,50 +178,38 @@ export function AkunPage() {
           </div>
         </section>
 
-        {/* Liquidity Allocation Strip */}
-        {accounts.length > 0 ? (
-          <section
-            aria-label="Komposisi Likuiditas Akun"
-            className="grid gap-3 sm:grid-cols-3"
-          >
-            {liquidityByType.map((item) => (
-              <div
-                key={item.type}
-                className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-[#1E293B] dark:bg-[#101827]"
-              >
-                <div className="flex items-center justify-between gap-2 text-xs">
-                  <span className="inline-flex items-center gap-1.5 font-semibold text-[#101827] dark:text-white">
-                    <AccountTypeIcon
-                      type={item.type}
-                      className="h-3.5 w-3.5 text-[#9A7411] dark:text-[#E6C768]"
-                    />
-                    {item.label}
-                  </span>
-                  <span className="font-mono text-[11px] font-bold text-[#9A7411] dark:text-[#E6C768] tabular-nums">
-                    {item.pct}%
-                  </span>
-                </div>
-                <p className="mt-1.5 font-mono text-sm font-bold tabular-nums text-[#101827] dark:text-white">
-                  <EgoCountUp value={item.amount} formatter={(v) => formatIDR(v, true)} />
-                </p>
-                <div className="mt-2">
-                  <EgoAnimatedBar
-                    percentage={item.pct}
-                    heightClassName="h-1.5"
-                    barClassName={
-                      item.type === "bank"
-                        ? "bg-gradient-to-r from-[#B8901F] to-[#D4AF37]"
-                        : item.type === "ewallet"
-                          ? "bg-[#14B8A6]"
-                          : "bg-slate-600 dark:bg-slate-400"
-                    }
-                  />
-                </div>
+        {/* Unified account balance composition */}
+        {accounts.some((account) => account.is_active) ? (
+          <section className="rounded-[1.5rem] border border-[#D4AF37]/20 bg-gradient-to-br from-[#101827] via-[#101827] to-[#15233A] p-4 shadow-lg shadow-[#06132F]/15 ring-1 ring-white/5 sm:p-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-bold tracking-wide text-white">Komposisi Saldo</h2>
+                <p className="mt-0.5 text-[11px] text-[#C7D0E0]/65">Persentase dari total likuiditas aktif</p>
               </div>
-            ))}
+              <span className="shrink-0 font-mono text-xs font-semibold tabular-nums text-[#E8C96A]">{formatIDR(totalLiquidity)}</span>
+            </div>
+            <div className="flex h-3.5 w-full overflow-hidden rounded-full border border-[#D4AF37]/15 bg-[#06132F] shadow-inner" role="img" aria-label={liquidityByType.map((item) => `${item.label} ${item.pct} persen`).join(", ")}>
+              {liquidityByType.map((item) => (
+                <span key={item.type} className="h-full shrink-0 transition-[width] duration-700 ease-out first:rounded-l-full last:rounded-r-full" style={{ width: `${item.pct}%`, backgroundColor: item.type === "bank" ? "#D4AF37" : item.type === "cash" ? "#14B8A6" : "#FF4DDE" }} />
+              ))}
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {liquidityByType.map((item) => (
+                <div key={item.type} className="min-w-0">
+                  <div className="mb-1 flex items-center gap-1.5">
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.type === "bank" ? "#D4AF37" : item.type === "cash" ? "#14B8A6" : "#FF4DDE" }} aria-hidden="true" />
+                    <span className="truncate text-[11px] text-[#C7D0E0]/70">{item.label}</span>
+                  </div>
+                  <p className="font-mono text-sm font-bold tabular-nums text-white">{item.pct}%</p>
+                  <p className="mt-0.5 truncate font-mono text-[10px] tabular-nums text-[#C7D0E0]/60">{formatIDR(item.amount)}</p>
+                </div>
+              ))}
+            </div>
           </section>
         ) : null}
         </EgoStaggerSection>
+
+    
 
         {/* Banking Card Grids */}
         {isLoading ? (
@@ -277,7 +265,7 @@ export function AkunPage() {
                       return (
                         <div
                           key={acc.id}
-                          className={`ego-main-card ego-main-card--account relative isolate overflow-hidden rounded-2xl border p-5 transition-all ${
+                          className={`ego-main-card ego-main-card--account group relative isolate overflow-hidden rounded-[1.5rem] border p-5 transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 hover:shadow-xl active:scale-[0.99] ${
                             !acc.is_active
                               ? "border-slate-200 bg-slate-100/80 opacity-75 dark:border-[#1E293B] dark:bg-[#0B111E]/80"
                               : isBankHero
@@ -285,13 +273,14 @@ export function AkunPage() {
                                 : "border-slate-200 bg-white shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none"
                           }`}
                         >
+                          <span className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37]/80 to-transparent opacity-80" aria-hidden="true" />
                           <span className="ego-main-card__robo" aria-hidden="true">
                             <EgoCompanion size="md" mode="idle" />
                           </span>
                           <div className="relative z-10 flex items-start justify-between gap-2">
                             <div className="flex min-w-0 items-center gap-3">
                               <span
-                                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ring-1 shadow-sm ${
                                   isBankHero
                                     ? "bg-[#D4AF37]/18 text-[#E6C768]"
                                     : "bg-[#D4AF37]/12 text-[#9A7411] dark:bg-[#D4AF37]/15 dark:text-[#E6C768]"
