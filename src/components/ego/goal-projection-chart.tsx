@@ -1,6 +1,8 @@
+import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { formatIDR } from "../../lib/finance";
 import type { GoalScenarioProjectionPoint } from "../../types/ego";
+import { EGO_EASE, useRevealOnce } from "./ego-motion";
 
 interface GoalProjectionChartProps {
   series: GoalScenarioProjectionPoint[];
@@ -23,6 +25,7 @@ function computeNiceCeiling(maxVal: number): number {
 
 export function GoalProjectionChart({ series, targetAmount }: GoalProjectionChartProps) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const { ref: chartRef, revealed } = useRevealOnce<HTMLDivElement>(0.08);
 
   const safeIdx =
     selectedIdx !== null && selectedIdx >= 0 && selectedIdx < series.length
@@ -72,20 +75,19 @@ export function GoalProjectionChart({ series, targetAmount }: GoalProjectionChar
 
   return (
     <div className="space-y-3">
-      {/* Interactive Month Inspector */}
       {activePoint ? (
         <div
           role="status"
           aria-live="polite"
-          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-xs dark:border-[#1B3163] dark:bg-[#06132F]"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs dark:border-[#1E293B] dark:bg-[#0B111E]"
         >
           <div className="flex items-center gap-2">
-            <span className="inline-block h-2 w-2 rounded-full bg-[#19D8FF]" aria-hidden="true" />
-            <span className="font-bold text-[#06132F] dark:text-white">
+            <span className="inline-block h-2 w-2 rounded-full bg-[#D4AF37]" aria-hidden="true" />
+            <span className="font-bold text-[#101827] dark:text-white">
               {activePoint.label}
             </span>
             <span className="text-slate-400">·</span>
-            <span className="font-mono text-slate-600 dark:text-[#C7D0E0]/75 tabular-nums">
+            <span className="font-mono text-slate-600 dark:text-slate-400 tabular-nums">
               Bulan ke-{activePoint.monthIndex}
             </span>
           </div>
@@ -94,17 +96,20 @@ export function GoalProjectionChart({ series, targetAmount }: GoalProjectionChar
             <span className="text-amber-600 dark:text-amber-300">
               Konservatif: <strong>{formatIDR(activePoint.conservative, true)}</strong>
             </span>
-            <span className="text-[#087BFF] dark:text-[#19D8FF]">
+            <span className="text-[#9A7411] dark:text-[#E6C768]">
               Normal: <strong>{formatIDR(activePoint.normal, true)}</strong>
             </span>
-            <span className="text-emerald-600 dark:text-emerald-400">
+            <span className="text-[#0D9488] dark:text-[#2DD4BF]">
               Optimistis: <strong>{formatIDR(activePoint.optimistic, true)}</strong>
             </span>
           </div>
         </div>
       ) : null}
 
-      <div className="relative w-full overflow-hidden rounded-2xl border border-[#DCE4F0] bg-white p-2 dark:border-[#1B3163] dark:bg-[#06132F]/70">
+      <div
+        ref={chartRef}
+        className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 dark:border-[#1E293B] dark:bg-[#0B111E]"
+      >
         <svg
           viewBox={`0 0 ${svgWidth} ${svgHeight}`}
           className="h-auto w-full select-none"
@@ -123,8 +128,8 @@ export function GoalProjectionChart({ series, targetAmount }: GoalProjectionChar
                   y2={y}
                   className={
                     idx === 0
-                      ? "stroke-[#CBD5E1] dark:stroke-[#233E7A]"
-                      : "stroke-[#E2E8F0] dark:stroke-[#14254E]"
+                      ? "stroke-slate-300 dark:stroke-slate-700"
+                      : "stroke-slate-200 dark:stroke-slate-800"
                   }
                   strokeWidth={1}
                   strokeDasharray={idx === 0 ? undefined : "3 3"}
@@ -133,7 +138,7 @@ export function GoalProjectionChart({ series, targetAmount }: GoalProjectionChar
                   x={padLeft - 8}
                   y={y + 4}
                   textAnchor="end"
-                  className="fill-slate-500 dark:fill-[#C7D0E0]/70"
+                  className="fill-slate-500 dark:fill-slate-400"
                   fontSize="10"
                   fontFamily="JetBrains Mono, monospace"
                 >
@@ -150,7 +155,7 @@ export function GoalProjectionChart({ series, targetAmount }: GoalProjectionChar
                 x2={svgWidth - padRight}
                 y1={targetY}
                 y2={targetY}
-                className="stroke-rose-500/80 dark:stroke-rose-400/80"
+                className="stroke-[#EF4444]/85"
                 strokeWidth={1.5}
                 strokeDasharray="6 4"
               />
@@ -158,7 +163,7 @@ export function GoalProjectionChart({ series, targetAmount }: GoalProjectionChar
                 x={svgWidth - padRight}
                 y={Math.max(padTop + 10, targetY - 5)}
                 textAnchor="end"
-                className="fill-rose-600 dark:fill-rose-300"
+                className="fill-[#DC2626] dark:fill-[#F87171]"
                 fontSize="10"
                 fontWeight="700"
                 fontFamily="JetBrains Mono, monospace"
@@ -169,28 +174,36 @@ export function GoalProjectionChart({ series, targetAmount }: GoalProjectionChar
           ) : null}
 
           {/* Scenario lines */}
-          <path
+          <motion.path
             d={conservativePath}
             fill="none"
             className="stroke-amber-500 dark:stroke-amber-400"
             strokeWidth={2}
             strokeDasharray="4 3"
+            initial={{ pathLength: 0, opacity: 0.4 }}
+            animate={{ pathLength: revealed ? 1 : 0, opacity: 1 }}
+            transition={{ duration: 0.45, ease: EGO_EASE }}
           />
-          <path
+          <motion.path
             d={optimisticPath}
             fill="none"
-            className="stroke-emerald-500 dark:stroke-emerald-400"
+            className="stroke-[#14B8A6]"
             strokeWidth={2}
             strokeDasharray="6 3"
+            initial={{ pathLength: 0, opacity: 0.4 }}
+            animate={{ pathLength: revealed ? 1 : 0, opacity: 1 }}
+            transition={{ duration: 0.48, delay: 0.04, ease: EGO_EASE }}
           />
-          <path
+          <motion.path
             d={normalPath}
             fill="none"
-            className="stroke-[#087BFF] dark:stroke-[#19D8FF]"
+            className="stroke-[#D4AF37] dark:stroke-[#E6C768]"
             strokeWidth={3}
+            initial={{ pathLength: 0, opacity: 0.4 }}
+            animate={{ pathLength: revealed ? 1 : 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.08, ease: EGO_EASE }}
           />
 
-          {/* Interactive hit points & X labels */}
           {series.map((p, idx) => {
             const cx = xFor(idx);
             const isSelected = safeIdx === idx;
@@ -228,7 +241,7 @@ export function GoalProjectionChart({ series, targetAmount }: GoalProjectionChar
                       x2={cx}
                       y1={padTop}
                       y2={padTop + plotH}
-                      className="stroke-[#087BFF]/40 dark:stroke-[#19D8FF]/40"
+                      className="stroke-[#D4AF37]/45"
                       strokeWidth={1}
                     />
                     <circle
@@ -241,14 +254,14 @@ export function GoalProjectionChart({ series, targetAmount }: GoalProjectionChar
                       cx={cx}
                       cy={yFor(p.normal)}
                       r={4.5}
-                      className="fill-[#087BFF] stroke-white dark:fill-[#19D8FF] dark:stroke-[#06132F]"
+                      className="fill-[#D4AF37] stroke-white dark:fill-[#E6C768] dark:stroke-[#101827]"
                       strokeWidth={2}
                     />
                     <circle
                       cx={cx}
                       cy={yFor(p.optimistic)}
                       r={3.5}
-                      className="fill-emerald-500"
+                      className="fill-[#14B8A6]"
                     />
                   </>
                 ) : null}
@@ -266,8 +279,8 @@ export function GoalProjectionChart({ series, targetAmount }: GoalProjectionChar
                     }
                     className={
                       isSelected
-                        ? "fill-[#06132F] dark:fill-white"
-                        : "fill-slate-500 dark:fill-[#C7D0E0]/65"
+                        ? "fill-[#101827] dark:fill-[#E6C768]"
+                        : "fill-slate-500 dark:fill-slate-400"
                     }
                     fontSize="10"
                     fontWeight={isSelected ? "700" : "500"}
@@ -282,22 +295,22 @@ export function GoalProjectionChart({ series, targetAmount }: GoalProjectionChar
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-600 dark:text-[#C7D0E0]/80">
+      <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-600 dark:text-slate-300">
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-0.5 w-4 bg-amber-500" aria-hidden="true" />
           Konservatif
         </span>
-        <span className="inline-flex items-center gap-1.5 font-semibold text-[#06132F] dark:text-white">
-          <span className="inline-block h-1 w-4 rounded bg-[#087BFF] dark:bg-[#19D8FF]" aria-hidden="true" />
+        <span className="inline-flex items-center gap-1.5 font-semibold text-[#101827] dark:text-[#E6C768]">
+          <span className="inline-block h-1 w-4 rounded bg-[#D4AF37]" aria-hidden="true" />
           Normal (Utama)
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-0.5 w-4 bg-emerald-500" aria-hidden="true" />
+          <span className="inline-block h-0.5 w-4 bg-[#14B8A6]" aria-hidden="true" />
           Optimistis
         </span>
         {targetAmount > 0 ? (
           <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block h-0.5 w-4 border-b-2 border-dashed border-rose-500" aria-hidden="true" />
+            <span className="inline-block h-0.5 w-4 border-b-2 border-dashed border-[#EF4444]" aria-hidden="true" />
             Target Dana
           </span>
         ) : null}

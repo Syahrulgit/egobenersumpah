@@ -10,12 +10,17 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/ego/app-shell";
-import { EgoCompanion } from "../../components/ego/ego-brand";
 import { CategoryBreakdown } from "../../components/ego/category-breakdown";
 import { CategoryIcon } from "../../components/ego/category-icon";
+import {
+  EGO_EASE,
+  EgoCountUp,
+  EgoStaggerSection,
+} from "../../components/ego/ego-motion";
 import { ModalSheet } from "../../components/ego/modal-sheet";
 import { useTransactionSheet } from "../../components/ego/transaction-input-sheet";
 import { transactionsToCsv, triggerBrowserDownload } from "../../lib/export";
@@ -153,9 +158,16 @@ export function TransaksiPage() {
   );
 
   const displayedGroups = useMemo(() => {
-    const visibleTransactions = showAllTransactions ? filteredTransactions : filteredTransactions.slice(0, 5);
+    const visibleTransactions = showAllTransactions
+      ? filteredTransactions
+      : filteredTransactions.slice(0, 5);
     const visibleIds = new Set(visibleTransactions.map((tx) => tx.id));
-    return groupedByDate.map((group) => ({ ...group, items: group.items.filter((tx) => visibleIds.has(tx.id)) })).filter((group) => group.items.length > 0);
+    return groupedByDate
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((tx) => visibleIds.has(tx.id)),
+      }))
+      .filter((group) => group.items.length > 0);
   }, [filteredTransactions, groupedByDate, showAllTransactions]);
 
   const periodSummary = useMemo(() => {
@@ -172,12 +184,12 @@ export function TransaksiPage() {
   return (
     <AppShell
       title="Transaksi"
-      subtitle="Semua uang masuk, keluar, dan perpindahan akun dalam satu tempat."
+      subtitle="Semua uang masuk, keluar, dan perpindahan akun dalam satu buku mutasi bersih."
       action={
         <button
           type="button"
           onClick={() => openTransactionSheet({ redirectOnSuccess: false })}
-          className="inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-[#087BFF]/20 hover:brightness-110 whitespace-nowrap"
+          className="inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2 text-xs font-semibold text-[#101827] shadow-sm shadow-[#D4AF37]/20 transition-all hover:brightness-105 whitespace-nowrap"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           <span>Catat Transaksi</span>
@@ -185,24 +197,62 @@ export function TransaksiPage() {
       }
     >
       <div className="ego-transactions space-y-4">
-        <section className="ego-transaction-panel ego-transaction-summary ego-main-card relative isolate overflow-hidden rounded-[1.65rem] border border-[#DCE4F0] bg-white p-4 shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-5">
-          <span className="ego-main-card__robo" aria-hidden="true"><EgoCompanion size="md" mode="idle" /></span>
+        <EgoStaggerSection index={0}>
+        <section className="ego-transaction-panel ego-transaction-summary ego-main-card relative isolate overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-5">
           <div className="relative z-10 mb-4">
-            <p className="text-xs font-semibold text-slate-500 dark:text-[#C7D0E0]/70">Ringkasan transaksi</p>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <div className="rounded-xl bg-[#087BFF]/8 p-3 dark:bg-[#19D8FF]/10">
-                <p className="text-[11px] font-medium text-slate-600 dark:text-[#C7D0E0]/75">Uang masuk</p>
-                <p className="mt-1 truncate font-mono text-base font-bold tabular-nums text-[#087BFF] dark:text-[#19D8FF]">+{formatIDR(periodSummary.income, true)}</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Buku Mutasi &amp; Ringkasan Periode
+              </p>
+              <p className="font-mono text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+                {showAllTransactions || filteredTransactions.length <= 5
+                  ? filteredTransactions.length
+                  : 5}{" "}
+                / {filteredTransactions.length} transaksi
+              </p>
+            </div>
+            <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+              <div className="rounded-2xl border border-[#14B8A6]/25 bg-[#14B8A6]/8 p-3.5 dark:border-[#14B8A6]/30 dark:bg-[#14B8A6]/10">
+                <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300">
+                  Uang Masuk
+                </p>
+                <p className="mt-1 truncate font-mono text-base font-bold tabular-nums text-[#0D9488] dark:text-[#2DD4BF] sm:text-lg">
+                  +<EgoCountUp value={periodSummary.income} formatter={(v) => formatIDR(v, true)} />
+                </p>
               </div>
-              <div className="rounded-xl bg-rose-500/8 p-3 dark:bg-rose-500/10">
-                <p className="text-[11px] font-medium text-slate-600 dark:text-[#C7D0E0]/75">Uang keluar</p>
-                <p className="mt-1 truncate font-mono text-base font-bold tabular-nums text-rose-600 dark:text-rose-400">-{formatIDR(periodSummary.expense, true)}</p>
+              <div className="rounded-2xl border border-[#EF4444]/25 bg-[#EF4444]/8 p-3.5 dark:border-[#EF4444]/30 dark:bg-[#EF4444]/10">
+                <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300">
+                  Uang Keluar
+                </p>
+                <p className="mt-1 truncate font-mono text-base font-bold tabular-nums text-[#DC2626] dark:text-[#F87171] sm:text-lg">
+                  -<EgoCountUp value={periodSummary.expense} formatter={(v) => formatIDR(v, true)} />
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]">
+                <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300">
+                  Selisih Bersih
+                </p>
+                <p
+                  className={`mt-1 truncate font-mono text-base font-bold tabular-nums sm:text-lg ${
+                    periodSummary.income - periodSummary.expense >= 0
+                      ? "text-[#9A7411] dark:text-[#E6C768]"
+                      : "text-[#DC2626] dark:text-[#F87171]"
+                  }`}
+                >
+                  <EgoCountUp
+                    value={periodSummary.income - periodSummary.expense}
+                    formatter={(v) => formatIDR(v, true)}
+                  />
+                </p>
               </div>
             </div>
-            <p className="mt-2 text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">{showAllTransactions || filteredTransactions.length <= 5 ? filteredTransactions.length : 5} dari {filteredTransactions.length} transaksi ditampilkan</p>
           </div>
 
-          <div role="tablist" aria-label="Jenis transaksi" className="grid grid-cols-4 gap-1 rounded-2xl border border-[#DCE4F0] bg-[#EEF3FA] p-1 dark:border-[#1B3163] dark:bg-[#06132F]">
+          <div
+            role="tablist"
+            aria-label="Jenis transaksi"
+            className="grid grid-cols-4 gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1 dark:border-[#1E293B] dark:bg-[#0B111E]"
+          >
             {(
               [
                 { id: "all", label: "Semua" },
@@ -213,100 +263,240 @@ export function TransaksiPage() {
             ).map((tab) => {
               const active = filterType === tab.id;
               return (
-                <button key={tab.id} type="button" role="tab" aria-selected={active}
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
                   onClick={() => {
                     setFilterType(tab.id);
-                    if (tab.id === "income" || tab.id === "expense") setBreakdownType(tab.id);
+                    if (tab.id === "income" || tab.id === "expense") {
+                      setBreakdownType(tab.id);
+                    }
                   }}
-                  className={`min-h-[40px] rounded-xl px-1.5 py-2 text-xs font-semibold transition-colors whitespace-nowrap ${
-                    active ? "bg-[#087BFF] text-white shadow-xs" : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+                  className={`ego-pressable min-h-[42px] rounded-xl px-1.5 py-2 text-xs font-semibold transition-colors whitespace-nowrap ${
+                    active
+                      ? "bg-[#101827] text-white shadow-xs dark:bg-[#D4AF37] dark:text-[#101827]"
+                      : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
                   }`}
-                >{tab.label}</button>
+                >
+                  {tab.label}
+                </button>
               );
             })}
           </div>
 
           <div className="mt-3 flex items-center justify-between gap-2">
-            <button type="button" aria-expanded={showFilters} onClick={() => setShowFilters((value) => !value)}
-              className="inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2 text-xs font-semibold text-[#06132F] dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]">
-              <Search className="h-3.5 w-3.5" aria-hidden="true" />
+            <button
+              type="button"
+              aria-expanded={showFilters}
+              onClick={() => setShowFilters((value) => !value)}
+              className="ego-pressable inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-[#101827] transition-colors hover:border-[#D4AF37]/50 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200"
+            >
+              <Search className="h-3.5 w-3.5 text-[#9A7411] dark:text-[#E6C768]" aria-hidden="true" />
               <span>Filter &amp; Alat</span>
-              {hasActiveFilter ? <span className="rounded-full bg-[#087BFF]/10 px-1.5 py-0.5 text-[10px] text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">Aktif</span> : null}
-              {showFilters ? <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" /> : <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />}
+              {hasActiveFilter ? (
+                <span className="rounded-md bg-[#D4AF37]/15 px-1.5 py-0.5 text-[10px] font-bold text-[#9A7411] dark:bg-[#D4AF37]/20 dark:text-[#E6C768]">
+                  Aktif
+                </span>
+              ) : null}
+              {showFilters ? (
+                <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
             </button>
             {hasActiveFilter ? (
-              <button type="button" onClick={handleResetFilters} className="inline-flex min-h-[38px] items-center gap-1 rounded-xl px-2 text-xs font-semibold text-rose-600 dark:text-rose-400">
-                <X className="h-3.5 w-3.5" aria-hidden="true" /><span>Reset</span>
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="inline-flex min-h-[40px] items-center gap-1 rounded-xl px-2.5 text-xs font-semibold text-[#DC2626] hover:bg-[#EF4444]/8 dark:text-[#F87171]"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Reset</span>
               </button>
             ) : null}
           </div>
 
+          <AnimatePresence initial={false}>
           {showFilters ? (
-            <div className="mt-3 space-y-3 rounded-xl border border-[#DCE4F0] bg-[#F8FAFD] p-3 dark:border-[#1B3163] dark:bg-[#06132F]/70">
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2, ease: EGO_EASE }}
+              className="mt-3 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]"
+            >
               <div>
-                <label className="mb-1.5 block text-[11px] font-semibold text-slate-600 dark:text-[#C7D0E0]/75">Cari transaksi</label>
+                <label className="mb-1.5 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                  Cari transaksi
+                </label>
                 <div className="relative">
-                  <Search className="pointer-events-none absolute top-3 left-3 h-4 w-4 text-slate-400" aria-hidden="true" />
-                  <input type="text" aria-label="Cari transaksi" value={filterSearch} onChange={(e) => setFilterSearch(e.target.value)} placeholder="Keterangan atau kategori..."
-                    className="min-h-[42px] w-full rounded-xl border border-[#DCE4F0] bg-white py-2 pr-3 pl-9 text-xs text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:outline-none dark:border-[#1B3163] dark:bg-[#091634] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[#19D8FF]" />
+                  <Search
+                    className="pointer-events-none absolute top-3 left-3 h-4 w-4 text-slate-400"
+                    aria-hidden="true"
+                  />
+                  <input
+                    type="text"
+                    aria-label="Cari transaksi"
+                    value={filterSearch}
+                    onChange={(e) => setFilterSearch(e.target.value)}
+                    placeholder="Keterangan atau kategori..."
+                    className="min-h-[42px] w-full rounded-xl border border-slate-200 bg-white py-2 pr-3 pl-9 text-xs text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#101827] dark:text-white dark:placeholder:text-slate-500"
+                  />
                 </div>
               </div>
               <div>
-                <label className="mb-1.5 block text-[11px] font-semibold text-slate-600 dark:text-[#C7D0E0]/75">Pilih akun</label>
-                <select aria-label="Filter akun" value={filterAccountId} onChange={(e) => setFilterAccountId(e.target.value)}
-                  className="min-h-[42px] w-full rounded-xl border border-[#DCE4F0] bg-white px-3 py-2 text-xs text-[#06132F] focus:border-[#087BFF] focus:outline-none dark:border-[#1B3163] dark:bg-[#091634] dark:text-white dark:focus:border-[#19D8FF]">
+                <label className="mb-1.5 block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                  Pilih akun
+                </label>
+                <select
+                  aria-label="Filter akun"
+                  value={filterAccountId}
+                  onChange={(e) => setFilterAccountId(e.target.value)}
+                  className="min-h-[42px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-[#101827] focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#101827] dark:text-white"
+                >
                   <option value="">Semua Akun</option>
-                  {accounts.map((acc) => <option key={acc.id} value={acc.id}>{acc.account_name}</option>)}
+                  {accounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.account_name}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
-                <p className="mb-1.5 text-[11px] font-semibold text-slate-600 dark:text-[#C7D0E0]/75">Periode</p>
+                <p className="mb-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                  Periode
+                </p>
                 <div className="grid grid-cols-3 gap-1.5">
-                  <button type="button" onClick={() => applyQuickPeriod("this-month")} className="min-h-[34px] rounded-lg border border-[#DCE4F0] bg-white px-2 py-1 text-[11px] font-semibold text-[#06132F] dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0]">Bulan Ini</button>
-                  <button type="button" onClick={() => applyQuickPeriod("last-7d")} className="min-h-[34px] rounded-lg border border-[#DCE4F0] bg-white px-2 py-1 text-[11px] font-semibold text-[#06132F] dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0]">7 Hari</button>
-                  <button type="button" onClick={() => applyQuickPeriod("all")} className="min-h-[34px] rounded-lg border border-[#DCE4F0] bg-white px-2 py-1 text-[11px] font-semibold text-[#06132F] dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0]">Semua</button>
+                  <button
+                    type="button"
+                    onClick={() => applyQuickPeriod("this-month")}
+                    className="min-h-[36px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-[#101827] hover:border-[#D4AF37]/50 dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-200"
+                  >
+                    Bulan Ini
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyQuickPeriod("last-7d")}
+                    className="min-h-[36px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-[#101827] hover:border-[#D4AF37]/50 dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-200"
+                  >
+                    7 Hari
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyQuickPeriod("all")}
+                    className="min-h-[36px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-[#101827] hover:border-[#D4AF37]/50 dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-200"
+                  >
+                    Semua
+                  </button>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2">
-                  <div><label className="mb-1 block text-[10px] text-slate-500 dark:text-[#C7D0E0]/65">Dari tanggal</label><input type="date" aria-label="Tanggal mulai" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="min-h-[40px] w-full rounded-xl border border-[#DCE4F0] bg-white px-2 py-2 font-mono text-[11px] text-[#06132F] dark:border-[#1B3163] dark:bg-[#091634] dark:text-white" /></div>
-                  <div><label className="mb-1 block text-[10px] text-slate-500 dark:text-[#C7D0E0]/65">Sampai tanggal</label><input type="date" aria-label="Tanggal akhir" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="min-h-[40px] w-full rounded-xl border border-[#DCE4F0] bg-white px-2 py-2 font-mono text-[11px] text-[#06132F] dark:border-[#1B3163] dark:bg-[#091634] dark:text-white" /></div>
+                  <div>
+                    <label className="mb-1 block text-[10px] text-slate-500 dark:text-slate-400">
+                      Dari tanggal
+                    </label>
+                    <input
+                      type="date"
+                      aria-label="Tanggal mulai"
+                      value={filterFrom}
+                      onChange={(e) => setFilterFrom(e.target.value)}
+                      className="min-h-[40px] w-full rounded-xl border border-slate-200 bg-white px-2 py-2 font-mono text-[11px] text-[#101827] focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#101827] dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] text-slate-500 dark:text-slate-400">
+                      Sampai tanggal
+                    </label>
+                    <input
+                      type="date"
+                      aria-label="Tanggal akhir"
+                      value={filterTo}
+                      onChange={(e) => setFilterTo(e.target.value)}
+                      className="min-h-[40px] w-full rounded-xl border border-slate-200 bg-white px-2 py-2 font-mono text-[11px] text-[#101827] focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#101827] dark:text-white"
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#DCE4F0] pt-3 dark:border-[#1B3163]">
-                <button type="button" disabled={filteredTransactions.length === 0}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-3 dark:border-[#1E293B]">
+                <button
+                  type="button"
+                  disabled={filteredTransactions.length === 0}
                   onClick={() => {
                     const csv = transactionsToCsv(filteredTransactions, accounts);
-                    triggerBrowserDownload(`ego-transaksi-${todayISO()}.csv`, csv, "text/csv;charset=utf-8;");
-                    toast.success(`${filteredTransactions.length} transaksi diekspor ke CSV.`);
+                    triggerBrowserDownload(
+                      `ego-transaksi-${todayISO()}.csv`,
+                      csv,
+                      "text/csv;charset=utf-8;"
+                    );
+                    toast.success(
+                      `${filteredTransactions.length} transaksi diekspor ke CSV.`
+                    );
                   }}
-                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-[#DCE4F0] bg-white px-3 py-2 text-[11px] font-semibold text-[#06132F] disabled:opacity-50 dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0]">
-                  <Download className="h-3.5 w-3.5" aria-hidden="true" /><span>Ekspor CSV</span>
+                  className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold text-[#101827] hover:border-[#D4AF37]/50 disabled:opacity-50 dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-200"
+                >
+                  <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Ekspor CSV</span>
                 </button>
-                <button type="button" onClick={() => setShowBreakdown((value) => !value)} className="inline-flex min-h-[36px] items-center gap-1 text-[11px] font-semibold text-[#087BFF] dark:text-[#19D8FF]">
-                  <span>{showBreakdown ? "Tutup ringkasan kategori" : "Ringkasan kategori"}</span>
-                  {showBreakdown ? <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" /> : <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />}
+                <button
+                  type="button"
+                  onClick={() => setShowBreakdown((value) => !value)}
+                  className="inline-flex min-h-[38px] items-center gap-1 text-[11px] font-semibold text-[#9A7411] hover:underline dark:text-[#E6C768]"
+                >
+                  <span>
+                    {showBreakdown
+                      ? "Tutup ringkasan kategori"
+                      : "Ringkasan kategori"}
+                  </span>
+                  {showBreakdown ? (
+                    <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+                  ) : (
+                    <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                  )}
                 </button>
               </div>
               {showBreakdown && !isLoading ? (
                 <div className="pt-1">
-                  <CategoryBreakdown embedded title="Ringkasan Kategori" subtitle="Pilih kategori untuk menyaring transaksi"
-                    transactions={transactions} type={breakdownType}
+                  <CategoryBreakdown
+                    embedded
+                    title="Ringkasan Kategori"
+                    subtitle="Pilih kategori untuk menyaring transaksi"
+                    transactions={transactions}
+                    type={breakdownType}
                     onTypeChange={(nextType) => {
                       setBreakdownType(nextType);
-                      if (filterType === "income" || filterType === "expense") setFilterType(nextType);
+                      if (
+                        filterType === "income" ||
+                        filterType === "expense"
+                      ) {
+                        setFilterType(nextType);
+                      }
                     }}
-                    fromDate={filterFrom || undefined} toDate={filterTo || undefined}
-                    selectedCategory={filterSearch} showEmptyCta={false} maxItems={8}
+                    fromDate={filterFrom || undefined}
+                    toDate={filterTo || undefined}
+                    selectedCategory={filterSearch}
+                    showEmptyCta={false}
+                    maxItems={8}
                     onSelectCategory={(cat, txType) => {
-                      const isSame = filterSearch.trim().toLowerCase() === cat.toLowerCase() && filterType === txType;
-                      if (isSame) { setFilterSearch(""); setFilterType("all"); }
-                      else { setFilterSearch(cat); setFilterType(txType); }
+                      const isSame =
+                        filterSearch.trim().toLowerCase() === cat.toLowerCase() &&
+                        filterType === txType;
+                      if (isSame) {
+                        setFilterSearch("");
+                        setFilterType("all");
+                      } else {
+                        setFilterSearch(cat);
+                        setFilterType(txType);
+                      }
                     }}
                   />
                 </div>
               ) : null}
-            </div>
+            </motion.div>
           ) : null}
+          </AnimatePresence>
         </section>
+        </EgoStaggerSection>
 
         {/* Date-Grouped Transactions List */}
         {isLoading ? (
@@ -314,19 +504,19 @@ export function TransaksiPage() {
             {[1, 2, 3].map((k) => (
               <div
                 key={k}
-                className="h-20 animate-pulse rounded-2xl border border-[#DCE4F0] bg-white dark:border-[#1B3163] dark:bg-[#091634]"
+                className="h-20 animate-pulse rounded-2xl border border-slate-200 bg-white dark:border-[#1E293B] dark:bg-[#101827]"
               />
             ))}
           </div>
         ) : groupedByDate.length === 0 ? (
-          <section className="rounded-2xl border border-dashed border-[#DCE4F0] bg-white p-8 text-center dark:border-[#1B3163] dark:bg-[#091634]">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+          <section className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center dark:border-[#1E293B] dark:bg-[#101827]">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D4AF37]/12 text-[#9A7411] dark:bg-[#D4AF37]/15 dark:text-[#E6C768]">
               <Wallet className="h-6 w-6" aria-hidden="true" />
             </div>
-            <p className="mt-3 text-sm font-bold text-[#06132F] dark:text-white">
+            <p className="mt-3 text-sm font-bold text-[#101827] dark:text-white">
               Belum ada transaksi yang sesuai
             </p>
-            <p className="mt-1 text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
               {hasActiveFilter
                 ? "Ubah atau reset filter di atas untuk menampilkan catatan lainnya."
                 : "Catat transaksi pertama Anda melalui tombol + atau Catat Transaksi."}
@@ -335,7 +525,7 @@ export function TransaksiPage() {
               <button
                 type="button"
                 onClick={() => openTransactionSheet({ redirectOnSuccess: false })}
-                className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0666DB]"
+                className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2 text-xs font-semibold text-[#101827] hover:brightness-105"
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Catat Transaksi</span>
@@ -344,7 +534,7 @@ export function TransaksiPage() {
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-4 py-2 text-xs font-semibold text-[#06132F] dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                  className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-[#101827] dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
                 >
                   <span>Reset Filter</span>
                 </button>
@@ -352,31 +542,31 @@ export function TransaksiPage() {
             </div>
           </section>
         ) : (
-          <div className="space-y-4">
+          <EgoStaggerSection index={1} className="space-y-4">
             {displayedGroups.map((group) => (
               <section
                 key={group.dateKey}
-                className="ego-transaction-panel overflow-hidden rounded-[1.65rem] border border-[#DCE4F0] bg-white shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none"
+                className="ego-transaction-panel overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none"
               >
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#DCE4F0] bg-[#F4F7FB] px-4 py-2.5 dark:border-[#1B3163] dark:bg-[#06132F]">
-                  <h2 className="text-xs font-bold text-[#06132F] dark:text-white">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2.5 dark:border-[#1E293B] dark:bg-[#0B111E]">
+                  <h2 className="text-xs font-bold text-[#101827] dark:text-white">
                     {group.label}
                   </h2>
                   <div className="flex items-center gap-3 font-mono text-[11px] tabular-nums">
                     {group.dayIncome > 0 ? (
-                      <span className="font-semibold text-[#087BFF] dark:text-[#19D8FF]">
+                      <span className="font-semibold text-[#0D9488] dark:text-[#2DD4BF]">
                         +{formatIDR(group.dayIncome)}
                       </span>
                     ) : null}
                     {group.dayExpense > 0 ? (
-                      <span className="font-semibold text-rose-600 dark:text-rose-400">
+                      <span className="font-semibold text-[#DC2626] dark:text-[#F87171]">
                         -{formatIDR(group.dayExpense)}
                       </span>
                     ) : null}
                   </div>
                 </div>
 
-                <ul className="divide-y divide-[#DCE4F0]/70 dark:divide-[#1B3163]/70">
+                <ul className="divide-y divide-slate-200/75 dark:divide-[#1E293B]/80">
                   {group.items.map((tx) => {
                     const srcName = tx.source_account_id
                       ? accountNameMap.get(tx.source_account_id) ?? "Akun"
@@ -393,19 +583,19 @@ export function TransaksiPage() {
                     const isCancelled = tx.status === "cancelled";
 
                     const iconWrapCls = isCancelled
-                      ? "bg-slate-100 text-slate-400 dark:bg-[#06132F] dark:text-slate-500"
+                      ? "bg-slate-100 text-slate-400 dark:bg-[#0B111E] dark:text-slate-500"
                       : tx.transaction_type === "income"
-                        ? "bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                        ? "bg-[#14B8A6]/12 text-[#0D9488] dark:bg-[#14B8A6]/15 dark:text-[#2DD4BF]"
                         : tx.transaction_type === "expense"
-                          ? "bg-rose-500/10 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400"
-                          : "bg-[#06132F]/8 text-[#06132F] dark:bg-[#122652] dark:text-[#C7D0E0]";
+                          ? "bg-[#EF4444]/10 text-[#DC2626] dark:bg-[#EF4444]/15 dark:text-[#F87171]"
+                          : "bg-[#D4AF37]/12 text-[#9A7411] dark:bg-[#D4AF37]/15 dark:text-[#E6C768]";
 
                     return (
                       <li key={tx.id}>
                         <button
                           type="button"
                           onClick={() => setSelectedTx(tx)}
-                          className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[#F4F7FB] dark:hover:bg-[#0D1E45]/70"
+                          className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-[#162032]"
                         >
                           <div className="flex min-w-0 items-center gap-3">
                             <span
@@ -422,12 +612,12 @@ export function TransaksiPage() {
                                 className={`truncate text-sm font-semibold ${
                                   isCancelled
                                     ? "text-slate-400 line-through dark:text-slate-500"
-                                    : "text-[#06132F] dark:text-white"
+                                    : "text-[#101827] dark:text-white"
                                 }`}
                               >
                                 {tx.description || tx.category || "Mutasi"}
                               </p>
-                              <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-[#C7D0E0]/70">
+                              <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
                                 {tx.category || "Umum"} · {accountFlow}
                                 {isCancelled ? " · Dibatalkan" : ""}
                               </p>
@@ -440,10 +630,10 @@ export function TransaksiPage() {
                                 isCancelled
                                   ? "text-slate-400 line-through dark:text-slate-500"
                                   : tx.transaction_type === "income"
-                                    ? "text-[#087BFF] dark:text-[#19D8FF]"
+                                    ? "text-[#0D9488] dark:text-[#2DD4BF]"
                                     : tx.transaction_type === "expense"
-                                      ? "text-rose-600 dark:text-rose-400"
-                                      : "text-[#06132F] dark:text-[#C7D0E0]"
+                                      ? "text-[#DC2626] dark:text-[#F87171]"
+                                      : "text-[#101827] dark:text-[#E6C768]"
                               }`}
                             >
                               {tx.transaction_type === "income"
@@ -453,7 +643,7 @@ export function TransaksiPage() {
                                   : "⇄ "}
                               {formatIDR(tx.amount)}
                             </p>
-                            <p className="text-[11px] text-slate-400 dark:text-[#C7D0E0]/55">
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500">
                               {isCancelled ? "Saldo Kembali" : "Detail →"}
                             </p>
                           </div>
@@ -465,12 +655,22 @@ export function TransaksiPage() {
               </section>
             ))}
             {filteredTransactions.length > 5 ? (
-              <button type="button" onClick={() => setShowAllTransactions((value) => !value)} className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[#DCE4F0] bg-white px-4 py-3 text-xs font-semibold text-[#087BFF] shadow-xs transition-colors hover:bg-[#F4F7FB] dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#19D8FF] dark:hover:bg-[#0D1E45]">
-                {showAllTransactions ? "Tampilkan lebih sedikit" : `Lihat Semua Transaksi (${filteredTransactions.length})`}
-                {showAllTransactions ? <ChevronUp className="h-4 w-4" aria-hidden="true" /> : <ChevronDown className="h-4 w-4" aria-hidden="true" />}
+              <button
+                type="button"
+                onClick={() => setShowAllTransactions((value) => !value)}
+                className="ego-pressable flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-[#9A7411] shadow-xs transition-colors hover:border-[#D4AF37]/50 hover:bg-slate-50 dark:border-[#1E293B] dark:bg-[#101827] dark:text-[#E6C768] dark:hover:bg-[#162032]"
+              >
+                {showAllTransactions
+                  ? "Tampilkan lebih sedikit"
+                  : `Lihat Semua Transaksi (${filteredTransactions.length})`}
+                {showAllTransactions ? (
+                  <ChevronUp className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                )}
               </button>
             ) : null}
-          </div>
+          </EgoStaggerSection>
         )}
       </div>
 
@@ -487,8 +687,8 @@ export function TransaksiPage() {
       >
         {selectedTx ? (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] p-4 text-center dark:border-[#1B3163] dark:bg-[#06132F]">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/70">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center dark:border-[#1E293B] dark:bg-[#0B111E]">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 {selectedTx.transaction_type === "income"
                   ? "Pemasukan"
                   : selectedTx.transaction_type === "expense"
@@ -500,38 +700,38 @@ export function TransaksiPage() {
                   selectedTx.status === "cancelled"
                     ? "text-slate-400 line-through"
                     : selectedTx.transaction_type === "income"
-                      ? "text-[#087BFF] dark:text-[#19D8FF]"
+                      ? "text-[#0D9488] dark:text-[#2DD4BF]"
                       : selectedTx.transaction_type === "expense"
-                        ? "text-rose-600 dark:text-rose-400"
-                        : "text-[#06132F] dark:text-white"
+                        ? "text-[#DC2626] dark:text-[#F87171]"
+                        : "text-[#101827] dark:text-[#E6C768]"
                 }`}
               >
                 {formatIDR(selectedTx.amount)}
               </p>
             </div>
 
-            <dl className="divide-y divide-[#DCE4F0] text-xs dark:divide-[#1B3163]">
+            <dl className="divide-y divide-slate-200 text-xs dark:divide-[#1E293B]">
               <div className="flex justify-between gap-4 py-2.5">
-                <dt className="text-slate-500 dark:text-[#C7D0E0]/70">
+                <dt className="text-slate-500 dark:text-slate-400">
                   Keterangan
                 </dt>
-                <dd className="text-right font-semibold text-[#06132F] dark:text-white">
+                <dd className="text-right font-semibold text-[#101827] dark:text-white">
                   {selectedTx.description || "—"}
                 </dd>
               </div>
               <div className="flex justify-between gap-4 py-2.5">
-                <dt className="text-slate-500 dark:text-[#C7D0E0]/70">
+                <dt className="text-slate-500 dark:text-slate-400">
                   Kategori
                 </dt>
-                <dd className="text-right font-semibold text-[#06132F] dark:text-white">
+                <dd className="text-right font-semibold text-[#101827] dark:text-white">
                   {selectedTx.category || "Umum"}
                 </dd>
               </div>
               <div className="flex justify-between gap-4 py-2.5">
-                <dt className="text-slate-500 dark:text-[#C7D0E0]/70">
+                <dt className="text-slate-500 dark:text-slate-400">
                   Alur Akun
                 </dt>
-                <dd className="text-right font-semibold text-[#06132F] dark:text-white">
+                <dd className="text-right font-semibold text-[#101827] dark:text-white">
                   {selectedTx.transaction_type === "transfer"
                     ? `${
                         selectedTx.source_account_id
@@ -557,10 +757,10 @@ export function TransaksiPage() {
                 </dd>
               </div>
               <div className="flex justify-between gap-4 py-2.5">
-                <dt className="text-slate-500 dark:text-[#C7D0E0]/70">
+                <dt className="text-slate-500 dark:text-slate-400">
                   Status
                 </dt>
-                <dd className="text-right font-semibold text-[#087BFF] dark:text-[#19D8FF]">
+                <dd className="text-right font-semibold text-[#0D9488] dark:text-[#2DD4BF]">
                   {selectedTx.status === "cancelled"
                     ? "Dibatalkan (Saldo Dikembalikan)"
                     : "Disetujui Owner · Terposting"}
@@ -573,7 +773,7 @@ export function TransaksiPage() {
                 type="button"
                 onClick={() => handleCancelTransaction(selectedTx.id)}
                 disabled={cancelTx.isPending}
-                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-100 disabled:opacity-60 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[#EF4444]/30 bg-[#EF4444]/8 px-4 py-2.5 text-xs font-semibold text-[#DC2626] transition-colors hover:bg-[#EF4444]/15 disabled:opacity-60 dark:border-[#EF4444]/35 dark:bg-[#EF4444]/12 dark:text-[#F87171]"
               >
                 {cancelTx.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />

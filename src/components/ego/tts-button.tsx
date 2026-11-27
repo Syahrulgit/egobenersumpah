@@ -89,23 +89,23 @@ export function TtsButton({
       onClick={handleToggle}
       disabled={status === "loading" || !text.trim()}
       aria-label={status === "playing" ? `Hentikan suara ${label}` : label}
-      className={`inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-[#DCE4F0] bg-white text-xs font-medium text-[#06132F] shadow-2xs transition-colors hover:border-[#087BFF]/40 hover:bg-[#F4F7FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#087BFF] disabled:opacity-50 whitespace-nowrap shrink-0 dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0] dark:shadow-none dark:hover:border-[#19D8FF]/40 dark:hover:bg-[#0D1E45] ${
+      className={`inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-[#101827] shadow-2xs transition-colors hover:border-[#D4AF37]/50 hover:bg-[#D4AF37]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] disabled:opacity-50 whitespace-nowrap shrink-0 dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-200 dark:shadow-none dark:hover:border-[#D4AF37]/50 dark:hover:bg-[#162032] ${
         compact ? "px-3 py-1.5" : "px-3.5 py-2"
       }`}
     >
       {status === "loading" ? (
         <Loader2
-          className="h-3.5 w-3.5 animate-spin text-[#087BFF] dark:text-[#19D8FF]"
+          className="h-3.5 w-3.5 animate-spin text-[#D4AF37]"
           aria-hidden="true"
         />
       ) : status === "playing" ? (
         <Square
-          className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400"
+          className="h-3.5 w-3.5 text-[#EF4444]"
           aria-hidden="true"
         />
       ) : (
         <Volume2
-          className="h-3.5 w-3.5 text-[#087BFF] dark:text-[#19D8FF]"
+          className="h-3.5 w-3.5 text-[#B8901F] dark:text-[#E6C768]"
           aria-hidden="true"
         />
       )}

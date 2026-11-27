@@ -11,6 +11,11 @@ import { toast } from "sonner";
 import { AppShell } from "../../components/ego/app-shell";
 import { CashflowChart } from "../../components/ego/cashflow-chart";
 import { CategoryBreakdown } from "../../components/ego/category-breakdown";
+import {
+  EgoAnimatedBar,
+  EgoCountUp,
+  EgoStaggerSection,
+} from "../../components/ego/ego-motion";
 import { useTransactionSheet } from "../../components/ego/transaction-input-sheet";
 import {
   transactionsToCsv,
@@ -106,10 +111,10 @@ export function LaporanPage() {
             type="button"
             disabled={!vault}
             onClick={handleExportCsv}
-            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#06132F] hover:bg-slate-50 disabled:opacity-50 dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45]"
+            className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#101827] transition-colors hover:border-[#D4AF37]/45 hover:bg-slate-50 disabled:opacity-50 dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-200 dark:hover:bg-[#162032]"
           >
             <FileSpreadsheet
-              className="h-3.5 w-3.5 text-[#087BFF] dark:text-[#19D8FF]"
+              className="h-3.5 w-3.5 text-[#9A7411] dark:text-[#E6C768]"
               aria-hidden="true"
             />
             <span>CSV</span>
@@ -118,7 +123,7 @@ export function LaporanPage() {
             type="button"
             disabled={!vault}
             onClick={handleExportJson}
-            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#0666DB] disabled:opacity-50"
+            className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-3.5 py-1.5 text-xs font-semibold text-[#101827] shadow-sm shadow-[#D4AF37]/20 transition-all hover:brightness-105 disabled:opacity-50"
           >
             <Download className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Cadangan JSON</span>
@@ -128,139 +133,171 @@ export function LaporanPage() {
     >
       {isLoading ? (
         <div className="space-y-5">
-          <div className="h-36 animate-pulse rounded-3xl border border-[#DCE4F0] bg-white dark:border-[#1B3163] dark:bg-[#091634]" />
+          <div className="h-36 animate-pulse rounded-3xl border border-slate-200 bg-white dark:border-[#1E293B] dark:bg-[#101827]" />
           <div className="grid gap-5 lg:grid-cols-12">
-            <div className="h-80 animate-pulse rounded-2xl border border-[#DCE4F0] bg-white dark:border-[#1B3163] dark:bg-[#091634] lg:col-span-7" />
-            <div className="h-80 animate-pulse rounded-2xl border border-[#DCE4F0] bg-white dark:border-[#1B3163] dark:bg-[#091634] lg:col-span-5" />
+            <div className="h-80 animate-pulse rounded-3xl border border-slate-200 bg-white dark:border-[#1E293B] dark:bg-[#101827] lg:col-span-7" />
+            <div className="h-80 animate-pulse rounded-3xl border border-slate-200 bg-white dark:border-[#1E293B] dark:bg-[#101827] lg:col-span-5" />
           </div>
         </div>
       ) : (
         <div className="space-y-6">
           {/* Executive KPI Strip */}
+          <EgoStaggerSection index={0}>
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="ego-card-hero rounded-2xl border border-[#1B3163] p-5 text-white shadow-md shadow-[#06132F]/15">
-              <p className="text-xs font-medium text-[#C7D0E0]/80">
-                Kekayaan Bersih
-              </p>
-              <p className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-white">
-                {formatIDR(netWorth.netWorth)}
-              </p>
-              <p className="mt-2 flex items-center gap-1.5 text-[11px] text-[#19D8FF]">
-                <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>Saldo + Aset − Utang</span>
-              </p>
+            <div className="ego-card-hero ego-card-hero--living rounded-3xl border border-[#D4AF37]/30 p-5 text-white shadow-md shadow-[#101827]/15">
+              <div className="relative z-10">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#E6C768]">
+                  Kekayaan Bersih
+                </p>
+                <p className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-white">
+                  <EgoCountUp
+                    value={netWorth.netWorth}
+                    formatter={(v) => formatIDR(v)}
+                  />
+                </p>
+                <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-[#E6C768]">
+                  <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Saldo + Aset − Utang</span>
+                </p>
+              </div>
             </div>
 
-            <div className="rounded-2xl border border-[#DCE4F0] bg-white p-5 dark:border-[#1B3163] dark:bg-[#091634]">
-              <p className="text-xs font-medium text-slate-500 dark:text-[#C7D0E0]/75">
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-[#1E293B] dark:bg-[#101827]">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                 Rata-rata Pemasukan ({monthsCount} Bln)
               </p>
-              <p className="mt-1.5 font-mono text-xl font-bold tabular-nums text-[#087BFF] dark:text-[#19D8FF]">
-                {formatIDR(avgCashflow.avgIncome)}
+              <p className="mt-1.5 font-mono text-xl font-bold tabular-nums text-[#0D9488] dark:text-[#2DD4BF]">
+                <EgoCountUp
+                  value={avgCashflow.avgIncome}
+                  formatter={(v) => formatIDR(v)}
+                />
               </p>
-              <p className="mt-2 text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+              <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
                 Bulan ini: {formatIDR(currentCashflow.income)}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[#DCE4F0] bg-white p-5 dark:border-[#1B3163] dark:bg-[#091634]">
-              <p className="text-xs font-medium text-slate-500 dark:text-[#C7D0E0]/75">
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-[#1E293B] dark:bg-[#101827]">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                 Rata-rata Pengeluaran ({monthsCount} Bln)
               </p>
-              <p className="mt-1.5 font-mono text-xl font-bold tabular-nums text-rose-600 dark:text-rose-400">
-                {formatIDR(avgCashflow.avgExpense)}
+              <p className="mt-1.5 font-mono text-xl font-bold tabular-nums text-[#DC2626] dark:text-[#F87171]">
+                <EgoCountUp
+                  value={avgCashflow.avgExpense}
+                  formatter={(v) => formatIDR(v)}
+                />
               </p>
-              <p className="mt-2 text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+              <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
                 Bulan ini: {formatIDR(currentCashflow.expense)}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[#DCE4F0] bg-white p-5 dark:border-[#1B3163] dark:bg-[#091634]">
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-[#1E293B] dark:bg-[#101827]">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-slate-500 dark:text-[#C7D0E0]/75">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                   Ketahanan Dana Darurat
                 </p>
                 <ShieldCheck
-                  className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]"
+                  className="h-4 w-4 text-[#9A7411] dark:text-[#E6C768]"
                   aria-hidden="true"
                 />
               </div>
-              <p className="mt-1.5 font-mono text-xl font-bold tabular-nums text-[#06132F] dark:text-white">
+              <p className="mt-1.5 font-mono text-xl font-bold tabular-nums text-[#101827] dark:text-white">
                 {emergencyMonths !== null ? `${emergencyMonths} bulan` : "—"}
               </p>
-              <p className="mt-2 text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+              <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
                 Rasio likuid terhadap beban bulanan
               </p>
             </div>
           </section>
+          </EgoStaggerSection>
 
           {/* Wealth Composition Card */}
-          <section className="rounded-2xl border border-[#DCE4F0] bg-white p-5 dark:border-[#1B3163] dark:bg-[#091634]">
+          <EgoStaggerSection index={1}>
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-[#1E293B] dark:bg-[#101827]">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                <h2 className="text-base font-bold text-[#101827] dark:text-white">
                   Komposisi Kekayaan &amp; Kewajiban
                 </h2>
-                <p className="mt-0.5 text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+                <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
                   Perbandingan likuiditas kas, portofolio aset, dan sisa kewajiban aktif.
                 </p>
               </div>
               <Link
                 to="/aset"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-[#087BFF] hover:underline dark:text-[#19D8FF]"
+                className="ego-pressable inline-flex items-center gap-1 text-xs font-semibold text-[#9A7411] hover:underline dark:text-[#E6C768]"
               >
                 <span>Detail Portofolio</span>
                 <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </Link>
             </div>
 
-            <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-[#EEF3FA] dark:bg-[#06132F]">
-              <div className="flex h-full w-full">
-                <div
-                  style={{ width: `${cashShare}%` }}
-                  className="h-full bg-[#087BFF] transition-all"
-                />
-                <div
-                  style={{ width: `${assetShare}%` }}
-                  className="h-full bg-[#19D8FF] transition-all"
-                />
-              </div>
-            </div>
-
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F]">
-                <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-[#C7D0E0]/75">
-                  <span className="h-2.5 w-2.5 rounded-xs bg-[#087BFF]" />
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]">
+                <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                  <span className="h-2.5 w-2.5 rounded-xs bg-[#14B8A6]" />
                   <span>Saldo Likuid ({cashShare}%)</span>
                 </div>
-                <p className="mt-1 font-mono text-sm font-bold tabular-nums text-[#06132F] dark:text-white">
+                <p className="mt-1 font-mono text-sm font-bold tabular-nums text-[#0D9488] dark:text-[#2DD4BF]">
                   {formatIDR(netWorth.totalAccountBalance)}
                 </p>
+                <div className="mt-2.5">
+                  <EgoAnimatedBar
+                    percentage={cashShare}
+                    barClassName="bg-[#14B8A6]"
+                    heightClassName="h-1.5"
+                  />
+                </div>
               </div>
 
-              <div className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F]">
-                <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-[#C7D0E0]/75">
-                  <span className="h-2.5 w-2.5 rounded-xs bg-[#19D8FF]" />
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]">
+                <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                  <span className="h-2.5 w-2.5 rounded-xs bg-[#D4AF37]" />
                   <span>Nilai Aset ({assetShare}%)</span>
                 </div>
-                <p className="mt-1 font-mono text-sm font-bold tabular-nums text-[#06132F] dark:text-white">
+                <p className="mt-1 font-mono text-sm font-bold tabular-nums text-[#9A7411] dark:text-[#E6C768]">
                   {formatIDR(netWorth.totalAssetValue)}
                 </p>
+                <div className="mt-2.5">
+                  <EgoAnimatedBar
+                    percentage={assetShare}
+                    heightClassName="h-1.5"
+                  />
+                </div>
               </div>
 
-              <div className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F]">
-                <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-[#C7D0E0]/75">
-                  <span className="h-2.5 w-2.5 rounded-xs bg-rose-500" />
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]">
+                <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                  <span className="h-2.5 w-2.5 rounded-xs bg-[#EF4444]" />
                   <span>Sisa Kewajiban Utang</span>
                 </div>
-                <p className="mt-1 font-mono text-sm font-bold tabular-nums text-rose-600 dark:text-rose-400">
+                <p className="mt-1 font-mono text-sm font-bold tabular-nums text-[#DC2626] dark:text-[#F87171]">
                   {formatIDR(netWorth.totalDebtBalance)}
                 </p>
+                <div className="mt-2.5">
+                  <EgoAnimatedBar
+                    percentage={
+                      netWorth.totalDebtBalance > 0
+                        ? Math.min(
+                            100,
+                            Math.round(
+                              (netWorth.totalDebtBalance / grossWealth) * 100
+                            )
+                          )
+                        : 0
+                    }
+                    barClassName="bg-[#EF4444]"
+                    heightClassName="h-1.5"
+                  />
+                </div>
               </div>
             </div>
           </section>
+          </EgoStaggerSection>
 
           {/* Charts */}
+          <EgoStaggerSection index={2}>
           <section className="grid gap-5 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <CashflowChart
@@ -290,6 +327,7 @@ export function LaporanPage() {
               />
             </div>
           </section>
+          </EgoStaggerSection>
         </div>
       )}
     </AppShell>

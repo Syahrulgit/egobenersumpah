@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { computeCashflowSeries, formatIDR } from "../../lib/finance";
 import type { Transaction } from "../../types/ego";
+import { EgoCountUp, useRevealOnce } from "./ego-motion";
 
 interface CashflowChartProps {
   transactions: Transaction[];
@@ -60,6 +61,7 @@ export function CashflowChart({
   }, [series]);
 
   const [hoveredMonthKey, setHoveredMonthKey] = useState<string | null>(null);
+  const { ref: chartRef, revealed } = useRevealOnce<HTMLDivElement>(0.08);
 
   const defaultMonthKey = useMemo(() => {
     const reversed = [...series].reverse();
@@ -105,14 +107,14 @@ export function CashflowChart({
   return (
     <section
       aria-label="Arus Kas Bulanan"
-      className="flex h-full flex-col rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none"
+      className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+          <h2 className="text-base font-bold text-[#101827] dark:text-white">
             Arus Kas Bulanan
           </h2>
-          <p className="mt-0.5 text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+          <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
             Pemasukan vs pengeluaran terposting ({monthsCount} bulan terakhir)
           </p>
         </div>
@@ -120,7 +122,7 @@ export function CashflowChart({
         <div
           role="group"
           aria-label="Filter periode grafik"
-          className="inline-flex self-start rounded-xl border border-[#DCE4F0] bg-[#EEF3FA] p-1 dark:border-[#1B3163] dark:bg-[#06132F] sm:self-auto"
+          className="inline-flex self-start rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-[#1E293B] dark:bg-[#0B111E] sm:self-auto"
         >
           {RANGE_OPTIONS.map((opt) => {
             const active = monthsCount === opt.value;
@@ -130,10 +132,10 @@ export function CashflowChart({
                 type="button"
                 aria-pressed={active}
                 onClick={() => onMonthsCountChange(opt.value)}
-                className={`min-h-[34px] rounded-lg px-3 py-1 text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
+                className={`ego-pressable min-h-[36px] rounded-lg px-3 py-1 text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
                   active
-                    ? "bg-[#087BFF] text-white shadow-xs"
-                    : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+                    ? "bg-[#101827] text-[#E6C768] shadow-xs dark:bg-[#D4AF37] dark:text-[#101827]"
+                    : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
                 }`}
               >
                 {opt.label}
@@ -144,56 +146,56 @@ export function CashflowChart({
       </div>
 
       {/* Period summary strip */}
-      <div className="mt-4 grid grid-cols-1 gap-2.5 border-y border-[#DCE4F0] py-3.5 text-xs dark:border-[#1B3163] sm:grid-cols-3 sm:gap-4">
+      <div className="mt-4 grid grid-cols-1 gap-2.5 border-y border-slate-200 py-3.5 text-xs dark:border-[#1E293B] sm:grid-cols-3 sm:gap-4">
         <div className="flex items-center justify-between sm:block">
-          <span className="inline-flex items-center gap-1.5 text-slate-600 dark:text-[#C7D0E0]/75">
+          <span className="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
             <span
-              className="inline-block h-2 w-2 rounded-xs bg-[#087BFF] dark:bg-[#19D8FF]"
+              className="inline-block h-2 w-2 rounded-xs bg-[#14B8A6]"
               aria-hidden="true"
             />
             Pemasukan
           </span>
-          <p className="font-mono text-sm font-bold text-[#087BFF] dark:text-[#19D8FF] tabular-nums sm:mt-0.5">
-            {formatIDR(periodTotals.income)}
+          <p className="font-mono text-sm font-bold text-[#0D9488] dark:text-[#2DD4BF] tabular-nums sm:mt-0.5">
+            <EgoCountUp value={periodTotals.income} formatter={(v) => formatIDR(v)} />
           </p>
         </div>
 
         <div className="flex items-center justify-between sm:block">
-          <span className="inline-flex items-center gap-1.5 text-slate-600 dark:text-[#C7D0E0]/75">
+          <span className="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
             <span
-              className="inline-block h-2 w-2 rounded-xs bg-rose-500"
+              className="inline-block h-2 w-2 rounded-xs bg-[#EF4444]"
               aria-hidden="true"
             />
             Pengeluaran
           </span>
-          <p className="font-mono text-sm font-bold text-rose-600 dark:text-rose-400 tabular-nums sm:mt-0.5">
-            {formatIDR(periodTotals.expense)}
+          <p className="font-mono text-sm font-bold text-[#DC2626] dark:text-[#F87171] tabular-nums sm:mt-0.5">
+            <EgoCountUp value={periodTotals.expense} formatter={(v) => formatIDR(v)} />
           </p>
         </div>
 
         <div className="flex items-center justify-between sm:block sm:text-right">
-          <span className="text-slate-600 dark:text-[#C7D0E0]/75">Selisih Periode</span>
+          <span className="text-slate-600 dark:text-slate-400">Selisih Periode</span>
           <p
             className={`font-mono text-sm font-bold tabular-nums sm:mt-0.5 ${
               periodTotals.net >= 0
-                ? "text-[#087BFF] dark:text-[#19D8FF]"
-                : "text-rose-600 dark:text-rose-400"
+                ? "text-[#9A7411] dark:text-[#E6C768]"
+                : "text-[#DC2626] dark:text-[#F87171]"
             }`}
           >
-            {formatIDR(periodTotals.net)}
+            <EgoCountUp value={periodTotals.net} formatter={(v) => formatIDR(v)} />
           </p>
         </div>
       </div>
 
       {!periodTotals.hasData ? (
         <div className="mt-4 flex flex-1 flex-col items-center justify-center py-8 text-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/10 dark:text-[#19D8FF]">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#101827] text-[#E6C768] dark:bg-[#D4AF37]/15">
             <BarChart3 className="h-5 w-5" aria-hidden="true" />
           </div>
-          <p className="mt-3 text-sm font-bold text-[#06132F] dark:text-white">
+          <p className="mt-3 text-sm font-bold text-[#101827] dark:text-white">
             Belum ada arus kas pada periode ini
           </p>
-          <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+          <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-600 dark:text-slate-400">
             Grafik terisi otomatis setelah transaksi pemasukan atau pengeluaran disetujui.
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
@@ -201,7 +203,7 @@ export function CashflowChart({
               <button
                 type="button"
                 onClick={onAddTransaction}
-                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#0666DB]"
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#E6C768] to-[#D4AF37] px-4 py-2 text-xs font-bold text-[#101827] transition-all hover:brightness-105"
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Catat Transaksi</span>
@@ -209,7 +211,7 @@ export function CashflowChart({
             ) : (
               <Link
                 to="/transaksi"
-                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#0666DB]"
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#E6C768] to-[#D4AF37] px-4 py-2 text-xs font-bold text-[#101827] transition-all hover:brightness-105"
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Catat Transaksi</span>
@@ -217,46 +219,45 @@ export function CashflowChart({
             )}
             <Link
               to="/owner"
-              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2 text-xs font-semibold text-[#06132F] hover:bg-slate-100 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45]"
+              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#FF4DDE]/35 bg-[#101827] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#162032]"
             >
-              <Bot className="h-3.5 w-3.5 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
+              <Bot className="h-3.5 w-3.5 text-[#FF4DDE]" aria-hidden="true" />
               <span>Tanya EGO AI</span>
             </Link>
           </div>
         </div>
       ) : (
         <div className="mt-4 flex flex-1 flex-col justify-between">
-          {/* Interactive Tooltip Pill above chart for instant readability */}
           {activePoint ? (
             <div
               role="status"
               aria-live="polite"
-              className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2 text-xs dark:border-[#1B3163] dark:bg-[#06132F]"
+              className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs dark:border-[#1E293B] dark:bg-[#0B111E]"
             >
               <div className="flex items-center gap-2">
-                <span className="inline-block h-2 w-2 rounded-full bg-[#19D8FF]" aria-hidden="true" />
-                <span className="font-bold text-[#06132F] dark:text-white">
+                <span className="inline-block h-2 w-2 rounded-full bg-[#D4AF37]" aria-hidden="true" />
+                <span className="font-bold text-[#101827] dark:text-white">
                   {activePoint.label}
                 </span>
                 <span className="text-slate-400" aria-hidden="true">
                   ·
                 </span>
-                <span className="font-mono text-slate-600 dark:text-[#C7D0E0]/75 tabular-nums">
+                <span className="font-mono text-slate-600 dark:text-slate-400 tabular-nums">
                   {activePoint.transactionCount} transaksi
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono tabular-nums">
-                <span className="font-semibold text-[#087BFF] dark:text-[#19D8FF]">
+                <span className="font-semibold text-[#0D9488] dark:text-[#2DD4BF]">
                   +{formatIDR(activePoint.income)}
                 </span>
-                <span className="font-semibold text-rose-600 dark:text-rose-400">
+                <span className="font-semibold text-[#DC2626] dark:text-[#F87171]">
                   -{formatIDR(activePoint.expense)}
                 </span>
                 <span
                   className={`font-bold ${
                     activePoint.net >= 0
-                      ? "text-[#06132F] dark:text-white"
-                      : "text-rose-700 dark:text-rose-300"
+                      ? "text-[#101827] dark:text-[#E6C768]"
+                      : "text-[#DC2626] dark:text-[#F87171]"
                   }`}
                 >
                   Bersih {formatIDR(activePoint.net)}
@@ -265,7 +266,7 @@ export function CashflowChart({
             </div>
           ) : null}
 
-          <div className="relative w-full overflow-hidden">
+          <div ref={chartRef} className="relative w-full overflow-hidden">
             <svg
               viewBox={`0 0 ${svgWidth} ${svgHeight}`}
               className="h-auto w-full select-none"
@@ -285,8 +286,8 @@ export function CashflowChart({
                       y2={y}
                       className={
                         idx === 0
-                          ? "stroke-[#CBD5E1] dark:stroke-[#233E7A]"
-                          : "stroke-[#E2E8F0] dark:stroke-[#14254E]"
+                          ? "stroke-slate-300 dark:stroke-slate-700"
+                          : "stroke-slate-200 dark:stroke-slate-800"
                       }
                       strokeWidth={1}
                       strokeDasharray={idx === 0 ? undefined : "3 3"}
@@ -295,7 +296,7 @@ export function CashflowChart({
                       x={padLeft - 8}
                       y={y + 4}
                       textAnchor="end"
-                      className="fill-slate-500 dark:fill-[#C7D0E0]/70"
+                      className="fill-slate-500 dark:fill-slate-400"
                       fontSize="10"
                       fontFamily="JetBrains Mono, monospace"
                     >
@@ -352,7 +353,7 @@ export function CashflowChart({
                       rx={8}
                       className={
                         isActive
-                          ? "fill-[#087BFF]/8 dark:fill-[#19D8FF]/10"
+                          ? "fill-[#D4AF37]/10"
                           : "fill-transparent"
                       }
                     />
@@ -364,7 +365,13 @@ export function CashflowChart({
                         width={barWidth}
                         height={incomeHeight}
                         rx={4}
-                        className="fill-[#087BFF] dark:fill-[#19D8FF] transition-opacity duration-150 motion-reduce:transition-none"
+                        className="fill-[#14B8A6] transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+                        style={{
+                          transformOrigin: "center bottom",
+                          transformBox: "fill-box",
+                          transform: `scaleY(${revealed ? 1 : 0})`,
+                          transitionDelay: `${Math.min(index, 8) * 24}ms`,
+                        }}
                         opacity={isActive ? 1 : 0.85}
                       />
                     ) : (
@@ -374,7 +381,7 @@ export function CashflowChart({
                         width={barWidth}
                         height={2}
                         rx={1}
-                        className="fill-slate-200 dark:fill-[#1B3163]"
+                        className="fill-slate-200 dark:fill-[#1E293B]"
                       />
                     )}
 
@@ -385,7 +392,13 @@ export function CashflowChart({
                         width={barWidth}
                         height={expenseHeight}
                         rx={4}
-                        className="fill-rose-500 transition-opacity duration-150 motion-reduce:transition-none"
+                        className="fill-[#EF4444] transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+                        style={{
+                          transformOrigin: "center bottom",
+                          transformBox: "fill-box",
+                          transform: `scaleY(${revealed ? 1 : 0})`,
+                          transitionDelay: `${Math.min(index, 8) * 24 + 30}ms`,
+                        }}
                         opacity={isActive ? 1 : 0.85}
                       />
                     ) : (
@@ -395,7 +408,7 @@ export function CashflowChart({
                         width={barWidth}
                         height={2}
                         rx={1}
-                        className="fill-slate-200 dark:fill-[#1B3163]"
+                        className="fill-slate-200 dark:fill-[#1E293B]"
                       />
                     )}
 
@@ -405,8 +418,8 @@ export function CashflowChart({
                       textAnchor="middle"
                       className={
                         isActive
-                          ? "fill-[#06132F] dark:fill-white"
-                          : "fill-slate-500 dark:fill-[#C7D0E0]/65"
+                          ? "fill-[#101827] dark:fill-[#E6C768]"
+                          : "fill-slate-500 dark:fill-slate-400"
                       }
                       fontSize={monthsCount === 12 ? "10" : "11"}
                       fontWeight={isActive ? "700" : "500"}
@@ -418,7 +431,7 @@ export function CashflowChart({
               })}
             </svg>
           </div>
-          <p className="mt-1 text-[11px] text-slate-500 dark:text-[#C7D0E0]/60">
+          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
             Ketuk atau arahkan kursor pada batang bulan untuk melihat rincian arus kas.
           </p>
         </div>

@@ -13,6 +13,11 @@ import { AppShell } from "../../components/ego/app-shell";
 import { EgoCompanion } from "../../components/ego/ego-brand";
 import { ApprovalCheck } from "../../components/ego/approval-check";
 import { AccountTypeIcon, CategoryIcon } from "../../components/ego/category-icon";
+import {
+  EgoAnimatedBar,
+  EgoCountUp,
+  EgoStaggerSection,
+} from "../../components/ego/ego-motion";
 import { ModalSheet } from "../../components/ego/modal-sheet";
 import { MoneyInput } from "../../components/ego/money-input";
 import { useTransactionSheet } from "../../components/ego/transaction-input-sheet";
@@ -53,6 +58,22 @@ export function AkunPage() {
   const totalLiquidity = accounts
     .filter((a) => a.is_active)
     .reduce((sum, a) => sum + a.current_balance, 0);
+
+  const liquidityByType = useMemo(() => {
+    const active = accounts.filter((a) => a.is_active);
+    const sums: Record<AccountType, number> = { bank: 0, ewallet: 0, cash: 0 };
+    for (const acc of active) {
+      sums[acc.account_type] += Math.max(0, acc.current_balance);
+    }
+    const denom = Math.max(1, sums.bank + sums.ewallet + sums.cash);
+    return (["bank", "ewallet", "cash"] as const).map((t) => ({
+      type: t,
+      label: accountTypeLabel(t),
+      amount: sums[t],
+      pct: totalLiquidity > 0 ? Math.round((sums[t] / denom) * 100) : 0,
+      count: grouped[t].filter((a) => a.is_active).length,
+    }));
+  }, [accounts, grouped, totalLiquidity]);
 
   const selectedAccountTx = useMemo(() => {
     if (!selectedAccount) return [];
@@ -104,12 +125,12 @@ export function AkunPage() {
   return (
     <AppShell
       title="Akun Keuangan"
-      subtitle="Kartu rekening bank, e-wallet, dan dompet tunai dengan pantauan saldo aktual."
+      subtitle="Rekening bank, e-wallet, dan dompet tunai dengan pantauan saldo aktual."
       action={
         <button
           type="button"
           onClick={() => setCreateModalOpen(true)}
-          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#087BFF]/20 hover:brightness-110 whitespace-nowrap"
+          className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-3.5 py-2 text-xs font-semibold text-[#101827] shadow-sm shadow-[#D4AF37]/20 hover:brightness-105 whitespace-nowrap"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Tambah Akun</span>
@@ -117,17 +138,23 @@ export function AkunPage() {
       }
     >
       <div className="space-y-6">
+        <EgoStaggerSection index={0} className="space-y-4">
         {/* Liquidity Hero Banner */}
-        <section className="ego-card-hero ego-main-card relative isolate overflow-hidden flex flex-col justify-between gap-4 rounded-3xl border border-[#1B3163] p-5 text-white shadow-lg shadow-[#06132F]/15 sm:flex-row sm:items-center sm:p-6">
-          <span className="ego-main-card__robo ego-main-card__robo--hero" aria-hidden="true"><EgoCompanion size="lg" mode="idle" /></span>
+        <section className="ego-card-hero ego-card-hero--living ego-main-card relative isolate overflow-hidden flex flex-col justify-between gap-4 rounded-3xl border border-[#D4AF37]/30 p-5 text-white shadow-lg shadow-[#101827]/20 sm:flex-row sm:items-center sm:p-6">
+          <span
+            className="ego-main-card__robo ego-main-card__robo--hero"
+            aria-hidden="true"
+          >
+            <EgoCompanion size="lg" mode="idle" />
+          </span>
           <div className="relative z-10">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#C7D0E0]/80">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#E6C768]/90">
               Total Likuiditas Aktif
             </p>
             <p className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-white sm:text-3xl">
-              {formatIDR(totalLiquidity)}
+              <EgoCountUp value={totalLiquidity} formatter={(v) => formatIDR(v)} />
             </p>
-            <p className="mt-1 text-xs text-[#C7D0E0]/80">
+            <p className="mt-1 text-xs text-slate-300">
               {accounts.filter((a) => a.is_active).length} akun aktif ·{" "}
               {accounts.filter((a) => !a.is_active).length} diarsipkan
             </p>
@@ -136,14 +163,14 @@ export function AkunPage() {
             <button
               type="button"
               onClick={() => openTransactionSheet({ type: "transfer" })}
-              className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-[#19D8FF]/35 bg-[#19D8FF]/15 px-4 py-2 text-xs font-semibold text-[#19D8FF] transition-colors hover:bg-[#19D8FF]/25"
+              className="ego-pressable inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37]/12 px-4 py-2 text-xs font-semibold text-[#E6C768] transition-colors hover:bg-[#D4AF37]/20"
             >
               <span>Transfer Antar-Akun</span>
             </button>
             <button
               type="button"
               onClick={() => setCreateModalOpen(true)}
-              className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0666DB]"
+              className="ego-pressable inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2 text-xs font-semibold text-[#101827] hover:brightness-105"
             >
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Akun Baru</span>
@@ -151,38 +178,83 @@ export function AkunPage() {
           </div>
         </section>
 
+        {/* Liquidity Allocation Strip */}
+        {accounts.length > 0 ? (
+          <section
+            aria-label="Komposisi Likuiditas Akun"
+            className="grid gap-3 sm:grid-cols-3"
+          >
+            {liquidityByType.map((item) => (
+              <div
+                key={item.type}
+                className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-[#1E293B] dark:bg-[#101827]"
+              >
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="inline-flex items-center gap-1.5 font-semibold text-[#101827] dark:text-white">
+                    <AccountTypeIcon
+                      type={item.type}
+                      className="h-3.5 w-3.5 text-[#9A7411] dark:text-[#E6C768]"
+                    />
+                    {item.label}
+                  </span>
+                  <span className="font-mono text-[11px] font-bold text-[#9A7411] dark:text-[#E6C768] tabular-nums">
+                    {item.pct}%
+                  </span>
+                </div>
+                <p className="mt-1.5 font-mono text-sm font-bold tabular-nums text-[#101827] dark:text-white">
+                  <EgoCountUp value={item.amount} formatter={(v) => formatIDR(v, true)} />
+                </p>
+                <div className="mt-2">
+                  <EgoAnimatedBar
+                    percentage={item.pct}
+                    heightClassName="h-1.5"
+                    barClassName={
+                      item.type === "bank"
+                        ? "bg-gradient-to-r from-[#B8901F] to-[#D4AF37]"
+                        : item.type === "ewallet"
+                          ? "bg-[#14B8A6]"
+                          : "bg-slate-600 dark:bg-slate-400"
+                    }
+                  />
+                </div>
+              </div>
+            ))}
+          </section>
+        ) : null}
+        </EgoStaggerSection>
+
         {/* Banking Card Grids */}
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((k) => (
               <div
                 key={k}
-                className="h-44 animate-pulse rounded-2xl border border-[#DCE4F0] bg-white dark:border-[#1B3163] dark:bg-[#091634]"
+                className="h-44 animate-pulse rounded-2xl border border-slate-200 bg-white dark:border-[#1E293B] dark:bg-[#101827]"
               />
             ))}
           </div>
         ) : accounts.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[#DCE4F0] bg-white p-10 text-center dark:border-[#1B3163] dark:bg-[#091634]">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-[#1E293B] dark:bg-[#101827]">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D4AF37]/15 text-[#9A7411] dark:bg-[#D4AF37]/15 dark:text-[#E6C768]">
               <Wallet className="h-6 w-6" aria-hidden="true" />
             </div>
-            <h2 className="mt-3.5 text-base font-bold text-[#06132F] dark:text-white">
+            <h2 className="mt-3.5 text-base font-bold text-[#101827] dark:text-white">
               Belum Ada Akun Keuangan
             </h2>
-            <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+            <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-600 dark:text-slate-400">
               Daftarkan rekening bank, e-wallet, atau kas tunai pertama Anda untuk mulai melacak saldo secara real-time.
             </p>
             <button
               type="button"
               onClick={() => setCreateModalOpen(true)}
-              className="mt-4 inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0666DB]"
+              className="mt-4 inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2 text-xs font-semibold text-[#101827] hover:brightness-105"
             >
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Tambah Akun Pertama</span>
             </button>
           </div>
         ) : (
-          <div className="space-y-6">
+          <EgoStaggerSection index={1} className="space-y-6">
             {(["bank", "ewallet", "cash"] as const).map((groupType) => {
               const items = grouped[groupType];
               if (items.length === 0) return null;
@@ -191,9 +263,9 @@ export function AkunPage() {
                   <div className="flex items-center gap-2">
                     <AccountTypeIcon
                       type={groupType}
-                      className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]"
+                      className="h-4 w-4 text-[#9A7411] dark:text-[#E6C768]"
                     />
-                    <h2 className="text-sm font-bold text-[#06132F] dark:text-white">
+                    <h2 className="text-sm font-bold text-[#101827] dark:text-white">
                       {accountTypeLabel(groupType)} ({items.length})
                     </h2>
                   </div>
@@ -205,22 +277,24 @@ export function AkunPage() {
                       return (
                         <div
                           key={acc.id}
-                          className={`ego-main-card relative isolate overflow-hidden rounded-2xl border p-5 transition-all ${
+                          className={`ego-main-card ego-main-card--account relative isolate overflow-hidden rounded-2xl border p-5 transition-all ${
                             !acc.is_active
-                              ? "border-[#DCE4F0] bg-slate-100/80 opacity-75 dark:border-[#1B3163] dark:bg-[#06132F]/70"
+                              ? "border-slate-200 bg-slate-100/80 opacity-75 dark:border-[#1E293B] dark:bg-[#0B111E]/80"
                               : isBankHero
-                                ? "ego-card-hero border-[#1B3163] text-white shadow-md shadow-[#06132F]/15"
-                                : "border-[#DCE4F0] bg-white shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none"
+                                ? "ego-card-hero border-[#D4AF37]/30 text-white shadow-md shadow-[#101827]/15"
+                                : "border-slate-200 bg-white shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none"
                           }`}
                         >
-                          <span className="ego-main-card__robo" aria-hidden="true"><EgoCompanion size="md" mode="idle" /></span>
+                          <span className="ego-main-card__robo" aria-hidden="true">
+                            <EgoCompanion size="md" mode="idle" />
+                          </span>
                           <div className="relative z-10 flex items-start justify-between gap-2">
                             <div className="flex min-w-0 items-center gap-3">
                               <span
                                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                                   isBankHero
-                                    ? "bg-[#19D8FF]/15 text-[#19D8FF]"
-                                    : "bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                                    ? "bg-[#D4AF37]/18 text-[#E6C768]"
+                                    : "bg-[#D4AF37]/12 text-[#9A7411] dark:bg-[#D4AF37]/15 dark:text-[#E6C768]"
                                 }`}
                               >
                                 <AccountTypeIcon
@@ -233,7 +307,7 @@ export function AkunPage() {
                                   className={`truncate text-sm font-bold ${
                                     isBankHero
                                       ? "text-white"
-                                      : "text-[#06132F] dark:text-white"
+                                      : "text-[#101827] dark:text-white"
                                   }`}
                                 >
                                   {acc.account_name}
@@ -241,8 +315,8 @@ export function AkunPage() {
                                 <p
                                   className={`mt-0.5 text-xs ${
                                     isBankHero
-                                      ? "text-[#C7D0E0]/80"
-                                      : "text-slate-500 dark:text-[#C7D0E0]/70"
+                                      ? "text-slate-300"
+                                      : "text-slate-500 dark:text-slate-400"
                                   }`}
                                 >
                                   {accountTypeLabel(acc.account_type)} ·{" "}
@@ -263,8 +337,8 @@ export function AkunPage() {
                               }
                               className={`inline-flex min-h-[34px] items-center gap-1 rounded-xl border px-2.5 py-1 text-[11px] font-semibold transition-colors whitespace-nowrap ${
                                 isBankHero
-                                  ? "border-white/15 bg-white/10 text-[#C7D0E0] hover:bg-white/20 hover:text-white"
-                                  : "border-[#DCE4F0] bg-[#F4F7FB] text-slate-600 hover:text-[#06132F] dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
+                                  ? "border-white/15 bg-white/10 text-slate-200 hover:bg-white/20 hover:text-white"
+                                  : "border-slate-200 bg-slate-50 text-slate-600 hover:text-[#101827] dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300"
                               }`}
                             >
                               {acc.is_active ? (
@@ -288,14 +362,14 @@ export function AkunPage() {
                             className={`relative z-10 mt-4 border-t pt-3.5 ${
                               isBankHero
                                 ? "border-white/12"
-                                : "border-[#DCE4F0] dark:border-[#1B3163]"
+                                : "border-slate-200 dark:border-[#1E293B]"
                             }`}
                           >
                             <p
                               className={`text-[11px] ${
                                 isBankHero
-                                  ? "text-[#C7D0E0]/75"
-                                  : "text-slate-500 dark:text-[#C7D0E0]/70"
+                                  ? "text-slate-300"
+                                  : "text-slate-500 dark:text-slate-400"
                               }`}
                             >
                               Saldo Aktual
@@ -303,8 +377,8 @@ export function AkunPage() {
                             <p
                               className={`mt-0.5 font-mono text-xl font-bold tabular-nums ${
                                 isBankHero
-                                  ? "text-white"
-                                  : "text-[#06132F] dark:text-white"
+                                  ? "text-[#E6C768]"
+                                  : "text-[#101827] dark:text-white"
                               }`}
                             >
                               {formatIDR(acc.current_balance)}
@@ -312,8 +386,8 @@ export function AkunPage() {
                             <p
                               className={`mt-1 font-mono text-[11px] tabular-nums ${
                                 isBankHero
-                                  ? "text-[#C7D0E0]/65"
-                                  : "text-slate-500 dark:text-[#C7D0E0]/60"
+                                  ? "text-slate-400"
+                                  : "text-slate-500 dark:text-slate-400"
                               }`}
                             >
                               Saldo awal: {formatIDR(acc.opening_balance)}
@@ -324,10 +398,10 @@ export function AkunPage() {
                             <button
                               type="button"
                               onClick={() => setSelectedAccount(acc)}
-                              className={`flex-1 min-h-[38px] rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
+                              className={`ego-pressable flex-1 min-h-[42px] rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
                                 isBankHero
                                   ? "bg-white/12 text-white hover:bg-white/20"
-                                  : "border border-[#DCE4F0] bg-[#F4F7FB] text-[#06132F] hover:bg-slate-100 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                                  : "border border-slate-200 bg-slate-50 text-[#101827] hover:bg-slate-100 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:hover:bg-[#162032]"
                               }`}
                             >
                               Riwayat Akun
@@ -335,15 +409,16 @@ export function AkunPage() {
                             {acc.is_active ? (
                               <button
                                 type="button"
+                                aria-label={`Catat pengeluaran dari ${acc.account_name}`}
                                 onClick={() =>
                                   openTransactionSheet({
                                     type: "expense",
                                     sourceAccountId: acc.id,
                                   })
                                 }
-                                className="inline-flex min-h-[38px] items-center justify-center rounded-xl bg-[#087BFF] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#0666DB]"
+                                className="ego-pressable inline-flex min-h-[42px] min-w-[42px] items-center justify-center rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-3 py-1.5 text-xs font-semibold text-[#101827] hover:brightness-105"
                               >
-                                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                                <Plus className="h-4 w-4" aria-hidden="true" />
                               </button>
                             ) : null}
                           </div>
@@ -354,7 +429,7 @@ export function AkunPage() {
                 </section>
               );
             })}
-          </div>
+          </EgoStaggerSection>
         )}
       </div>
 
@@ -369,9 +444,10 @@ export function AkunPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="acc-name"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
-              Nama Akun <span className="text-rose-600 dark:text-rose-400">*</span>
+              Nama Akun{" "}
+              <span className="text-[#DC2626] dark:text-[#F87171]">*</span>
             </label>
             <input
               id="acc-name"
@@ -381,14 +457,14 @@ export function AkunPage() {
               value={accountName}
               onChange={(e) => setAccountName(e.target.value)}
               placeholder="Contoh: BCA Utama / GoPay / Dompet"
-              className="min-h-[44px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-[#F4F7FB] focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[#19D8FF] dark:focus:bg-[#06132F]"
+              className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[#D4AF37]"
             />
           </div>
 
           <div className="space-y-1.5">
             <label
               htmlFor="acc-type"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
               Jenis Akun
             </label>
@@ -396,7 +472,7 @@ export function AkunPage() {
               id="acc-type"
               value={accountType}
               onChange={(e) => setAccountType(e.target.value as AccountType)}
-              className="min-h-[44px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+              className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
             >
               <option value="bank">Bank</option>
               <option value="ewallet">E-Wallet</option>
@@ -420,7 +496,7 @@ export function AkunPage() {
           <button
             type="submit"
             disabled={!ownerConfirmed || createAccount.isPending}
-            className="flex min-h-[46px] w-full items-center justify-center gap-2 rounded-xl bg-[#087BFF] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0666DB] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-[#122652] dark:disabled:text-slate-500"
+            className="flex min-h-[46px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-sm font-semibold text-[#101827] shadow-sm transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 dark:disabled:from-[#162032] dark:disabled:to-[#162032] dark:disabled:text-slate-500"
           >
             {createAccount.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -446,11 +522,11 @@ export function AkunPage() {
         {selectedAccount ? (
           <div className="space-y-4">
             {selectedAccountTx.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#DCE4F0] bg-[#F4F7FB] p-6 text-center text-xs text-slate-600 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]/75">
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-xs text-slate-600 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-400">
                 Belum ada mutasi tercatat untuk akun ini.
               </div>
             ) : (
-              <ul className="divide-y divide-[#DCE4F0] dark:divide-[#1B3163]">
+              <ul className="divide-y divide-slate-200 dark:divide-[#1E293B]">
                 {selectedAccountTx.map((tx) => {
                   const isCancelled = tx.status === "cancelled";
                   const incoming =
@@ -464,8 +540,8 @@ export function AkunPage() {
                         <span
                           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
                             incoming
-                              ? "bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
-                              : "bg-rose-500/10 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400"
+                              ? "bg-[#14B8A6]/12 text-[#0D9488] dark:bg-[#14B8A6]/15 dark:text-[#2DD4BF]"
+                              : "bg-[#EF4444]/10 text-[#DC2626] dark:bg-[#EF4444]/15 dark:text-[#F87171]"
                           }`}
                         >
                           <CategoryIcon
@@ -479,12 +555,12 @@ export function AkunPage() {
                             className={`truncate text-xs font-semibold ${
                               isCancelled
                                 ? "text-slate-400 line-through"
-                                : "text-[#06132F] dark:text-white"
+                                : "text-[#101827] dark:text-white"
                             }`}
                           >
                             {tx.description || tx.category || "Mutasi"}
                           </p>
-                          <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
                             {formatDateID(tx.transaction_date, dateFormat)} ·{" "}
                             {tx.category || "Umum"}
                           </p>
@@ -495,8 +571,8 @@ export function AkunPage() {
                           isCancelled
                             ? "text-slate-400 line-through"
                             : incoming
-                              ? "text-[#087BFF] dark:text-[#19D8FF]"
-                              : "text-rose-600 dark:text-rose-400"
+                              ? "text-[#0D9488] dark:text-[#2DD4BF]"
+                              : "text-[#DC2626] dark:text-[#F87171]"
                         }`}
                       >
                         {incoming ? "+" : "-"}
@@ -512,7 +588,7 @@ export function AkunPage() {
               to="/transaksi"
               search={{ akun: selectedAccount.id }}
               onClick={() => setSelectedAccount(null)}
-              className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#087BFF] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#0666DB]"
+              className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-xs font-semibold text-[#101827] hover:brightness-105"
             >
               <span>Lihat Semua Transaksi Akun Ini</span>
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />

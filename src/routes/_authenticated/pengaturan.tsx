@@ -19,6 +19,7 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/ego/app-shell";
+import { EgoStaggerSection } from "../../components/ego/ego-motion";
 import { MoneyInput } from "../../components/ego/money-input";
 import { PWAInstallButton } from "../../components/ego/pwa-controls";
 import {
@@ -27,7 +28,11 @@ import {
   vaultSnapshotToBackupJson,
 } from "../../lib/export";
 import { todayISO } from "../../lib/finance";
-import { createEgoRestorePayload, parseEgoBackupPreview, type EgoBackupPreview } from "../../lib/backup-restore";
+import {
+  createEgoRestorePayload,
+  parseEgoBackupPreview,
+  type EgoBackupPreview,
+} from "../../lib/backup-restore";
 import {
   isAutoLockEnabled,
   setAutoLockEnabled,
@@ -260,9 +265,15 @@ export function PengaturanPage() {
       setBackupPreview(null);
       const inserted = Number(data?.inserted ?? 0);
       const skipped = Number(data?.skipped_identical ?? 0);
-      toast.success(`Pemulihan selesai: ${inserted} data ditambahkan, ${skipped} data identik dilewati.${preferencesRestored ? " Preferensi Owner juga dipulihkan." : ""}`);
+      toast.success(
+        `Pemulihan selesai: ${inserted} data ditambahkan, ${skipped} data identik dilewati.${preferencesRestored ? " Preferensi Owner juga dipulihkan." : ""}`
+      );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Pemulihan dibatalkan. Tidak ada perubahan parsial yang disimpan.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Pemulihan dibatalkan. Tidak ada perubahan parsial yang disimpan."
+      );
     } finally {
       setBackupRestorePending(false);
     }
@@ -403,11 +414,11 @@ export function PengaturanPage() {
     >
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Identitas, PIN, Diagnostik & PWA */}
-        <section className="space-y-6 lg:col-span-6">
+        <EgoStaggerSection index={0} className="space-y-6 lg:col-span-6">
           {/* Identitas Owner */}
-          <div className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+              <h2 className="text-base font-bold text-[#101827] dark:text-white">
                 Identitas Owner Aktif
               </h2>
               <button
@@ -420,32 +431,32 @@ export function PengaturanPage() {
                     setProfileEmail(auth.owner.email);
                   }
                 }}
-                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-1.5 text-xs font-semibold text-[#06132F] transition-colors hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:border-[#19D8FF]/40"
+                className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-[#101827] transition-colors hover:border-[#D4AF37]/45 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200 dark:hover:border-[#D4AF37]/45"
               >
                 <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>{editingProfile ? "Tutup" : "Ubah Email / Nama"}</span>
               </button>
             </div>
-            <div className="mt-4 space-y-2.5 border-t border-[#DCE4F0] pt-4 text-sm dark:border-[#1B3163]">
+            <div className="mt-4 space-y-2.5 border-t border-slate-200 pt-4 text-sm dark:border-[#1E293B]">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-slate-500 dark:text-[#C7D0E0]/75">Nama</span>
-                <span className="font-semibold text-[#06132F] dark:text-white">
+                <span className="text-slate-500 dark:text-slate-400">Nama</span>
+                <span className="font-semibold text-[#101827] dark:text-white">
                   {auth?.owner?.full_name ?? "Owner Utama"}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-slate-500 dark:text-[#C7D0E0]/75">
+                <span className="text-slate-500 dark:text-slate-400">
                   Email Terdaftar
                 </span>
-                <span className="truncate font-mono text-xs text-[#06132F] dark:text-white">
+                <span className="truncate font-mono text-xs text-[#101827] dark:text-white">
                   {auth?.owner?.email ?? "—"}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-slate-500 dark:text-[#C7D0E0]/75">
+                <span className="text-slate-500 dark:text-slate-400">
                   Arsitektur Akses
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#087BFF] dark:text-[#19D8FF]">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] dark:text-[#2DD4BF]">
                   <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
                   Single-Owner Mutlak
                 </span>
@@ -455,13 +466,13 @@ export function PengaturanPage() {
             {editingProfile ? (
               <form
                 onSubmit={handleUpdateProfile}
-                className="mt-4 space-y-3 border-t border-[#DCE4F0] pt-4 dark:border-[#1B3163]"
+                className="mt-4 space-y-3 border-t border-slate-200 pt-4 dark:border-[#1E293B]"
               >
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
                     <label
                       htmlFor="profile-name-input"
-                      className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                      className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                     >
                       Nama Panggilan Owner
                     </label>
@@ -471,13 +482,13 @@ export function PengaturanPage() {
                       required
                       value={profileName}
                       onChange={(e) => setProfileName(e.target.value)}
-                      className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                     />
                   </div>
                   <div className="space-y-1">
                     <label
                       htmlFor="profile-email-input"
-                      className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                      className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                     >
                       Email Owner Baru
                     </label>
@@ -487,14 +498,14 @@ export function PengaturanPage() {
                       required
                       value={profileEmail}
                       onChange={(e) => setProfileEmail(e.target.value)}
-                      className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                     />
                   </div>
                 </div>
                 <div className="space-y-1">
                   <label
                     htmlFor="profile-password-input"
-                    className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                    className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                   >
                     Kata Sandi Saat Ini (Verifikasi)
                   </label>
@@ -506,14 +517,14 @@ export function PengaturanPage() {
                     value={profilePassword}
                     onChange={(e) => setProfilePassword(e.target.value)}
                     placeholder="Masukkan kata sandi brankas Anda"
-                    className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                   />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="submit"
                     disabled={updateProfile.isPending}
-                    className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2 text-xs font-semibold text-white hover:brightness-110 disabled:opacity-60"
+                    className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2 text-xs font-semibold text-[#101827] hover:brightness-105 disabled:opacity-60"
                   >
                     {updateProfile.isPending ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -526,7 +537,7 @@ export function PengaturanPage() {
                       setEditingProfile(false);
                       setProfilePassword("");
                     }}
-                    className="min-h-[40px] rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-200 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
+                    className="min-h-[40px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-200 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200"
                   >
                     Batal
                   </button>
@@ -536,17 +547,17 @@ export function PengaturanPage() {
           </div>
 
           {/* Kunci PIN Cepat 6 Digit */}
-          <div className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#D4AF37]/15 text-[#9A7411] dark:text-[#E6C768]">
                   <Lock className="h-4 w-4" aria-hidden="true" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                  <h2 className="text-base font-bold text-[#101827] dark:text-white">
                     Kunci PIN Cepat (6 Digit)
                   </h2>
-                  <p className="text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
                     Buka brankas harian di ponsel lebih cepat tanpa mengetik ulang kata sandi panjang.
                   </p>
                 </div>
@@ -554,8 +565,8 @@ export function PengaturanPage() {
               <span
                 className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                   auth?.hasPin
-                    ? "bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
-                    : "bg-slate-100 text-slate-500 dark:bg-[#06132F] dark:text-[#C7D0E0]/65"
+                    ? "bg-[#14B8A6]/15 text-[#0D9488] dark:text-[#2DD4BF]"
+                    : "bg-slate-100 text-slate-500 dark:bg-[#0B111E] dark:text-slate-400"
                 }`}
               >
                 {auth?.hasPin ? "Aktif" : "Belum Aktif"}
@@ -563,13 +574,13 @@ export function PengaturanPage() {
             </div>
 
             {auth?.hasPin && !editingPin ? (
-              <div className="mt-4 space-y-4 border-t border-[#DCE4F0] pt-4 dark:border-[#1B3163]">
-                <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F]">
+              <div className="mt-4 space-y-4 border-t border-slate-200 pt-4 dark:border-[#1E293B]">
+                <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]">
                   <div>
-                    <p className="text-xs font-semibold text-[#06132F] dark:text-white">
+                    <p className="text-xs font-semibold text-[#101827] dark:text-white">
                       Kunci otomatis saat aplikasi dibuka
                     </p>
-                    <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/75">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Meminta PIN 6 digit setiap kali membuka jendela atau PWA baru.
                     </p>
                   </div>
@@ -577,7 +588,7 @@ export function PengaturanPage() {
                     type="checkbox"
                     checked={autoLock}
                     onChange={(e) => handleToggleAutoLock(e.target.checked)}
-                    className="h-4 w-4 rounded border-[#DCE4F0] accent-[#087BFF]"
+                    className="h-4 w-4 rounded border-slate-300 accent-[#D4AF37]"
                   />
                 </label>
 
@@ -588,7 +599,7 @@ export function PengaturanPage() {
                       setPinLocked(true);
                       toast.success("Layar brankas dikunci.");
                     }}
-                    className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:brightness-110"
+                    className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-3.5 py-2 text-xs font-semibold text-[#101827] shadow-xs hover:brightness-105"
                   >
                     <Lock className="h-3.5 w-3.5" aria-hidden="true" />
                     <span>Kunci Layar Sekarang</span>
@@ -599,14 +610,14 @@ export function PengaturanPage() {
                       setEditingPin(true);
                       setDisablingPin(false);
                     }}
-                    className="min-h-[40px] rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2 text-xs font-semibold text-[#06132F] hover:bg-slate-200 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45]"
+                    className="ego-pressable min-h-[40px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-[#101827] hover:bg-slate-200 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200 dark:hover:bg-[#162032]"
                   >
                     Ubah PIN
                   </button>
                   <button
                     type="button"
                     onClick={() => setDisablingPin((v) => !v)}
-                    className="min-h-[40px] rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 dark:border-rose-500/40 dark:bg-rose-500/15 dark:text-rose-300 dark:hover:bg-rose-500/25"
+                    className="ego-pressable min-h-[40px] rounded-xl border border-[#EF4444]/30 bg-[#EF4444]/10 px-3.5 py-2 text-xs font-semibold text-[#DC2626] hover:bg-[#EF4444]/20 dark:text-[#F87171]"
                   >
                     Nonaktifkan PIN
                   </button>
@@ -615,12 +626,12 @@ export function PengaturanPage() {
                 {disablingPin ? (
                   <form
                     onSubmit={handleDisablePin}
-                    className="space-y-3 rounded-xl border border-rose-200/80 bg-rose-50/60 p-3.5 dark:border-rose-500/30 dark:bg-rose-950/20"
+                    className="space-y-3 rounded-2xl border border-[#EF4444]/30 bg-[#EF4444]/8 p-3.5 dark:bg-[#EF4444]/10"
                   >
                     <div className="space-y-1">
                       <label
                         htmlFor="disable-pin-password"
-                        className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                        className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                       >
                         Kata Sandi Owner Saat Ini
                       </label>
@@ -631,14 +642,14 @@ export function PengaturanPage() {
                         onChange={(e) => setDisablePinPassword(e.target.value)}
                         autoComplete="current-password"
                         placeholder="Verifikasi kata sandi Anda"
-                        className="w-full rounded-xl border border-[#DCE4F0] bg-white px-3 py-2 text-sm text-[#06132F] focus:border-[#087BFF] focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-[#101827] focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
                       />
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="submit"
                         disabled={disablePin.isPending}
-                        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-rose-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+                        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#EF4444] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#DC2626] disabled:opacity-60"
                       >
                         {disablePin.isPending ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -651,7 +662,7 @@ export function PengaturanPage() {
                           setDisablingPin(false);
                           setDisablePinPassword("");
                         }}
-                        className="min-h-[40px] rounded-xl border border-[#DCE4F0] bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0]"
+                        className="min-h-[40px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-200"
                       >
                         Batal
                       </button>
@@ -662,13 +673,13 @@ export function PengaturanPage() {
             ) : (
               <form
                 onSubmit={handleSavePin}
-                className="mt-4 space-y-3.5 border-t border-[#DCE4F0] pt-4 dark:border-[#1B3163]"
+                className="mt-4 space-y-3.5 border-t border-slate-200 pt-4 dark:border-[#1E293B]"
               >
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
                     <label
                       htmlFor="pin-input"
-                      className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                      className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                     >
                       PIN 6 Digit
                     </label>
@@ -683,13 +694,13 @@ export function PengaturanPage() {
                         setPinValue(e.target.value.replace(/\D/g, "").slice(0, 6))
                       }
                       placeholder="••••••"
-                      className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 font-mono text-sm tracking-widest text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm tracking-widest text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                     />
                   </div>
                   <div className="space-y-1">
                     <label
                       htmlFor="pin-confirm-input"
-                      className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                      className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                     >
                       Konfirmasi PIN
                     </label>
@@ -704,7 +715,7 @@ export function PengaturanPage() {
                         setPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 6))
                       }
                       placeholder="••••••"
-                      className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 font-mono text-sm tracking-widest text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm tracking-widest text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                     />
                   </div>
                 </div>
@@ -712,7 +723,7 @@ export function PengaturanPage() {
                 <div className="space-y-1">
                   <label
                     htmlFor="pin-owner-password"
-                    className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                    className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                   >
                     Kata Sandi Owner Saat Ini
                   </label>
@@ -723,7 +734,7 @@ export function PengaturanPage() {
                     value={pinPassword}
                     onChange={(e) => setPinPassword(e.target.value)}
                     placeholder="Wajib diisi untuk verifikasi pemilik"
-                    className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                   />
                 </div>
 
@@ -731,7 +742,7 @@ export function PengaturanPage() {
                   <button
                     type="submit"
                     disabled={setupPin.isPending}
-                    className="inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:brightness-110 disabled:opacity-60"
+                    className="inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-xs font-semibold text-[#101827] shadow-xs hover:brightness-105 disabled:opacity-60"
                   >
                     {setupPin.isPending ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -749,7 +760,7 @@ export function PengaturanPage() {
                         setPinConfirm("");
                         setPinPassword("");
                       }}
-                      className="min-h-[42px] rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
+                      className="min-h-[42px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200"
                     >
                       Batal
                     </button>
@@ -760,16 +771,16 @@ export function PengaturanPage() {
           </div>
 
           {/* Diagnostik & Supabase */}
-          <div className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+              <h2 className="text-base font-bold text-[#101827] dark:text-white">
                 Status Diagnostik &amp; Kesiapan Cloud
               </h2>
               <button
                 type="button"
                 onClick={handleResync}
                 disabled={isFetching}
-                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-1.5 text-xs font-semibold text-[#06132F] transition-colors hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:border-[#19D8FF]/40"
+                className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-[#101827] transition-colors hover:border-[#D4AF37]/45 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200 dark:hover:border-[#D4AF37]/45"
               >
                 <RefreshCw
                   className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`}
@@ -779,16 +790,22 @@ export function PengaturanPage() {
               </button>
             </div>
 
-            <ul className="mt-4 divide-y divide-[#DCE4F0]/80 dark:divide-[#1B3163]">
+            <ul className="mt-4 divide-y divide-slate-200/80 dark:divide-[#1E293B]">
               {diagnostics.map((item) => (
                 <li
                   key={item.label}
-                  className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0 text-xs"
+                  className="flex items-center justify-between gap-4 py-3 text-xs first:pt-0 last:pb-0"
                 >
-                  <span className="text-slate-500 dark:text-[#C7D0E0]/75">
+                  <span className="text-slate-500 dark:text-slate-400">
                     {item.label}
                   </span>
-                  <span className="inline-flex items-center gap-1.5 font-semibold text-[#087BFF] dark:text-[#19D8FF]">
+                  <span
+                    className={`inline-flex items-center gap-1.5 font-semibold ${
+                      item.ok
+                        ? "text-[#0D9488] dark:text-[#2DD4BF]"
+                        : "text-amber-700 dark:text-amber-300"
+                    }`}
+                  >
                     {item.ok ? (
                       <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                     ) : (
@@ -800,10 +817,10 @@ export function PengaturanPage() {
               ))}
             </ul>
 
-            <div className="mt-4 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 text-xs text-slate-600 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]/80">
-              <div className="flex items-center gap-2 font-semibold text-[#06132F] dark:text-white">
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-600 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300">
+              <div className="flex items-center gap-2 font-semibold text-[#101827] dark:text-white">
                 <Database
-                  className="h-3.5 w-3.5 text-[#087BFF] dark:text-[#19D8FF]"
+                  className="h-3.5 w-3.5 text-[#9A7411] dark:text-[#E6C768]"
                   aria-hidden="true"
                 />
                 <span>Status Supabase Cloud</span>
@@ -817,16 +834,16 @@ export function PengaturanPage() {
           </div>
 
           {/* Instalasi Ponsel PWA */}
-          <div className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#D4AF37]/15 text-[#9A7411] dark:text-[#E6C768]">
                 <Smartphone className="h-4 w-4" aria-hidden="true" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                <h2 className="text-base font-bold text-[#101827] dark:text-white">
                   Aplikasi Harian di Ponsel (PWA)
                 </h2>
-                <p className="text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
                   {isInstalled
                     ? "Aplikasi sudah berjalan dalam mode layar penuh (standalone)."
                     : "Pasang di layar utama iPhone atau Android agar terasa seperti aplikasi native."}
@@ -836,30 +853,30 @@ export function PengaturanPage() {
             <div className="mt-4">
               <PWAInstallButton />
               {!isInstalled ? (
-                <p className="mt-2.5 text-xs leading-relaxed text-slate-500 dark:text-[#C7D0E0]/70">
+                <p className="mt-2.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                   Di iPhone Safari, ketuk tombol Bagikan lalu &ldquo;Tambahkan ke Layar Utama&rdquo;. Di Android Chrome/Edge, gunakan tombol Pasang Aplikasi di atas.
                 </p>
               ) : null}
             </div>
           </div>
-        </section>
+        </EgoStaggerSection>
 
         {/* Preferensi, Ekspor/Backup, Sandi & Logout */}
-        <section className="space-y-6 lg:col-span-6">
+        <EgoStaggerSection index={1} className="space-y-6 lg:col-span-6">
           <form
             onSubmit={handleSavePrefs}
-            className="space-y-5 rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6"
+            className="space-y-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6"
           >
-            <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+            <h2 className="text-base font-bold text-[#101827] dark:text-white">
               Preferensi Tampilan &amp; Batas Pengeluaran
             </h2>
 
             <div className="space-y-1.5">
-              <span className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]">
+              <span className="block text-xs font-semibold text-slate-700 dark:text-slate-200">
                 Tampilan &amp; Tema Aplikasi
               </span>
-              <div className="flex flex-col gap-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F] sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+              <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E] sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
                   Pilih mode terang profesional atau Midnight Navy gelap.
                 </p>
                 <ThemeToggleButton className="shrink-0" />
@@ -869,7 +886,7 @@ export function PengaturanPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="pref-date-format"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
               >
                 Format Tanggal
               </label>
@@ -877,7 +894,7 @@ export function PengaturanPage() {
                 id="pref-date-format"
                 value={dateFormat}
                 onChange={(e) => setDateFormat(e.target.value as DateFormatPref)}
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
               >
                 <option value="DD MMM YYYY">DD MMM YYYY (23 Nov 2026)</option>
                 <option value="DD/MM/YYYY">DD/MM/YYYY (23/11/2026)</option>
@@ -896,7 +913,7 @@ export function PengaturanPage() {
             <button
               type="submit"
               disabled={updatePrefs.isPending}
-              className="inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:brightness-110 disabled:opacity-60"
+              className="ego-pressable inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-xs font-semibold text-[#101827] shadow-xs hover:brightness-105 disabled:opacity-60"
             >
               {updatePrefs.isPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -906,11 +923,11 @@ export function PengaturanPage() {
           </form>
 
           {/* Ekspor & Cadangan Brankas */}
-          <div className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
-            <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
+            <h2 className="text-base font-bold text-[#101827] dark:text-white">
               Ekspor &amp; Cadangan Data Brankas
             </h2>
-            <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+            <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
               Unduh salinan pribadi laporan transaksi untuk Excel/Sheets (CSV) atau arsip lengkap seluruh brankas (JSON) kapan saja.
             </p>
             <div className="mt-4 flex flex-wrap gap-2.5">
@@ -918,85 +935,165 @@ export function PengaturanPage() {
                 type="button"
                 onClick={handleExportCsv}
                 disabled={!vault}
-                className="inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-4 py-2.5 text-xs font-semibold text-[#06132F] transition-colors hover:border-[#087BFF]/40 disabled:opacity-50 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
+                className="ego-pressable inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-[#101827] transition-colors hover:border-[#D4AF37]/45 disabled:opacity-50 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200"
               >
-                <FileSpreadsheet className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
+                <FileSpreadsheet className="h-4 w-4 text-[#9A7411] dark:text-[#E6C768]" aria-hidden="true" />
                 <span>Ekspor Transaksi (CSV)</span>
               </button>
               <button
                 type="button"
                 onClick={handleExportJsonBackup}
                 disabled={!vault}
-                className="inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-[#087BFF]/30 bg-[#087BFF]/10 px-4 py-2.5 text-xs font-semibold text-[#087BFF] transition-colors hover:bg-[#087BFF]/15 disabled:opacity-50 dark:border-[#19D8FF]/30 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                className="ego-pressable inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-[#D4AF37]/35 bg-[#D4AF37]/15 px-4 py-2.5 text-xs font-semibold text-[#9A7411] transition-colors hover:bg-[#D4AF37]/25 disabled:opacity-50 dark:text-[#E6C768]"
               >
                 <Download className="h-4 w-4" aria-hidden="true" />
                 <span>Cadangan Brankas Lengkap (JSON)</span>
               </button>
             </div>
-            <div className="mt-5 border-t border-[#DCE4F0] pt-4 dark:border-[#1B3163]">
-              <h3 className="text-sm font-bold text-[#06132F] dark:text-white">Pemulihan Cadangan — Validasi & Pratinjau</h3>
-              <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+            <div className="mt-5 border-t border-slate-200 pt-4 dark:border-[#1E293B]">
+              <h3 className="text-sm font-bold text-[#101827] dark:text-white">
+                Pemulihan Cadangan — Validasi &amp; Pratinjau
+              </h3>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
                 Pilih file JSON untuk memeriksa struktur, UUID, nilai keuangan, dan ID yang sudah ada. File JSON dapat diedit; metadata email bukan bukti keaslian. Akun tujuan ditentukan oleh sesi Owner yang sedang masuk.
               </p>
-              <label className="mt-3 block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]">
+              <label className="mt-3 block text-xs font-semibold text-slate-700 dark:text-slate-200">
                 File cadangan EGO (.json)
                 <input
                   type="file"
                   accept="application/json,.json"
                   onChange={handleValidateBackupFile}
-                  className="mt-2 block w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-2 text-xs dark:border-[#1B3163] dark:bg-[#06132F]"
+                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs text-[#101827] dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200"
                 />
               </label>
               {backupValidationError ? (
-                <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-950/30 dark:text-red-300">{backupValidationError}</p>
+                <p
+                  role="alert"
+                  className="mt-3 rounded-xl bg-[#EF4444]/10 p-3 text-xs text-[#DC2626] dark:text-[#F87171]"
+                >
+                  {backupValidationError}
+                </p>
               ) : null}
               {backupPreview ? (
-                <div className="mt-3 rounded-xl border border-emerald-300/60 bg-emerald-50/60 p-3 text-xs dark:border-emerald-700/50 dark:bg-emerald-950/20">
-                  <p className="font-bold text-emerald-800 dark:text-emerald-300">Validasi awal berhasil — {backupPreview.totalRecords} baris data</p>
-                  <p className="mt-1 text-slate-600 dark:text-[#C7D0E0]/75">Ekspor: {new Date(backupPreview.exportedAt).toLocaleString("id-ID")} · Metadata email: {backupPreview.ownerEmail ?? "tidak dicantumkan"}</p>
-                  {backupPreview.ownerMetadataMismatch ? <p className="mt-2 rounded-lg bg-amber-100 p-2 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">Email di metadata berbeda dari akun aktif. Ini bukan pemeriksaan keaslian; pemulihan tetap hanya dapat menulis ke UID sesi Owner yang sedang masuk.</p> : null}
-                  <ul className="mt-2 grid grid-cols-2 gap-1 text-slate-700 dark:text-[#C7D0E0]">
+                <div className="mt-3 rounded-2xl border border-[#14B8A6]/35 bg-[#14B8A6]/10 p-3 text-xs">
+                  <p className="font-bold text-[#0D9488] dark:text-[#2DD4BF]">
+                    Validasi awal berhasil — {backupPreview.totalRecords} baris data
+                  </p>
+                  <p className="mt-1 text-slate-600 dark:text-slate-300">
+                    Ekspor: {new Date(backupPreview.exportedAt).toLocaleString("id-ID")} · Metadata email:{" "}
+                    {backupPreview.ownerEmail ?? "tidak dicantumkan"}
+                  </p>
+                  {backupPreview.ownerMetadataMismatch ? (
+                    <p className="mt-2 rounded-lg bg-amber-100 p-2 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                      Email di metadata berbeda dari akun aktif. Ini bukan pemeriksaan keaslian; pemulihan tetap hanya dapat menulis ke UID sesi Owner yang sedang masuk.
+                    </p>
+                  ) : null}
+                  <ul className="mt-2 grid grid-cols-2 gap-1 text-slate-700 dark:text-slate-200">
                     {Object.entries(backupPreview.counts).map(([name, count]) => (
-                      <li key={name}>{name}: <strong>{count}</strong></li>
+                      <li key={name}>
+                        {name}: <strong>{count}</strong>
+                      </li>
                     ))}
                   </ul>
-                  <p className="mt-2 font-semibold">ID yang sudah ada (perlu pemeriksaan server): {Object.values(backupPreview.existingIdConflicts).reduce((sum, count) => sum + count, 0)}</p>
-                  <div className="mt-3 rounded-lg border border-[#DCE4F0] bg-white/70 p-3 dark:border-[#1B3163] dark:bg-[#06132F]/70">
-                    <p className="font-bold text-slate-800 dark:text-white">Ringkasan nilai dalam file (bukan perubahan saldo)</p>
-                    <dl className="mt-2 grid grid-cols-2 gap-2 text-slate-700 dark:text-[#C7D0E0]">
-                      <div><dt className="text-slate-500 dark:text-[#C7D0E0]/60">Pemasukan terposting</dt><dd className="font-semibold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(backupPreview.financialSummary.postedIncome)}</dd></div>
-                      <div><dt className="text-slate-500 dark:text-[#C7D0E0]/60">Pengeluaran terposting</dt><dd className="font-semibold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(backupPreview.financialSummary.postedExpenses)}</dd></div>
-                      <div><dt className="text-slate-500 dark:text-[#C7D0E0]/60">Arus kas bersih</dt><dd className="font-semibold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(backupPreview.financialSummary.netCashflow)}</dd></div>
-                      <div><dt className="text-slate-500 dark:text-[#C7D0E0]/60">Sisa utang tercatat</dt><dd className="font-semibold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(backupPreview.financialSummary.outstandingDebt)}</dd></div>
-                      <div className="col-span-2"><dt className="text-slate-500 dark:text-[#C7D0E0]/60">Nilai aset tercatat</dt><dd className="font-semibold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(backupPreview.financialSummary.assetValue)}</dd></div>
+                  <p className="mt-2 font-semibold text-[#101827] dark:text-white">
+                    ID yang sudah ada (perlu pemeriksaan server):{" "}
+                    {Object.values(backupPreview.existingIdConflicts).reduce((sum, count) => sum + count, 0)}
+                  </p>
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-white/80 p-3 dark:border-[#1E293B] dark:bg-[#0B111E]/80">
+                    <p className="font-bold text-[#101827] dark:text-white">
+                      Ringkasan nilai dalam file (bukan perubahan saldo)
+                    </p>
+                    <dl className="mt-2 grid grid-cols-2 gap-2 text-slate-700 dark:text-slate-200">
+                      <div>
+                        <dt className="text-slate-500 dark:text-slate-400">Pemasukan terposting</dt>
+                        <dd className="font-semibold">
+                          {new Intl.NumberFormat("id-ID", {
+                            style: "currency",
+                            currency: "IDR",
+                            maximumFractionDigits: 0,
+                          }).format(backupPreview.financialSummary.postedIncome)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-500 dark:text-slate-400">Pengeluaran terposting</dt>
+                        <dd className="font-semibold">
+                          {new Intl.NumberFormat("id-ID", {
+                            style: "currency",
+                            currency: "IDR",
+                            maximumFractionDigits: 0,
+                          }).format(backupPreview.financialSummary.postedExpenses)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-500 dark:text-slate-400">Arus kas bersih</dt>
+                        <dd className="font-semibold">
+                          {new Intl.NumberFormat("id-ID", {
+                            style: "currency",
+                            currency: "IDR",
+                            maximumFractionDigits: 0,
+                          }).format(backupPreview.financialSummary.netCashflow)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-500 dark:text-slate-400">Sisa utang tercatat</dt>
+                        <dd className="font-semibold">
+                          {new Intl.NumberFormat("id-ID", {
+                            style: "currency",
+                            currency: "IDR",
+                            maximumFractionDigits: 0,
+                          }).format(backupPreview.financialSummary.outstandingDebt)}
+                        </dd>
+                      </div>
+                      <div className="col-span-2">
+                        <dt className="text-slate-500 dark:text-slate-400">Nilai aset tercatat</dt>
+                        <dd className="font-semibold">
+                          {new Intl.NumberFormat("id-ID", {
+                            style: "currency",
+                            currency: "IDR",
+                            maximumFractionDigits: 0,
+                          }).format(backupPreview.financialSummary.assetValue)}
+                        </dd>
+                      </div>
                     </dl>
-                    <p className="mt-2 text-[11px] text-slate-500 dark:text-[#C7D0E0]/60">Ringkasan dihitung dari isi file. Pemasukan/pengeluaran hanya transaksi berstatus posted; server tetap memvalidasi relasi dan batasan database sebelum menyimpan.</p>
+                    <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                      Ringkasan dihitung dari isi file. Pemasukan/pengeluaran hanya transaksi berstatus posted; server tetap memvalidasi relasi dan batasan database sebelum menyimpan.
+                    </p>
                   </div>
-                  <p className="mt-2 text-amber-700 dark:text-amber-300">Baris identik akan dilewati. ID yang sama dengan isi berbeda membatalkan seluruh pemulihan. Data lama tidak ditimpa atau dihapus.</p>
+                  <p className="mt-2 text-amber-700 dark:text-amber-300">
+                    Baris identik akan dilewati. ID yang sama dengan isi berbeda membatalkan seluruh pemulihan. Data lama tidak ditimpa atau dihapus.
+                  </p>
                   {isSupabaseConfigured && supabase ? (
-                    <div className="mt-3 space-y-3 border-t border-emerald-300/60 pt-3 dark:border-emerald-700/50">
-                      <label className="flex items-start gap-2 text-slate-700 dark:text-[#C7D0E0]">
+                    <div className="mt-3 space-y-3 border-t border-[#14B8A6]/30 pt-3">
+                      <label className="flex items-start gap-2 text-slate-700 dark:text-slate-200">
                         <input
                           type="checkbox"
                           checked={backupRestoreConfirmed}
                           onChange={(event) => setBackupRestoreConfirmed(event.target.checked)}
                           disabled={backupRestorePending}
-                          className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#D4AF37]"
                         />
-                        <span>Saya Owner dan menyetujui pemulihan cadangan ini ke akun EGO saya. Data yang identik dilewati; konflik akan membatalkan seluruh proses.</span>
+                        <span>
+                          Saya Owner dan menyetujui pemulihan cadangan ini ke akun EGO saya. Data yang identik dilewati; konflik akan membatalkan seluruh proses.
+                        </span>
                       </label>
                       <button
                         type="button"
                         onClick={handleRestoreBackup}
                         disabled={!backupRestoreConfirmed || backupRestorePending}
-                        className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-[#087BFF] px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#0669DB] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#087BFF]"
+                        className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-xs font-semibold text-[#101827] transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {backupRestorePending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
+                        {backupRestorePending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                        )}
                         <span>{backupRestorePending ? "Memulihkan..." : "Pulihkan Cadangan"}</span>
                       </button>
                     </div>
                   ) : (
-                    <p className="mt-2 text-amber-700 dark:text-amber-300">Pemulihan otomatis hanya tersedia saat EGO terhubung ke Supabase dan Owner sudah masuk.</p>
+                    <p className="mt-2 text-amber-700 dark:text-amber-300">
+                      Pemulihan otomatis hanya tersedia saat EGO terhubung ke Supabase dan Owner sudah masuk.
+                    </p>
                   )}
                 </div>
               ) : null}
@@ -1006,17 +1103,17 @@ export function PengaturanPage() {
           {/* Ganti Kata Sandi Brankas */}
           <form
             onSubmit={handleChangePassword}
-            className="space-y-4 rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6"
+            className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6"
           >
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#D4AF37]/15 text-[#9A7411] dark:text-[#E6C768]">
                 <KeyRound className="h-4 w-4" aria-hidden="true" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                <h2 className="text-base font-bold text-[#101827] dark:text-white">
                   Ganti Kata Sandi Brankas
                 </h2>
-                <p className="text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
                   Memperbarui kata sandi akan memutus seluruh sesi perangkat lain secara otomatis.
                 </p>
               </div>
@@ -1025,7 +1122,7 @@ export function PengaturanPage() {
             <div className="space-y-1">
               <label
                 htmlFor="current-vault-password"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
               >
                 Kata Sandi Saat Ini
               </label>
@@ -1036,7 +1133,7 @@ export function PengaturanPage() {
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="Masukkan kata sandi aktif Anda"
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
               />
             </div>
 
@@ -1044,7 +1141,7 @@ export function PengaturanPage() {
               <div className="space-y-1">
                 <label
                   htmlFor="new-vault-password"
-                  className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                  className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                 >
                   Kata Sandi Baru (Min. 6 karakter)
                 </label>
@@ -1056,14 +1153,14 @@ export function PengaturanPage() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Minimal 6 karakter"
-                  className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                 />
               </div>
 
               <div className="space-y-1">
                 <label
                   htmlFor="confirm-new-vault-password"
-                  className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                  className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                 >
                   Konfirmasi Kata Sandi Baru
                 </label>
@@ -1075,7 +1172,7 @@ export function PengaturanPage() {
                   value={confirmNewPassword}
                   onChange={(e) => setConfirmNewPassword(e.target.value)}
                   placeholder="Ketik ulang kata sandi baru"
-                  className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                 />
               </div>
             </div>
@@ -1083,7 +1180,7 @@ export function PengaturanPage() {
             <button
               type="submit"
               disabled={changePassword.isPending}
-              className="inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:brightness-110 disabled:opacity-60"
+              className="ego-pressable inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-xs font-semibold text-[#101827] shadow-xs hover:brightness-105 disabled:opacity-60"
             >
               {changePassword.isPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -1095,11 +1192,11 @@ export function PengaturanPage() {
           </form>
 
           {/* Kontrol Sesi */}
-          <div className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
-            <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
+            <h2 className="text-base font-bold text-[#101827] dark:text-white">
               Kontrol Sesi Brankas
             </h2>
-            <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+            <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
               Menutup sesi akan membersihkan seluruh cache data lokal di browser dan mengunci kembali brankas pribadi Anda.
             </p>
             <div className="mt-4 flex flex-wrap gap-2.5">
@@ -1107,7 +1204,7 @@ export function PengaturanPage() {
                 type="button"
                 onClick={handleLogout}
                 disabled={logout.isPending}
-                className="inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-100 dark:border-rose-500/40 dark:bg-rose-500/15 dark:text-rose-300 dark:hover:bg-rose-500/25"
+                className="ego-pressable inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-[#EF4444]/30 bg-[#EF4444]/10 px-4 py-2.5 text-xs font-semibold text-[#DC2626] transition-colors hover:bg-[#EF4444]/20 dark:text-[#F87171]"
               >
                 <LogOut className="h-4 w-4" aria-hidden="true" />
                 <span>Kunci Brankas &amp; Bersihkan Cache Sesi</span>
@@ -1117,7 +1214,7 @@ export function PengaturanPage() {
                 <button
                   type="button"
                   onClick={() => setDeletingOwner((v) => !v)}
-                  className="inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-4 py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:border-rose-500/40 dark:hover:bg-rose-500/15 dark:hover:text-rose-300"
+                  className="ego-pressable inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:border-[#EF4444]/40 hover:bg-[#EF4444]/10 hover:text-[#DC2626] dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200 dark:hover:border-[#EF4444]/40 dark:hover:text-[#F87171]"
                 >
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                   <span>Hapus Akun Owner</span>
@@ -1128,17 +1225,17 @@ export function PengaturanPage() {
             {!isSupabaseConfigured && deletingOwner ? (
               <form
                 onSubmit={handleDeleteOwner}
-                className="mt-4 space-y-3 rounded-xl border border-rose-200/90 bg-rose-50/70 p-4 dark:border-rose-500/30 dark:bg-rose-950/20"
+                className="mt-4 space-y-3 rounded-2xl border border-[#EF4444]/30 bg-[#EF4444]/8 p-4 dark:bg-[#EF4444]/10"
               >
-                <p className="text-xs leading-relaxed text-rose-900 dark:text-rose-200">
+                <p className="text-xs leading-relaxed text-[#991B1B] dark:text-[#FCA5A5]">
                   Menghapus akun Owner akan mengosongkan seluruh data brankas lokal (akun, transaksi, aset, utang, dan rencana) dan membuka kembali pendaftaran Owner baru.
                 </p>
-                <label className="flex cursor-pointer items-start gap-2.5 text-xs text-[#06132F] dark:text-[#C7D0E0]">
+                <label className="flex cursor-pointer items-start gap-2.5 text-xs text-[#101827] dark:text-slate-200">
                   <input
                     type="checkbox"
                     checked={deleteOwnerConfirmed}
                     onChange={(e) => setDeleteOwnerConfirmed(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-rose-300 accent-rose-600"
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#EF4444]/40 accent-[#EF4444]"
                   />
                   <span>
                     Saya memahami seluruh data brankas lokal akan dihapus permanen.
@@ -1147,7 +1244,7 @@ export function PengaturanPage() {
                 <div className="space-y-1">
                   <label
                     htmlFor="delete-owner-password"
-                    className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                    className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                   >
                     Kata Sandi Owner Saat Ini
                   </label>
@@ -1158,14 +1255,14 @@ export function PengaturanPage() {
                     value={deleteOwnerPassword}
                     onChange={(e) => setDeleteOwnerPassword(e.target.value)}
                     placeholder="Verifikasi kata sandi Anda"
-                    className="w-full rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm text-[#06132F] focus:border-rose-500 focus:outline-none dark:border-rose-500/30 dark:bg-[#06132F] dark:text-white"
+                    className="w-full rounded-xl border border-[#EF4444]/35 bg-white px-3 py-2 text-sm text-[#101827] focus:border-[#EF4444] focus:outline-none dark:bg-[#0B111E] dark:text-white"
                   />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="submit"
                     disabled={deleteOwner.isPending}
-                    className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-rose-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+                    className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#EF4444] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#DC2626] disabled:opacity-60"
                   >
                     {deleteOwner.isPending ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -1181,7 +1278,7 @@ export function PengaturanPage() {
                       setDeleteOwnerPassword("");
                       setDeleteOwnerConfirmed(false);
                     }}
-                    className="min-h-[40px] rounded-xl border border-[#DCE4F0] bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0]"
+                    className="min-h-[40px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-200"
                   >
                     Batal
                   </button>
@@ -1189,7 +1286,7 @@ export function PengaturanPage() {
               </form>
             ) : null}
           </div>
-        </section>
+        </EgoStaggerSection>
       </div>
     </AppShell>
   );

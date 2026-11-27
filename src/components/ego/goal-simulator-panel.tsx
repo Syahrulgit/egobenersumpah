@@ -201,16 +201,16 @@ export function GoalSimulatorPanel({
     simulation.status === "achieved"
       ? {
           label: "Tercapai",
-          cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+          cls: "bg-[#14B8A6]/15 text-[#0D9488] dark:text-[#2DD4BF]",
         }
       : simulation.status === "on_track"
         ? {
             label: "Sesuai Rencana",
-            cls: "bg-[#087BFF]/15 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]",
+            cls: "bg-[#D4AF37]/15 text-[#9A7411] dark:text-[#E6C768]",
           }
         : {
             label: "Berisiko Terlambat",
-            cls: "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+            cls: "bg-[#EF4444]/15 text-[#DC2626] dark:text-[#F87171]",
           };
 
   function openReminderReview() {
@@ -267,24 +267,24 @@ export function GoalSimulatorPanel({
     >
       <div className="grid gap-5 lg:grid-cols-12">
         {/* Input Controls */}
-        <div className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none lg:col-span-5">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none lg:col-span-5">
           <div className="mb-4 flex items-center justify-between gap-2">
             <div>
-              <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+              <h2 className="text-base font-bold text-[#101827] dark:text-white">
                 Parameter Simulasi
               </h2>
-              <p className="text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Uji strategi setoran tanpa mengubah data transaksi asli.
               </p>
             </div>
-            <Calculator className="h-5 w-5 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
+            <Calculator className="h-5 w-5 text-[#D4AF37]" aria-hidden="true" />
           </div>
 
           <div className="space-y-4">
             <div className="space-y-1.5">
               <label
                 htmlFor="sim-goal-source"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 Sumber Target Keuangan
               </label>
@@ -292,7 +292,7 @@ export function GoalSimulatorPanel({
                 id="sim-goal-source"
                 value={sourceMode}
                 onChange={(e) => handleSelectGoalSource(e.target.value)}
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm font-medium text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-[#101827] focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
               >
                 {goals.map((g) => (
                   <option key={g.id} value={g.id}>
@@ -306,7 +306,7 @@ export function GoalSimulatorPanel({
             <div className="space-y-1.5">
               <label
                 htmlFor="sim-title"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 Nama Target
               </label>
@@ -316,7 +316,7 @@ export function GoalSimulatorPanel({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Contoh: Dana Darurat / DP Rumah"
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
               />
             </div>
 
@@ -339,16 +339,16 @@ export function GoalSimulatorPanel({
               <div className="flex items-center justify-between gap-2">
                 <label
                   htmlFor="sim-target-date"
-                  className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                  className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
                 >
                   Tanggal Target
                 </label>
-                <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-slate-600 dark:text-[#C7D0E0]/80">
+                <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
                   <input
                     type="checkbox"
                     checked={noTargetDate}
                     onChange={(e) => setNoTargetDate(e.target.checked)}
-                    className="h-3.5 w-3.5 rounded accent-[#087BFF]"
+                    className="h-3.5 w-3.5 rounded accent-[#D4AF37]"
                   />
                   <span>Tanpa batas tanggal</span>
                 </label>
@@ -359,7 +359,7 @@ export function GoalSimulatorPanel({
                   type="date"
                   value={targetDate}
                   onChange={(e) => setTargetDate(e.target.value)}
-                  className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 font-mono text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm text-[#101827] focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                 />
               ) : null}
             </div>
@@ -368,7 +368,7 @@ export function GoalSimulatorPanel({
               <div className="space-y-1.5">
                 <label
                   htmlFor="sim-frequency"
-                  className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                  className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
                 >
                   Frekuensi Setoran
                 </label>
@@ -376,7 +376,7 @@ export function GoalSimulatorPanel({
                   id="sim-frequency"
                   value={depositFrequency}
                   onChange={(e) => setDepositFrequency(e.target.value as DepositFrequency)}
-                  className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                 >
                   {DEPOSIT_FREQUENCY_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -389,7 +389,7 @@ export function GoalSimulatorPanel({
               <div className="space-y-1.5">
                 <label
                   htmlFor="sim-account"
-                  className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                  className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
                 >
                   Akun Terkait (Opsional)
                 </label>
@@ -397,7 +397,7 @@ export function GoalSimulatorPanel({
                   id="sim-account"
                   value={linkedAccountId}
                   onChange={(e) => setLinkedAccountId(e.target.value)}
-                  className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                 >
                   <option value="">Tidak ditentukan</option>
                   {activeAccounts.map((acc) => (
@@ -423,9 +423,8 @@ export function GoalSimulatorPanel({
               }
             />
 
-            {/* Customize 3 scenarios */}
-            <div className="rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F]">
-              <label className="flex cursor-pointer items-center justify-between gap-2 text-xs font-semibold text-[#06132F] dark:text-white">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]">
+              <label className="flex cursor-pointer items-center justify-between gap-2 text-xs font-semibold text-[#101827] dark:text-white">
                 <span>Ubah Nominal Konservatif &amp; Optimistis Manual</span>
                 <input
                   type="checkbox"
@@ -438,7 +437,7 @@ export function GoalSimulatorPanel({
                       setOptimisticAmount(Math.round(monthlyDeposit * 1.3));
                     }
                   }}
-                  className="h-4 w-4 rounded accent-[#087BFF]"
+                  className="h-4 w-4 rounded accent-[#D4AF37]"
                 />
               </label>
 
@@ -458,21 +457,20 @@ export function GoalSimulatorPanel({
                   />
                 </div>
               ) : (
-                <p className="mt-1.5 text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+                <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
                   Otomatis 70% ({formatIDR(simulation.scenarios.conservative.monthlyDeposit, true)}) &amp; 130% ({formatIDR(simulation.scenarios.optimistic.monthlyDeposit, true)}) dari skenario Normal.
                 </p>
               )}
             </div>
 
-            {/* Optional yield assumption (OFF by default) */}
-            <div className="rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F]">
-              <label className="flex cursor-pointer items-center justify-between gap-2 text-xs font-semibold text-[#06132F] dark:text-white">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]">
+              <label className="flex cursor-pointer items-center justify-between gap-2 text-xs font-semibold text-[#101827] dark:text-white">
                 <span>Asumsi Imbal Hasil Tahunan (Opsional)</span>
                 <input
                   type="checkbox"
                   checked={useYieldAssumption}
                   onChange={(e) => setUseYieldAssumption(e.target.checked)}
-                  className="h-4 w-4 rounded accent-[#087BFF]"
+                  className="h-4 w-4 rounded accent-[#D4AF37]"
                 />
               </label>
 
@@ -487,18 +485,18 @@ export function GoalSimulatorPanel({
                       step={0.5}
                       value={annualYieldPct}
                       onChange={(e) => setAnnualYieldPct(Number(e.target.value) || 0)}
-                      className="w-24 rounded-xl border border-[#DCE4F0] bg-white px-3 py-2 font-mono text-sm font-bold text-[#06132F] dark:border-[#1B3163] dark:bg-[#091634] dark:text-white"
+                      className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-sm font-bold text-[#101827] dark:border-[#1E293B] dark:bg-[#101827] dark:text-white"
                     />
-                    <span className="text-xs font-semibold text-slate-600 dark:text-[#C7D0E0]">
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                       % per tahun (simulasi majemuk bulanan)
                     </span>
                   </div>
-                  <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                  <p className="text-[11px] text-amber-700 dark:text-[#E6C768]">
                     Catatan: Nilai ini adalah asumsi simulasi semata dan bukan jaminan imbal hasil maupun pemasukan riil.
                   </p>
                 </div>
               ) : (
-                <p className="mt-1.5 text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+                <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
                   Nonaktif secara default — perhitungan murni berdasarkan setoran pribadi tanpa asumsi bunga.
                 </p>
               )}
@@ -508,21 +506,20 @@ export function GoalSimulatorPanel({
 
         {/* Simulation Outputs & Chart */}
         <div className="space-y-5 lg:col-span-7">
-          {/* Status & KPI Summary Card */}
-          <div className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-base font-bold text-[#06132F] dark:text-white">
+                  <h3 className="text-base font-bold text-[#101827] dark:text-white">
                     {title.trim() || "Simulasi Target"}
                   </h3>
                   <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${statusBadge.cls}`}>
                     {statusBadge.label}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   Progres {simulation.progressPercentage}% · Sisa dana{" "}
-                  <strong className="font-mono text-[#06132F] dark:text-white tabular-nums">
+                  <strong className="font-mono text-[#101827] dark:text-white tabular-nums">
                     {formatIDR(simulation.remainingAmount)}
                   </strong>
                 </p>
@@ -532,14 +529,13 @@ export function GoalSimulatorPanel({
                 type="button"
                 onClick={openReminderReview}
                 disabled={simulation.isAlreadyAchieved || chosenScenario.cycleDeposit <= 0}
-                className="inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-[#087BFF]/20 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-gradient-to-r from-[#E6C768] to-[#D4AF37] px-4 py-2 text-xs font-bold text-[#101827] shadow-sm shadow-[#D4AF37]/20 transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <BellPlus className="h-4 w-4" aria-hidden="true" />
                 <span>Buat Pengingat Setoran</span>
               </button>
             </div>
 
-            {/* Progress bar */}
             <div className="mt-4">
               <svg
                 viewBox="0 0 100 6"
@@ -553,7 +549,7 @@ export function GoalSimulatorPanel({
                   width={100}
                   height={6}
                   rx={3}
-                  className="fill-slate-200 dark:fill-[#132652]"
+                  className="fill-slate-200 dark:fill-slate-800"
                 />
                 {simulation.progressPercentage > 0 ? (
                   <rect
@@ -562,22 +558,21 @@ export function GoalSimulatorPanel({
                     width={simulation.progressPercentage}
                     height={6}
                     rx={3}
-                    className="fill-[#087BFF] transition-all dark:fill-[#19D8FF]"
+                    className="fill-[#D4AF37] transition-all"
                   />
                 ) : null}
               </svg>
             </div>
 
-            {/* Edge-case alerts */}
             {simulation.isAlreadyAchieved ? (
-              <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3.5 py-2.5 text-xs text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
+              <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-[#14B8A6]/35 bg-[#14B8A6]/10 px-3.5 py-2.5 text-xs text-[#0D9488] dark:text-[#2DD4BF]">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>
                   Target sudah tercapai 100%! Dana terkumpul melebihi atau menyamai nominal target.
                 </span>
               </div>
             ) : simulation.isPastDue ? (
-              <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50/80 px-3.5 py-2.5 text-xs text-rose-900 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+              <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-[#EF4444]/35 bg-[#EF4444]/10 px-3.5 py-2.5 text-xs text-[#DC2626] dark:text-[#F87171]">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>
                   Tanggal target sudah terlewati. Perbarui tanggal target atau tambah setoran untuk mengejar kekurangan{" "}
@@ -586,22 +581,21 @@ export function GoalSimulatorPanel({
               </div>
             ) : null}
 
-            {/* 4 Key Calculated Metrics */}
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3 dark:border-[#1B3163] dark:bg-[#06132F]">
-                <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-[#1E293B] dark:bg-[#0B111E]">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Sisa Target
                 </p>
-                <p className="mt-1 font-mono text-sm font-bold text-[#06132F] dark:text-white tabular-nums">
+                <p className="mt-1 font-mono text-sm font-bold text-[#101827] dark:text-white tabular-nums">
                   {formatIDR(simulation.remainingAmount, true)}
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3 dark:border-[#1B3163] dark:bg-[#06132F]">
-                <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-[#1E293B] dark:bg-[#0B111E]">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Sisa Waktu Target
                 </p>
-                <p className="mt-1 font-mono text-sm font-bold text-[#06132F] dark:text-white tabular-nums">
+                <p className="mt-1 font-mono text-sm font-bold text-[#101827] dark:text-white tabular-nums">
                   {simulation.monthsRemaining === null
                     ? "Fleksibel"
                     : simulation.isPastDue
@@ -610,22 +604,22 @@ export function GoalSimulatorPanel({
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3 dark:border-[#1B3163] dark:bg-[#06132F]">
-                <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-[#1E293B] dark:bg-[#0B111E]">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Setoran Min / Bln
                 </p>
-                <p className="mt-1 font-mono text-sm font-bold text-[#087BFF] dark:text-[#19D8FF] tabular-nums">
+                <p className="mt-1 font-mono text-sm font-bold text-[#9A7411] dark:text-[#E6C768] tabular-nums">
                   {simulation.minimumMonthlyDeposit !== null
                     ? formatIDR(simulation.minimumMonthlyDeposit, true)
                     : "—"}
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3 dark:border-[#1B3163] dark:bg-[#06132F]">
-                <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-[#1E293B] dark:bg-[#0B111E]">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Estimasi Selesai
                 </p>
-                <p className="mt-1 font-mono text-sm font-bold text-[#06132F] dark:text-white tabular-nums">
+                <p className="mt-1 font-mono text-sm font-bold text-[#101827] dark:text-white tabular-nums">
                   {simulation.isAlreadyAchieved
                     ? "Tercapai"
                     : simulation.scenarios.normal.estimatedMonths !== null
@@ -636,10 +630,10 @@ export function GoalSimulatorPanel({
             </div>
 
             {currentBudgetSummary.activeCount > 0 ? (
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-xs dark:border-[#1B3163] dark:bg-[#06132F]">
-                <span className="text-slate-600 dark:text-[#C7D0E0]/85">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs dark:border-[#1E293B] dark:bg-[#0B111E]">
+                <span className="text-slate-600 dark:text-slate-300">
                   Konteks Anggaran Bulan Ini:{" "}
-                  <strong className="font-mono text-[#06132F] dark:text-white">
+                  <strong className="font-mono text-[#101827] dark:text-white">
                     {formatIDR(currentBudgetSummary.totalSpentBudgeted, true)}
                   </strong>{" "}
                   / {formatIDR(currentBudgetSummary.totalBudget, true)} ({currentBudgetSummary.overallUsagePct.toFixed(0)}%)
@@ -647,8 +641,8 @@ export function GoalSimulatorPanel({
                 <span
                   className={`font-mono font-bold tabular-nums ${
                     currentBudgetSummary.remainingBudget < 0
-                      ? "text-rose-600 dark:text-rose-400"
-                      : "text-[#087BFF] dark:text-[#19D8FF]"
+                      ? "text-[#DC2626] dark:text-[#F87171]"
+                      : "text-[#0D9488] dark:text-[#2DD4BF]"
                   }`}
                 >
                   {currentBudgetSummary.remainingBudget >= 0
@@ -659,20 +653,20 @@ export function GoalSimulatorPanel({
             ) : null}
 
             {simulation.monthlyPlanGap !== null && !simulation.isAlreadyAchieved ? (
-              <div className="mt-3 flex items-center gap-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB]/70 px-3.5 py-2 text-xs dark:border-[#1B3163] dark:bg-[#06132F]/70">
-                <TrendingUp className="h-4 w-4 shrink-0 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
+              <div className="mt-3 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2 text-xs dark:border-[#1E293B] dark:bg-[#0B111E]">
+                <TrendingUp className="h-4 w-4 shrink-0 text-[#D4AF37]" aria-hidden="true" />
                 {simulation.monthlyPlanGap >= 0 ? (
-                  <span className="text-slate-700 dark:text-[#C7D0E0]">
+                  <span className="text-slate-700 dark:text-slate-300">
                     Selisih rencana vs kebutuhan minimum:{" "}
-                    <strong className="font-mono text-[#087BFF] dark:text-[#19D8FF]">
+                    <strong className="font-mono text-[#0D9488] dark:text-[#2DD4BF]">
                       +{formatIDR(Math.round(simulation.monthlyPlanGap))}/bln
                     </strong>{" "}
                     (lebih cepat dari target tanggal).
                   </span>
                 ) : (
-                  <span className="text-slate-700 dark:text-[#C7D0E0]">
+                  <span className="text-slate-700 dark:text-slate-300">
                     Kekurangan setoran per bulan untuk mengejar tanggal target:{" "}
-                    <strong className="font-mono text-rose-600 dark:text-rose-400">
+                    <strong className="font-mono text-[#DC2626] dark:text-[#F87171]">
                       {formatIDR(Math.round(Math.abs(simulation.monthlyPlanGap)))}/bln
                     </strong>
                     .
@@ -682,14 +676,13 @@ export function GoalSimulatorPanel({
             ) : null}
           </div>
 
-          {/* 3 Scenario Comparison Cards */}
-          <div className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h3 className="text-sm font-bold text-[#06132F] dark:text-white">
+                <h3 className="text-sm font-bold text-[#101827] dark:text-white">
                   Perbandingan 3 Skenario (Pilih untuk Dijadikan Pengingat)
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Ketuk salah satu kartu skenario untuk memilih jadwal setoran.
                 </p>
               </div>
@@ -707,10 +700,10 @@ export function GoalSimulatorPanel({
                       : "Berisiko";
                 const scBadgeCls =
                   sc.status === "achieved"
-                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                    ? "bg-[#14B8A6]/15 text-[#0D9488] dark:text-[#2DD4BF]"
                     : sc.status === "on_track"
-                      ? "bg-[#087BFF]/15 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
-                      : "bg-rose-500/15 text-rose-700 dark:text-rose-300";
+                      ? "bg-[#D4AF37]/15 text-[#9A7411] dark:text-[#E6C768]"
+                      : "bg-[#EF4444]/15 text-[#DC2626] dark:text-[#F87171]";
 
                 return (
                   <button
@@ -720,37 +713,37 @@ export function GoalSimulatorPanel({
                     aria-pressed={isSelected}
                     className={`flex flex-col justify-between rounded-2xl border p-3.5 text-left transition-all ${
                       isSelected
-                        ? "border-[#087BFF] bg-[#087BFF]/8 ring-2 ring-[#087BFF]/20 dark:border-[#19D8FF] dark:bg-[#19D8FF]/10 dark:ring-[#19D8FF]/20"
-                        : "border-[#DCE4F0] bg-[#F4F7FB]/70 hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F]/70"
+                        ? "border-[#D4AF37] bg-[#D4AF37]/10 ring-2 ring-[#D4AF37]/25 dark:border-[#D4AF37] dark:bg-[#D4AF37]/12 dark:ring-[#D4AF37]/25"
+                        : "border-slate-200 bg-slate-50/70 hover:border-[#D4AF37]/45 dark:border-[#1E293B] dark:bg-[#0B111E]"
                     }`}
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-[#06132F] dark:text-white">
+                        <span className="text-xs font-bold text-[#101827] dark:text-white">
                           {sc.label}
                         </span>
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${scBadgeCls}`}>
                           {scStatus}
                         </span>
                       </div>
-                      <p className="mt-2 font-mono text-base font-bold text-[#06132F] dark:text-white tabular-nums">
+                      <p className="mt-2 font-mono text-base font-bold text-[#101827] dark:text-white tabular-nums">
                         {formatIDR(sc.monthlyDeposit, true)}
-                        <span className="text-[11px] font-normal text-slate-500 dark:text-[#C7D0E0]/70">
+                        <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
                           /bln
                         </span>
                       </p>
                       {depositFrequency !== "monthly" ? (
-                        <p className="mt-0.5 font-mono text-[11px] text-slate-500 dark:text-[#C7D0E0]/75 tabular-nums">
+                        <p className="mt-0.5 font-mono text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
                           ≈ {formatIDR(sc.cycleDeposit, true)} /{" "}
                           {depositFrequency === "weekly" ? "mgg" : "2 mgg"}
                         </p>
                       ) : null}
                     </div>
 
-                    <div className="mt-3 border-t border-[#DCE4F0]/80 pt-2 text-[11px] text-slate-600 dark:border-[#1B3163] dark:text-[#C7D0E0]/80">
+                    <div className="mt-3 border-t border-slate-200 pt-2 text-[11px] text-slate-600 dark:border-[#1E293B] dark:text-slate-300">
                       <p>
                         ETA:{" "}
-                        <strong className="font-mono text-[#06132F] dark:text-white">
+                        <strong className="font-mono text-[#101827] dark:text-white">
                           {sc.estimatedDate
                             ? formatDateID(sc.estimatedDate, dateFormat)
                             : "—"}
@@ -762,8 +755,8 @@ export function GoalSimulatorPanel({
                           <strong
                             className={`font-mono ${
                               sc.planVsTargetGap >= 0
-                                ? "text-[#087BFF] dark:text-[#19D8FF]"
-                                : "text-rose-600 dark:text-rose-400"
+                                ? "text-[#0D9488] dark:text-[#2DD4BF]"
+                                : "text-[#DC2626] dark:text-[#F87171]"
                             }`}
                           >
                             {sc.planVsTargetGap >= 0 ? "+" : ""}
@@ -778,18 +771,17 @@ export function GoalSimulatorPanel({
             </div>
           </div>
 
-          {/* Projection Chart */}
-          <div className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h3 className="text-sm font-bold text-[#06132F] dark:text-white">
+                <h3 className="text-sm font-bold text-[#101827] dark:text-white">
                   Proyeksi Pertumbuhan Dana Tabungan
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Ketuk atau arahkan kursor pada grafik untuk membandingkan saldo setiap bulan.
                 </p>
               </div>
-              <Sparkles className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
+              <Sparkles className="h-4 w-4 text-[#D4AF37]" aria-hidden="true" />
             </div>
 
             <GoalProjectionChart
@@ -797,8 +789,8 @@ export function GoalSimulatorPanel({
               targetAmount={targetAmount}
             />
 
-            <div className="mt-3 flex items-start gap-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2 text-[11px] text-slate-600 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]/75">
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
+            <div className="mt-3 flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-400">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#D4AF37]" aria-hidden="true" />
               <span>
                 Hasil simulasi bersifat proyeksi perencanaan dan tidak dijamin sebagai pemasukan. Saldo riil hanya berubah melalui transaksi yang Owner setujui.
               </span>
@@ -807,7 +799,6 @@ export function GoalSimulatorPanel({
         </div>
       </div>
 
-      {/* Review & Confirm Modal for "Buat Pengingat Setoran" */}
       <ModalSheet
         open={reminderModalOpen}
         onClose={() => setReminderModalOpen(false)}
@@ -815,26 +806,26 @@ export function GoalSimulatorPanel({
         subtitle="Tinjau jadwal pengingat sebelum disimpan ke Pusat Pengingat."
       >
         <form onSubmit={handleConfirmCreateReminder} className="space-y-4">
-          <div className="rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] p-4 text-xs dark:border-[#1B3163] dark:bg-[#06132F]">
-            <p className="font-bold text-[#06132F] dark:text-white">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs dark:border-[#1E293B] dark:bg-[#0B111E]">
+            <p className="font-bold text-[#101827] dark:text-white">
               Ringkasan Rencana ({chosenScenario.label})
             </p>
             <dl className="mt-2.5 space-y-1.5">
               <div className="flex justify-between gap-3">
-                <dt className="text-slate-500 dark:text-[#C7D0E0]/75">Target</dt>
-                <dd className="font-semibold text-[#06132F] dark:text-white">
+                <dt className="text-slate-500 dark:text-slate-400">Target</dt>
+                <dd className="font-semibold text-[#101827] dark:text-white">
                   {title.trim() || "Target Tabungan"}
                 </dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-slate-500 dark:text-[#C7D0E0]/75">Nominal Setoran</dt>
-                <dd className="font-mono font-bold text-[#087BFF] dark:text-[#19D8FF]">
+                <dt className="text-slate-500 dark:text-slate-400">Nominal Setoran</dt>
+                <dd className="font-mono font-bold text-[#9A7411] dark:text-[#E6C768]">
                   {formatIDR(chosenScenario.cycleDeposit)}
                 </dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-slate-500 dark:text-[#C7D0E0]/75">Jadwal Pengingat</dt>
-                <dd className="font-semibold text-[#06132F] dark:text-white">
+                <dt className="text-slate-500 dark:text-slate-400">Jadwal Pengingat</dt>
+                <dd className="font-semibold text-[#101827] dark:text-white">
                   {depositFrequency === "monthly" ? "Bulanan" : "Mingguan"} · H-3, H-1, H-0
                 </dd>
               </div>
@@ -845,7 +836,7 @@ export function GoalSimulatorPanel({
             <div className="space-y-1.5">
               <label
                 htmlFor="sim-rem-date"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 Mulai Tanggal Pengingat
               </label>
@@ -855,14 +846,14 @@ export function GoalSimulatorPanel({
                 required
                 value={reminderFirstDate}
                 onChange={(e) => setReminderFirstDate(e.target.value)}
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 font-mono text-sm text-[#06132F] dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm text-[#101827] focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               />
             </div>
 
             <div className="space-y-1.5">
               <label
                 htmlFor="sim-rem-time"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 Jam Pengingat
               </label>
@@ -872,12 +863,12 @@ export function GoalSimulatorPanel({
                 required
                 value={reminderTime}
                 onChange={(e) => setReminderTime(e.target.value)}
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 font-mono text-sm text-[#06132F] dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm text-[#101827] focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               />
             </div>
           </div>
 
-          <div className="rounded-xl border border-amber-200 bg-amber-50/70 px-3.5 py-2.5 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+          <div className="rounded-xl border border-[#D4AF37]/35 bg-[#D4AF37]/10 px-3.5 py-2.5 text-xs text-[#6B500B] dark:text-[#E6C768]">
             Pengingat ini hanya mengingatkan waktu setoran. Tidak ada transaksi otomatis atau pemotongan saldo yang dijalankan tanpa persetujuan Anda.
           </div>
 
@@ -890,7 +881,7 @@ export function GoalSimulatorPanel({
           <button
             type="submit"
             disabled={!reminderConfirmed || createReminder.isPending}
-            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#087BFF]/20 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#E6C768] to-[#D4AF37] px-4 py-2.5 text-sm font-bold text-[#101827] shadow-sm shadow-[#D4AF37]/20 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createReminder.isPending ? (
               <>

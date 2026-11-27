@@ -1,6 +1,7 @@
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useEffect, useSyncExternalStore } from "react";
+import { AppShellFrame } from "../../components/ego/app-shell";
 import { BudgetAlertBridge } from "../../components/ego/budget-alert-bridge";
 import { PinLockScreen } from "../../components/ego/pin-lock-screen";
 import { ReminderNotificationBridge } from "../../components/ego/reminder-notification-bridge";
@@ -28,8 +29,8 @@ export function AuthenticatedLayout() {
 
   if (isLoading || !auth?.authenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F7FB] text-sm text-slate-600 dark:bg-[#040B1C] dark:text-[#C7D0E0]">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin text-[#087BFF] dark:text-[#19D8FF]" />
+      <div className="flex min-h-screen items-center justify-center bg-[#F6F7FB] text-sm text-slate-600 dark:bg-[#0B111E] dark:text-slate-300">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin text-[#D4AF37]" />
         <span>Memverifikasi sesi brankas Anda...</span>
       </div>
     );
@@ -47,7 +48,9 @@ export function AuthenticatedLayout() {
     <TransactionSheetProvider>
       <ReminderNotificationBridge />
       <BudgetAlertBridge />
-      <Outlet />
+      <AppShellFrame>
+        <Outlet />
+      </AppShellFrame>
     </TransactionSheetProvider>
   );
 }

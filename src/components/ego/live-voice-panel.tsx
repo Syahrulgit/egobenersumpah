@@ -349,30 +349,30 @@ export function LiveVoicePanel() {
     ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
 
   return (
-    <section className="rounded-2xl border border-[#DCE4F0] bg-white p-6 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-[#FF4DDE]/25 dark:bg-[#101827] dark:shadow-none">
+      <div className="flex flex-col gap-3.5">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FF4DDE]/12 text-[#A21CAF] dark:bg-[#FF4DDE]/15 dark:text-[#FF9EEA]">
             <Mic className="h-4 w-4" aria-hidden="true" />
           </div>
-          <div>
-            <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-bold text-[#101827] dark:text-white">
               Obrolan Suara Langsung (EGO Live)
             </h2>
-            <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+            <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
               Cukup ceritakan transaksi Anda dengan suara—EGO menyiapkan drafnya untuk Anda setujui.
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2.5">
           {supportsLocalSpeech && status === "idle" ? (
             <button
               type="button"
               onClick={startLocalDictation}
-              className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2 text-xs font-semibold text-[#06132F] transition-colors hover:bg-slate-100 whitespace-nowrap dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45]"
+              className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-[#101827] transition-colors hover:border-[#D4AF37]/50 hover:bg-[#D4AF37]/10 whitespace-nowrap dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200 dark:hover:bg-[#162032]"
             >
-              <Mic className="h-3.5 w-3.5 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
+              <Mic className="h-3.5 w-3.5 text-[#FF4DDE]" aria-hidden="true" />
               <span>Dikte Lokal</span>
             </button>
           ) : null}
@@ -381,10 +381,10 @@ export function LiveVoicePanel() {
             type="button"
             onClick={status === "idle" ? startLiveSession : cleanupSession}
             disabled={status === "connecting" || status === "local-dictating"}
-            className={`inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors whitespace-nowrap shrink-0 ${
+            className={`inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
               status === "active"
-                ? "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-500/40 dark:bg-rose-500/15 dark:text-rose-300 dark:hover:bg-rose-500/25"
-                : "bg-[#087BFF] text-white hover:bg-[#0666DB]"
+                ? "border border-[#EF4444]/35 bg-[#EF4444]/10 text-[#DC2626] hover:bg-[#EF4444]/18 dark:text-[#F87171]"
+                : "bg-gradient-to-r from-[#E6C768] to-[#D4AF37] text-[#101827] hover:brightness-105"
             } disabled:opacity-60`}
           >
             {status === "connecting" ? (
@@ -413,20 +413,20 @@ export function LiveVoicePanel() {
       </div>
 
       {errorNotice ? (
-        <div className="mt-4 space-y-2.5 rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+        <div className="mt-4 space-y-2.5 rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 text-xs text-amber-900 dark:border-[#D4AF37]/30 dark:bg-[#D4AF37]/10 dark:text-[#E6C768]">
           <p className="leading-relaxed">{errorNotice}</p>
           {supportsLocalSpeech ? (
             <button
               type="button"
               onClick={startLocalDictation}
               disabled={status !== "idle"}
-              className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#06132F] hover:bg-slate-50 disabled:opacity-50 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+              className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#101827] hover:bg-slate-50 disabled:opacity-50 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
             >
-              <Mic className="h-3.5 w-3.5 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
+              <Mic className="h-3.5 w-3.5 text-[#FF4DDE]" aria-hidden="true" />
               <span>Gunakan Dikte Suara Perangkat (Lokal)</span>
             </button>
           ) : (
-            <p className="text-[11px] text-amber-800/90 dark:text-amber-300/90">
+            <p className="text-[11px] text-amber-800/90 dark:text-[#E6C768]/85">
               Alternatif lokal: Anda tetap dapat mengetik perintah di kolom Input Perintah Bahasa Alami (Parser Lokal).
             </p>
           )}
@@ -434,15 +434,15 @@ export function LiveVoicePanel() {
       ) : null}
 
       {status === "active" ? (
-        <div className="mt-5 space-y-3 border-t border-[#DCE4F0] pt-4 dark:border-[#1B3163]">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#087BFF] dark:text-[#19D8FF]">
-            <Radio className="h-3.5 w-3.5" aria-hidden="true" />
+        <div className="mt-5 space-y-3 border-t border-slate-200 pt-4 dark:border-[#1E293B]">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#A21CAF] dark:text-[#FF9EEA]">
+            <Radio className="h-3.5 w-3.5 text-[#FF4DDE]" aria-hidden="true" />
             <span>Mikrofon aktif (16kHz PCM) · Respons suara langsung (24kHz)</span>
           </div>
 
-          <div className="max-h-52 space-y-2 overflow-y-auto rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F]">
+          <div className="max-h-52 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]">
             {transcripts.length === 0 ? (
-              <p className="text-xs text-slate-500 dark:text-[#C7D0E0]/60">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Ucapkan misalnya: "Catat beli makan siang 45 ribu pakai GoPay."
               </p>
             ) : (
@@ -451,10 +451,10 @@ export function LiveVoicePanel() {
                   <span
                     className={`mr-2 font-semibold ${
                       entry.speaker === "owner"
-                        ? "text-[#087BFF] dark:text-[#19D8FF]"
+                        ? "text-[#9A7411] dark:text-[#E6C768]"
                         : entry.speaker === "ego"
-                          ? "text-[#06132F] dark:text-white"
-                          : "text-slate-500 dark:text-[#C7D0E0]/60"
+                          ? "text-[#A21CAF] dark:text-[#FF9EEA]"
+                          : "text-slate-500 dark:text-slate-400"
                     }`}
                   >
                     {entry.speaker === "owner"
@@ -463,7 +463,7 @@ export function LiveVoicePanel() {
                         ? "EGO:"
                         : "Info:"}
                   </span>
-                  <span className="text-slate-700 dark:text-[#C7D0E0]">
+                  <span className="text-slate-700 dark:text-slate-200">
                     {entry.text}
                   </span>
                 </div>
@@ -478,12 +478,12 @@ export function LiveVoicePanel() {
               onChange={(e) => setTextFollowup(e.target.value)}
               placeholder="Atau ketik pesan lanjutan di sesi aktif..."
               aria-label="Pesan teks lanjutan untuk sesi suara"
-              className="min-h-[42px] flex-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2 text-xs text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[#19D8FF]"
+              className="min-h-[42px] flex-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[#D4AF37]"
             />
             <button
               type="submit"
               aria-label="Kirim pesan ke sesi suara"
-              className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-3.5 py-2 text-xs font-semibold text-[#06132F] hover:bg-slate-100 dark:border-[#1B3163] dark:bg-[#0D1E45] dark:text-white dark:hover:bg-[#13295B]"
+              className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-[#101827] hover:bg-slate-100 dark:border-[#1E293B] dark:bg-[#162032] dark:text-white dark:hover:bg-[#1E293B]"
             >
               <Send className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Kirim</span>

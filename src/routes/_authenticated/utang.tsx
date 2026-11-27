@@ -13,11 +13,19 @@ import {
   Sparkles,
   TrendingDown,
 } from "lucide-react";
+import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/ego/app-shell";
 import { ApprovalCheck } from "../../components/ego/approval-check";
 import { CategoryIcon } from "../../components/ego/category-icon";
+import {
+  EGO_EASE,
+  EgoAnimatedBar,
+  EgoCountUp,
+  EgoStaggerSection,
+  useRevealOnce,
+} from "../../components/ego/ego-motion";
 import { ModalSheet } from "../../components/ego/modal-sheet";
 import { MoneyInput } from "../../components/ego/money-input";
 import {
@@ -54,7 +62,6 @@ interface PendingDebtPaymentRequest {
   transaction_date: string;
 }
 
-
 const DEBT_TYPE_OPTIONS: Array<{ value: DebtType; label: string }> = [
   { value: "kpr", label: "KPR / Properti" },
   { value: "kendaraan", label: "Cicilan Kendaraan" },
@@ -73,6 +80,48 @@ const DEBT_FREQ_OPTIONS: Array<{ value: DebtPaymentFrequency; label: string }> =
     { value: "quarterly", label: "Triwulan" },
     { value: "yearly", label: "Tahunan" },
   ];
+
+function DebtPayoffChart({
+  minPts,
+  recPts,
+}: {
+  minPts: string;
+  recPts: string;
+}) {
+  const { ref, revealed } = useRevealOnce<HTMLDivElement>();
+  return (
+    <div ref={ref}>
+      <svg
+        viewBox="0 0 600 160"
+        role="img"
+        aria-label="Grafik penurunan sisa pokok utang"
+        className="h-36 w-full"
+      >
+        <motion.polyline
+          fill="none"
+          stroke="#94A3B8"
+          strokeWidth="2"
+          strokeDasharray="4 4"
+          points={minPts}
+          initial={{ pathLength: 0, opacity: 0.25 }}
+          animate={revealed ? { pathLength: 1, opacity: 1 } : undefined}
+          transition={{ duration: 0.65, ease: EGO_EASE }}
+        />
+        <motion.polyline
+          fill="none"
+          stroke="#D4AF37"
+          strokeWidth="2.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          points={recPts}
+          initial={{ pathLength: 0, opacity: 0.35 }}
+          animate={revealed ? { pathLength: 1, opacity: 1 } : undefined}
+          transition={{ duration: 0.78, delay: 0.08, ease: EGO_EASE }}
+        />
+      </svg>
+    </div>
+  );
+}
 
 export function UtangPage() {
   const { data: vault, isLoading } = useVaultSnapshot(true);
@@ -125,17 +174,21 @@ export function UtangPage() {
         const raw = window.sessionStorage.getItem(PENDING_DEBT_PAYMENT_KEY);
         if (!raw) return null;
         const parsed = JSON.parse(raw) as PendingDebtPaymentRequest;
-        return (
-          typeof parsed.debt_id === "string" &&
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.request_id) &&
+        return typeof parsed.debt_id === "string" &&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            parsed.request_id
+          ) &&
           Number.isFinite(parsed.amount) &&
           parsed.amount > 0 &&
           typeof parsed.source_account_id === "string"
-        ) ? {
-          ...parsed,
-          // Legacy pending requests predate date persistence; retain their request UUID.
-          transaction_date: typeof parsed.transaction_date === "string" ? parsed.transaction_date : todayISO(),
-        } : null;
+          ? {
+              ...parsed,
+              transaction_date:
+                typeof parsed.transaction_date === "string"
+                  ? parsed.transaction_date
+                  : todayISO(),
+            }
+          : null;
       } catch {
         return null;
       }
@@ -299,7 +352,9 @@ export function UtangPage() {
   function startPayment(debt: Debt) {
     const norm = normalizeDebt(debt);
     if (storedPendingPayment && storedPendingPayment.debt_id !== norm.id) {
-      toast.error("Selesaikan pemeriksaan pembayaran tertunda terlebih dahulu agar ID percobaan tidak tertimpa.");
+      toast.error(
+        "Selesaikan pemeriksaan pembayaran tertunda terlebih dahulu agar ID percobaan tidak tertimpa."
+      );
       return;
     }
     setPayingDebt(norm);
@@ -314,14 +369,19 @@ export function UtangPage() {
         const parsed = JSON.parse(raw) as PendingDebtPaymentRequest;
         if (
           parsed.debt_id === norm.id &&
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.request_id) &&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            parsed.request_id
+          ) &&
           Number.isFinite(parsed.amount) &&
           parsed.amount > 0 &&
           typeof parsed.source_account_id === "string"
         ) {
           pending = {
             ...parsed,
-            transaction_date: typeof parsed.transaction_date === "string" ? parsed.transaction_date : todayISO(),
+            transaction_date:
+              typeof parsed.transaction_date === "string"
+                ? parsed.transaction_date
+                : todayISO(),
           };
         }
       }
@@ -333,7 +393,9 @@ export function UtangPage() {
       }
     }
     setPayAmount(pending?.amount ?? defaultPay);
-    setPaySourceAccountId(pending?.source_account_id ?? activeAccounts[0]?.id ?? "");
+    setPaySourceAccountId(
+      pending?.source_account_id ?? activeAccounts[0]?.id ?? ""
+    );
     setPayNotes(pending?.notes ?? "");
     setPayConfirmed(false);
     setIsPendingPaymentRetry(Boolean(pending));
@@ -355,7 +417,9 @@ export function UtangPage() {
     }
     try {
       if (!paymentRequestId) {
-        throw new Error("ID permintaan pembayaran belum siap. Tutup lalu buka kembali formulir pembayaran.");
+        throw new Error(
+          "ID permintaan pembayaran belum siap. Tutup lalu buka kembali formulir pembayaran."
+        );
       }
       const pendingRequest: PendingDebtPaymentRequest = {
         request_id: paymentRequestId,
@@ -470,7 +534,7 @@ export function UtangPage() {
         <button
           type="button"
           onClick={openCreateModal}
-          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#087BFF]/20 hover:brightness-110 whitespace-nowrap"
+          className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-3.5 py-2 text-xs font-semibold text-[#101827] shadow-sm shadow-[#D4AF37]/20 hover:brightness-105 whitespace-nowrap"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Catat Utang</span>
@@ -479,36 +543,41 @@ export function UtangPage() {
     >
       <div className="space-y-6">
         {storedPendingPayment && storedPendingDebt ? (
-          <section className="flex flex-col gap-3 rounded-2xl border border-amber-400/50 bg-amber-50 p-4 dark:border-amber-500/40 dark:bg-amber-950/30 sm:flex-row sm:items-center sm:justify-between">
+          <section className="flex flex-col gap-3 rounded-2xl border border-[#D4AF37]/45 bg-[#D4AF37]/10 p-4 dark:border-[#D4AF37]/35 dark:bg-[#D4AF37]/12 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-amber-950 dark:text-amber-200">
+              <p className="text-sm font-semibold text-[#101827] dark:text-amber-100">
                 Ada pembayaran utang yang belum terkonfirmasi hasilnya
               </p>
-              <p className="mt-1 text-xs text-amber-900/85 dark:text-amber-200/80">
+              <p className="mt-1 text-xs text-slate-700 dark:text-amber-200/85">
                 {storedPendingDebt.creditor} · {formatIDR(storedPendingPayment.amount)}. Periksa ulang permintaan yang sama agar tidak tercatat dua kali.
               </p>
             </div>
             <button
               type="button"
               onClick={() => startPayment(storedPendingDebt)}
-              className="inline-flex min-h-[38px] shrink-0 items-center justify-center rounded-xl border border-amber-500/50 px-3 py-2 text-xs font-semibold text-amber-950 hover:bg-amber-100 dark:text-amber-200 dark:hover:bg-amber-900/40"
+              className="inline-flex min-h-[38px] shrink-0 items-center justify-center rounded-xl border border-[#D4AF37]/60 bg-white px-3 py-2 text-xs font-semibold text-[#101827] hover:bg-[#D4AF37]/15 dark:bg-[#101827] dark:text-[#E6C768]"
             >
               Periksa pembayaran
             </button>
           </section>
         ) : null}
+
         {/* Metrics Summary */}
+        <EgoStaggerSection index={0}>
         <section className="grid gap-4 sm:grid-cols-3">
-          <div className="ego-card-hero flex flex-col justify-between gap-3 rounded-3xl border border-[#1B3163] p-5 text-white shadow-lg shadow-[#06132F]/15 sm:p-6">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#C7D0E0]/80">
+          <div className="ego-card-hero ego-card-hero--living flex flex-col justify-between gap-3 rounded-3xl border border-[#D4AF37]/30 p-5 text-white shadow-lg shadow-[#101827]/20 sm:p-6">
+            <div className="relative z-10">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#E6C768]/90">
                 Total Utang Aktif
               </p>
-              <p className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-rose-300 sm:text-3xl">
-                {formatIDR(totalDebt)}
+              <p className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-[#F87171] sm:text-3xl">
+                <EgoCountUp
+                  value={totalDebt}
+                  formatter={(v) => formatIDR(v)}
+                />
               </p>
             </div>
-            <div className="flex items-center justify-between gap-2 text-xs text-[#C7D0E0]/85">
+            <div className="relative z-10 flex items-center justify-between gap-2 text-xs text-slate-300">
               <span>
                 {activeDebts.length} aktif · {strategyComparison.overdueDebtCount} terlambat ·{" "}
                 {debts.filter((d) => d.status === "paid").length} lunas
@@ -516,15 +585,18 @@ export function UtangPage() {
             </div>
           </div>
 
-          <div className="flex flex-col justify-between rounded-3xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
+          <div className="flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/70">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Komitmen Cicilan / Bulan
               </p>
-              <p className="mt-1.5 font-mono text-xl font-bold tabular-nums text-[#087BFF] dark:text-[#19D8FF]">
-                {formatIDR(strategyComparison.totalMonthlyCommitment)}
+              <p className="mt-1.5 font-mono text-xl font-bold tabular-nums text-[#9A7411] dark:text-[#E6C768]">
+                <EgoCountUp
+                  value={strategyComparison.totalMonthlyCommitment}
+                  formatter={(v) => formatIDR(v)}
+                />
               </p>
-              <p className="mt-1 text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
                 {strategyComparison.avalanche.monthsToDebtFree !== null
                   ? `Bebas utang tercepat ~${strategyComparison.avalanche.monthsToDebtFree} bln (${strategyComparison.recommendedStrategy.toUpperCase()})`
                   : "Belum ada kewajiban aktif"}
@@ -532,39 +604,39 @@ export function UtangPage() {
             </div>
             <Link
               to="/pengingat"
-              className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#087BFF] hover:underline dark:text-[#19D8FF]"
+              className="ego-pressable mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#9A7411] hover:underline dark:text-[#E6C768]"
             >
               <BellPlus className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Atur Pengingat Jatuh Tempo</span>
             </Link>
           </div>
 
-          <div className="flex flex-col justify-between rounded-3xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
+          <div className="flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
             <div>
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/70">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Jatuh Tempo Terdekat
                 </p>
                 <CalendarClock
-                  className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]"
+                  className="h-4 w-4 text-[#9A7411] dark:text-[#E6C768]"
                   aria-hidden="true"
                 />
               </div>
               {nearestDue ? (
                 <>
-                  <p className="mt-2 text-sm font-bold text-[#06132F] dark:text-white">
+                  <p className="mt-2 text-sm font-bold text-[#101827] dark:text-white">
                     {nearestDue.creditor} ·{" "}
-                    <span className="font-mono tabular-nums text-rose-600 dark:text-rose-400">
+                    <span className="font-mono tabular-nums text-[#DC2626] dark:text-[#F87171]">
                       {formatIDR(nearestDue.outstanding_balance)}
                     </span>
                   </p>
                   <p
                     className={`mt-1 inline-flex items-center gap-1.5 text-xs font-semibold ${
                       nearestDays !== null && nearestDays < 0
-                        ? "text-rose-600 dark:text-rose-400"
+                        ? "text-[#DC2626] dark:text-[#F87171]"
                         : nearestDays !== null && nearestDays <= 7
-                          ? "text-amber-700 dark:text-amber-300"
-                          : "text-slate-600 dark:text-[#C7D0E0]/80"
+                          ? "text-[#9A7411] dark:text-[#E6C768]"
+                          : "text-slate-600 dark:text-slate-300"
                     }`}
                   >
                     <span>
@@ -580,7 +652,7 @@ export function UtangPage() {
                   </p>
                 </>
               ) : (
-                <p className="mt-2 text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+                <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
                   Tidak ada jatuh tempo aktif yang terjadwal saat ini.
                 </p>
               )}
@@ -590,7 +662,7 @@ export function UtangPage() {
                 <button
                   type="button"
                   onClick={() => startPayment(nearestDue)}
-                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl bg-[#087BFF]/10 px-3 py-1.5 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                  className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#D4AF37]/15 px-3 py-1.5 text-xs font-semibold text-[#9A7411] hover:bg-[#D4AF37]/25 dark:bg-[#D4AF37]/20 dark:text-[#E6C768]"
                 >
                   <span>Bayar Cicilan Sekarang</span>
                   <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -599,22 +671,24 @@ export function UtangPage() {
             ) : null}
           </div>
         </section>
+        </EgoStaggerSection>
 
+        <EgoStaggerSection index={1} className="space-y-6">
         {/* Primary View Tabs */}
         <div
           role="tablist"
           aria-label="Mode manajemen utang"
-          className="grid w-full grid-cols-2 items-center gap-1 rounded-2xl border border-[#DCE4F0] bg-white p-1.5 dark:border-[#1B3163] dark:bg-[#091634] sm:inline-flex sm:w-auto"
+          className="grid w-full grid-cols-2 items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 dark:border-[#1E293B] dark:bg-[#101827] sm:inline-flex sm:w-auto"
         >
           <button
             type="button"
             role="tab"
             aria-selected={viewTab === "list"}
             onClick={() => setViewTab("list")}
-            className={`inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap ${
+            className={`ego-pressable inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap ${
               viewTab === "list"
-                ? "bg-[#087BFF] text-white shadow-xs"
-                : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+                ? "bg-[#101827] text-white shadow-xs dark:bg-[#D4AF37] dark:text-[#101827]"
+                : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
             }`}
           >
             <CreditCard className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -625,10 +699,10 @@ export function UtangPage() {
             role="tab"
             aria-selected={viewTab === "strategy"}
             onClick={() => setViewTab("strategy")}
-            className={`inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap ${
+            className={`ego-pressable inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap ${
               viewTab === "strategy"
-                ? "bg-[#087BFF] text-white shadow-xs"
-                : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+                ? "bg-[#101827] text-white shadow-xs dark:bg-[#D4AF37] dark:text-[#101827]"
+                : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
             }`}
           >
             <TrendingDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -640,17 +714,17 @@ export function UtangPage() {
         </div>
 
         {viewTab === "strategy" ? (
-          <section className="space-y-5 rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
+          <section className="space-y-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                <h2 className="text-base font-bold text-[#101827] dark:text-white">
                   Simulasi Strategi Pelunasan Utang
                 </h2>
-                <p className="text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Bandingkan Pembayaran Minimum, Debt Snowball (saldo terkecil dulu), dan Debt Avalanche (bunga tertinggi dulu). Tidak mengubah saldo nyata.
                 </p>
               </div>
-              <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-[#087BFF]/10 px-3 py-1 text-xs font-bold text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+              <span className="inline-flex items-center gap-1.5 self-start rounded-xl border border-[#FF4DDE]/30 bg-[#FF4DDE]/10 px-3 py-1.5 text-xs font-bold text-[#A21CAF] dark:text-[#FF9EEA]">
                 <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>
                   Rekomendasi:{" "}
@@ -662,12 +736,12 @@ export function UtangPage() {
             </div>
 
             {activeDebts.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#DCE4F0] bg-[#F4F7FB] p-8 text-center text-xs text-slate-600 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]/75">
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-xs text-slate-600 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-400">
                 Belum ada utang aktif untuk disimulasikan. Tambahkan kewajiban aktif terlebih dahulu.
               </div>
             ) : (
               <>
-                <div className="grid gap-4 rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] p-4 dark:border-[#1B3163] dark:bg-[#06132F] sm:grid-cols-12 sm:items-end">
+                <div className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-[#1E293B] dark:bg-[#0B111E] sm:grid-cols-12 sm:items-end">
                   <div className="sm:col-span-6">
                     <MoneyInput
                       id="extra-debt-pay"
@@ -685,8 +759,8 @@ export function UtangPage() {
                         onClick={() => setExtraMonthlyPayment(val)}
                         className={`min-h-[36px] rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors ${
                           extraMonthlyPayment === val
-                            ? "border-[#087BFF] bg-[#087BFF] text-white"
-                            : "border-[#DCE4F0] bg-white text-[#06132F] dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0]"
+                            ? "border-[#D4AF37] bg-gradient-to-r from-[#D4AF37] to-[#B8901F] text-[#101827]"
+                            : "border-slate-200 bg-white text-[#101827] dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-300"
                         }`}
                       >
                         {val === 0 ? "Tanpa Ekstra" : `+${formatIDR(val, true)}`}
@@ -696,13 +770,13 @@ export function UtangPage() {
                 </div>
 
                 {strategyComparison.cashflowFitWarning ? (
-                  <div className="flex items-start gap-2.5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-900 dark:border-amber-500/35 dark:bg-amber-500/10 dark:text-amber-200">
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <div className="flex items-start gap-2.5 rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37]/10 px-4 py-3 text-xs text-[#101827] dark:border-[#D4AF37]/35 dark:bg-[#D4AF37]/12 dark:text-amber-200">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#D4AF37]" aria-hidden="true" />
                     <span>{strategyComparison.cashflowFitWarning}</span>
                   </div>
                 ) : null}
 
-                <p className="rounded-xl border border-[#087BFF]/25 bg-[#087BFF]/8 px-4 py-3 text-xs leading-relaxed text-[#06132F] dark:border-[#19D8FF]/25 dark:bg-[#19D8FF]/10 dark:text-[#C7D0E0]">
+                <p className="rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-4 py-3 text-xs leading-relaxed text-[#101827] dark:border-[#D4AF37]/25 dark:bg-[#D4AF37]/10 dark:text-slate-200">
                   <strong>Analisis Strategi:</strong>{" "}
                   {strategyComparison.recommendationReason}
                 </p>
@@ -746,35 +820,41 @@ export function UtangPage() {
                       key={item.sim.strategy}
                       className={`rounded-2xl border p-4 ${
                         item.highlighted
-                          ? "border-[#087BFF] bg-[#087BFF]/5 dark:border-[#19D8FF] dark:bg-[#19D8FF]/8"
-                          : "border-[#DCE4F0] bg-[#F4F7FB] dark:border-[#1B3163] dark:bg-[#06132F]"
+                          ? "border-[#D4AF37] bg-[#D4AF37]/8 dark:border-[#D4AF37]/70 dark:bg-[#D4AF37]/10"
+                          : "border-slate-200 bg-slate-50 dark:border-[#1E293B] dark:bg-[#0B111E]"
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-xs font-bold text-[#06132F] dark:text-white">
+                        <h3 className="text-xs font-bold text-[#101827] dark:text-white">
                           {item.sim.strategyLabel}
                         </h3>
-                        <span className="rounded-full bg-[#087BFF]/15 px-2 py-0.5 text-[10px] font-bold text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+                        <span
+                          className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                            item.highlighted
+                              ? "bg-[#D4AF37]/20 text-[#9A7411] dark:text-[#E6C768]"
+                              : "bg-slate-200/80 text-slate-600 dark:bg-[#162032] dark:text-slate-300"
+                          }`}
+                        >
                           {item.badge}
                         </span>
                       </div>
-                      <p className="mt-3 font-mono text-xl font-bold text-[#06132F] dark:text-white">
+                      <p className="mt-3 font-mono text-xl font-bold text-[#101827] dark:text-white">
                         {item.sim.monthsToDebtFree !== null
                           ? `${item.sim.monthsToDebtFree} bulan`
                           : "> 30 tahun"}
                       </p>
-                      <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/75">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
                         Estimasi lunas:{" "}
                         {item.sim.debtFreeDateISO
                           ? formatDateID(item.sim.debtFreeDateISO, dateFormat)
                           : "—"}
                       </p>
-                      <dl className="mt-3 space-y-1 border-t border-[#DCE4F0] pt-2.5 text-xs dark:border-[#1B3163]">
+                      <dl className="mt-3 space-y-1 border-t border-slate-200 pt-2.5 text-xs dark:border-[#1E293B]">
                         <div className="flex justify-between">
-                          <dt className="text-slate-500 dark:text-[#C7D0E0]/70">
+                          <dt className="text-slate-500 dark:text-slate-400">
                             Total Bunga + Biaya
                           </dt>
-                          <dd className="font-mono font-semibold text-rose-600 dark:text-rose-400">
+                          <dd className="font-mono font-semibold text-[#DC2626] dark:text-[#F87171]">
                             {formatIDR(
                               item.sim.totalInterestPaid + item.sim.totalFeePaid
                             )}
@@ -782,10 +862,10 @@ export function UtangPage() {
                         </div>
                         {item.sim.strategy !== "minimum_only" ? (
                           <div className="flex justify-between">
-                            <dt className="text-slate-500 dark:text-[#C7D0E0]/70">
+                            <dt className="text-slate-500 dark:text-slate-400">
                               Hemat vs Minimum
                             </dt>
-                            <dd className="font-mono font-semibold text-emerald-700 dark:text-emerald-400">
+                            <dd className="font-mono font-semibold text-[#0D9488] dark:text-[#2DD4BF]">
                               {formatIDR(item.interestSaved)} ({item.monthsSaved} bln)
                             </dd>
                           </div>
@@ -796,51 +876,33 @@ export function UtangPage() {
                 </div>
 
                 {/* Dual-Curve Payoff Timeline SVG */}
-                <div className="rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] p-4 dark:border-[#1B3163] dark:bg-[#06132F]">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-[#1E293B] dark:bg-[#0B111E]">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <span className="font-bold text-[#06132F] dark:text-white">
+                    <span className="font-bold text-[#101827] dark:text-white">
                       Kurva Penurunan Sisa Pokok (Minimum vs Rekomendasi)
                     </span>
                     <div className="flex items-center gap-4 text-[11px]">
-                      <span className="inline-flex items-center gap-1.5 text-slate-500 dark:text-[#C7D0E0]/75">
+                      <span className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
                         <span className="h-2 w-4 rounded-full bg-slate-400" />
                         Minimum
                       </span>
-                      <span className="inline-flex items-center gap-1.5 font-semibold text-[#087BFF] dark:text-[#19D8FF]">
-                        <span className="h-2 w-4 rounded-full bg-[#087BFF] dark:bg-[#19D8FF]" />
+                      <span className="inline-flex items-center gap-1.5 font-semibold text-[#9A7411] dark:text-[#E6C768]">
+                        <span className="h-2 w-4 rounded-full bg-[#D4AF37]" />
                         {strategyComparison.recommendedStrategy === "avalanche"
                           ? "Avalanche"
                           : "Snowball"}
                       </span>
                     </div>
                   </div>
-                  <svg
-                    viewBox="0 0 600 160"
-                    role="img"
-                    aria-label="Grafik penurunan sisa pokok utang"
-                    className="h-36 w-full"
-                  >
-                    <polyline
-                      fill="none"
-                      stroke="#94A3B8"
-                      strokeWidth="2"
-                      strokeDasharray="4 4"
-                      points={timelineChart.minPts}
-                    />
-                    <polyline
-                      fill="none"
-                      stroke="#087BFF"
-                      strokeWidth="2.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      points={timelineChart.recPts}
-                    />
-                  </svg>
+                  <DebtPayoffChart
+                    minPts={timelineChart.minPts}
+                    recPts={timelineChart.recPts}
+                  />
                 </div>
 
                 {/* Payoff Order */}
                 <div>
-                  <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/70">
+                  <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Urutan Prioritas Pelunasan (
                     {strategyComparison.recommendedStrategy === "avalanche"
                       ? "Debt Avalanche"
@@ -854,22 +916,22 @@ export function UtangPage() {
                     ).map((step, idx) => (
                       <li
                         key={step.debtId}
-                        className="flex items-center justify-between gap-3 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-xs dark:border-[#1B3163] dark:bg-[#06132F]"
+                        className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs dark:border-[#1E293B] dark:bg-[#0B111E]"
                       >
                         <div className="min-w-0">
-                          <p className="font-bold text-[#06132F] dark:text-white">
+                          <p className="font-bold text-[#101827] dark:text-white">
                             #{idx + 1} · {step.creditor}
                           </p>
-                          <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/75">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
                             Bunga {step.annualInterestRate}%/thn · Pokok{" "}
                             {formatIDR(step.startingBalance, true)}
                           </p>
                         </div>
                         <div className="shrink-0 text-right">
-                          <p className="font-mono font-bold text-[#087BFF] dark:text-[#19D8FF]">
+                          <p className="font-mono font-bold text-[#9A7411] dark:text-[#E6C768]">
                             Bulan ke-{step.payoffMonthIndex}
                           </p>
-                          <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
                             {formatDateID(step.payoffDateISO, dateFormat)}
                           </p>
                         </div>
@@ -883,15 +945,15 @@ export function UtangPage() {
         ) : (
           <>
             {/* Daftar Kreditur */}
-            <section className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
+            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                <h2 className="text-base font-bold text-[#101827] dark:text-white">
                   Daftar Kreditur &amp; Sisa Pokok
                 </h2>
                 <div
                   role="tablist"
                   aria-label="Filter status utang"
-                  className="inline-flex flex-wrap items-center gap-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-1 dark:border-[#1B3163] dark:bg-[#06132F]"
+                  className="inline-flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-[#1E293B] dark:bg-[#0B111E]"
                 >
                   {(
                     [
@@ -909,8 +971,8 @@ export function UtangPage() {
                       onClick={() => setStatusFilter(tab.id)}
                       className={`min-h-[34px] rounded-lg px-3 py-1 text-xs font-semibold transition-colors whitespace-nowrap ${
                         statusFilter === tab.id
-                          ? "bg-[#087BFF] text-white shadow-xs"
-                          : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+                          ? "bg-[#101827] text-white shadow-xs dark:bg-[#D4AF37] dark:text-[#101827]"
+                          : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
                       }`}
                     >
                       {tab.label}
@@ -920,25 +982,25 @@ export function UtangPage() {
               </div>
 
               {isLoading ? (
-                <div className="mt-4 h-40 animate-pulse rounded-2xl bg-[#F4F7FB] dark:bg-[#06132F]" />
+                <div className="mt-4 h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-[#0B111E]" />
               ) : filteredDebts.length === 0 ? (
-                <div className="mt-6 rounded-2xl border border-dashed border-[#DCE4F0] bg-[#F4F7FB] p-8 text-center dark:border-[#1B3163] dark:bg-[#06132F]/60">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+                <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-[#1E293B] dark:bg-[#0B111E]/70">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D4AF37]/15 text-[#9A7411] dark:bg-[#D4AF37]/15 dark:text-[#E6C768]">
                     <CreditCard className="h-6 w-6" aria-hidden="true" />
                   </div>
-                  <p className="mt-3 text-sm font-bold text-[#06132F] dark:text-white">
+                  <p className="mt-3 text-sm font-bold text-[#101827] dark:text-white">
                     {debts.length === 0
                       ? "Tidak ada catatan utang"
                       : "Tidak ada kewajiban pada filter ini"}
                   </p>
-                  <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+                  <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                     Jika Anda memiliki kewajiban cicilan atau pinjaman, catat beserta suku bunga &amp; cicilan rutin agar strategi pelunasan akurat.
                   </p>
                   {debts.length === 0 ? (
                     <button
                       type="button"
                       onClick={openCreateModal}
-                      className="mt-4 inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0666DB]"
+                      className="mt-4 inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2 text-xs font-semibold text-[#101827] hover:brightness-105"
                     >
                       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                       <span>Catat Kewajiban Pertama</span>
@@ -946,7 +1008,7 @@ export function UtangPage() {
                   ) : null}
                 </div>
               ) : (
-                <div className="mt-4 divide-y divide-[#DCE4F0]/80 dark:divide-[#1B3163]">
+                <div className="mt-4 divide-y divide-slate-200 dark:divide-[#1E293B]">
                   {visibleDebts.map((debt) => {
                     const displayStatus = computeDebtDisplayStatus(debt);
                     const isPaid = displayStatus === "paid";
@@ -970,21 +1032,21 @@ export function UtangPage() {
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-sm font-bold text-[#06132F] dark:text-white">
+                            <h3 className="text-sm font-bold text-[#101827] dark:text-white">
                               {debt.creditor}
                             </h3>
-                            <span className="rounded-md bg-[#F4F7FB] px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-[#06132F] dark:text-[#C7D0E0]">
-                              {debtTypeLabel(debt.debt_type)}
+                            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                              · {debtTypeLabel(debt.debt_type)}
                             </span>
                             <span
-                              className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                              className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${
                                 displayStatus === "paid"
-                                  ? "bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                                  ? "bg-[#14B8A6]/15 text-[#0D9488] dark:bg-[#14B8A6]/20 dark:text-[#2DD4BF]"
                                   : displayStatus === "overdue"
-                                    ? "bg-rose-500/15 text-rose-700 dark:text-rose-300"
+                                    ? "bg-[#EF4444]/15 text-[#DC2626] dark:text-[#F87171]"
                                     : displayStatus === "due_soon"
-                                      ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                                      : "bg-slate-200 text-slate-700 dark:bg-[#132652] dark:text-[#C7D0E0]"
+                                      ? "bg-[#D4AF37]/15 text-[#9A7411] dark:text-[#E6C768]"
+                                      : "bg-slate-200/80 text-slate-700 dark:bg-[#162032] dark:text-slate-300"
                               }`}
                             >
                               {displayStatus === "paid"
@@ -996,7 +1058,7 @@ export function UtangPage() {
                                     : "Aktif"}
                             </span>
                           </div>
-                          <p className="mt-1 text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                             Pokok awal: {formatIDR(debt.original_amount)} · Bunga:{" "}
                             <strong>{debt.interest_rate_annual ?? 0}%/thn</strong>
                             {(debt.installment_amount ?? 0) > 0
@@ -1009,32 +1071,18 @@ export function UtangPage() {
                               : ""}
                           </p>
                           <div className="mt-2.5 flex items-center gap-2.5">
-                            <svg
-                              viewBox="0 0 100 6"
-                              preserveAspectRatio="none"
-                              aria-hidden="true"
-                              className="h-1.5 w-36 overflow-hidden rounded-full"
-                            >
-                              <rect
-                                x={0}
-                                y={0}
-                                width={100}
-                                height={6}
-                                rx={3}
-                                className="fill-slate-200 dark:fill-[#132652]"
+                            <div className="w-36">
+                              <EgoAnimatedBar
+                                percentage={progressPct}
+                                barClassName={
+                                  isPaid
+                                    ? "bg-[#14B8A6]"
+                                    : "bg-gradient-to-r from-[#B8901F] to-[#D4AF37]"
+                                }
+                                heightClassName="h-1.5"
                               />
-                              {progressPct > 0 ? (
-                                <rect
-                                  x={0}
-                                  y={0}
-                                  width={progressPct}
-                                  height={6}
-                                  rx={3}
-                                  className="fill-[#087BFF] transition-all dark:fill-[#19D8FF]"
-                                />
-                              ) : null}
-                            </svg>
-                            <span className="font-mono text-[11px] font-semibold tabular-nums text-[#087BFF] dark:text-[#19D8FF]">
+                            </div>
+                            <span className="font-mono text-[11px] font-semibold tabular-nums text-[#9A7411] dark:text-[#E6C768]">
                               Terbayar {progressPct}%
                             </span>
                           </div>
@@ -1042,14 +1090,14 @@ export function UtangPage() {
 
                         <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-end">
                           <div className="text-left lg:text-right">
-                            <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
                               Sisa Pokok
                             </p>
                             <p
                               className={`font-mono text-sm font-bold tabular-nums ${
                                 isPaid
-                                  ? "text-[#087BFF] dark:text-[#19D8FF]"
-                                  : "text-rose-600 dark:text-rose-400"
+                                  ? "text-[#0D9488] dark:text-[#2DD4BF]"
+                                  : "text-[#DC2626] dark:text-[#F87171]"
                               }`}
                             >
                               {formatIDR(debt.outstanding_balance)}
@@ -1061,7 +1109,7 @@ export function UtangPage() {
                               type="button"
                               aria-label={`Riwayat pembayaran ${debt.creditor}`}
                               onClick={() => setHistoryDebt(debt)}
-                              className="inline-flex min-h-[38px] items-center gap-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
+                              className="ego-pressable inline-flex min-h-[40px] items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-[#101827] hover:border-[#D4AF37]/50 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200"
                             >
                               <History className="h-3.5 w-3.5" aria-hidden="true" />
                               <span className="hidden sm:inline">Log</span>
@@ -1071,7 +1119,7 @@ export function UtangPage() {
                               type="button"
                               aria-label={`Edit utang ${debt.creditor}`}
                               onClick={() => openEditModal(debt)}
-                              className="inline-flex min-h-[38px] items-center gap-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
+                              className="ego-pressable inline-flex min-h-[40px] items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-[#101827] hover:border-[#D4AF37]/50 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200"
                             >
                               <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                               <span className="hidden sm:inline">Edit</span>
@@ -1081,12 +1129,12 @@ export function UtangPage() {
                               <button
                                 type="button"
                                 onClick={() => startPayment(debt)}
-                                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:brightness-110 whitespace-nowrap"
+                                className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-3.5 py-2 text-xs font-semibold text-[#101827] shadow-xs transition-all hover:brightness-105 whitespace-nowrap"
                               >
                                 <span>Bayar / Lunasi</span>
                               </button>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 text-xs font-semibold text-[#087BFF] dark:text-[#19D8FF]">
+                              <span className="inline-flex items-center gap-1 px-2 text-xs font-semibold text-[#0D9488] dark:text-[#2DD4BF]">
                                 <CheckCircle2
                                   className="h-4 w-4"
                                   aria-hidden="true"
@@ -1102,8 +1150,8 @@ export function UtangPage() {
                 </div>
               )}
               {filteredDebts.length > 0 ? (
-                <div className="mt-4 flex flex-col items-center gap-2 border-t border-[#DCE4F0]/80 pt-4 dark:border-[#1B3163]">
-                  <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+                <div className="mt-4 flex flex-col items-center gap-2 border-t border-slate-200 pt-4 dark:border-[#1E293B]">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     {showAllDebts
                       ? `${filteredDebts.length} utang ditampilkan`
                       : `${visibleDebts.length} dari ${filteredDebts.length} utang ditampilkan`}
@@ -1112,7 +1160,7 @@ export function UtangPage() {
                     <button
                       type="button"
                       onClick={() => setShowAllDebts((current) => !current)}
-                      className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-[#087BFF]/25 bg-[#087BFF]/8 px-4 py-2 text-xs font-semibold text-[#087BFF] transition-colors hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/25 dark:bg-[#19D8FF]/10 dark:text-[#19D8FF]"
+                      className="ego-pressable inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-4 py-2 text-xs font-semibold text-[#9A7411] transition-colors hover:bg-[#D4AF37]/18 dark:border-[#D4AF37]/30 dark:bg-[#D4AF37]/15 dark:text-[#E6C768]"
                     >
                       {showAllDebts
                         ? "Tampilkan Lebih Sedikit"
@@ -1124,20 +1172,20 @@ export function UtangPage() {
             </section>
 
             {/* Riwayat Pembayaran Utang Terintegrasi Pengeluaran */}
-            <section className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
+            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-bold text-[#06132F] dark:text-white">
+                  <h2 className="text-sm font-bold text-[#101827] dark:text-white">
                     Riwayat Pembayaran Terintegrasi Pengeluaran
                   </h2>
-                  <p className="text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
                     Setiap cicilan atau pelunasan tercatat otomatis ke buku mutasi pengeluaran &amp; log pembayaran utang.
                   </p>
                 </div>
                 <Link
                   to="/transaksi"
                   search={{ kategori: "Utang & Cicilan" }}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#087BFF] hover:underline whitespace-nowrap dark:text-[#19D8FF]"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#9A7411] hover:underline whitespace-nowrap dark:text-[#E6C768]"
                 >
                   <span>Lihat Semua</span>
                   <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -1145,18 +1193,18 @@ export function UtangPage() {
               </div>
 
               {debtPaymentExpenses.length === 0 ? (
-                <p className="text-xs text-slate-500 dark:text-[#C7D0E0]/65">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Belum ada transaksi pembayaran cicilan atau pelunasan utang yang tercatat.
                 </p>
               ) : (
-                <ul className="divide-y divide-[#DCE4F0]/80 dark:divide-[#1B3163]">
+                <ul className="divide-y divide-slate-200 dark:divide-[#1E293B]">
                   {debtPaymentExpenses.map((tx) => (
                     <li
                       key={tx.id}
                       className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0 text-xs"
                     >
                       <div className="flex min-w-0 items-center gap-3">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#EF4444]/10 text-[#DC2626] dark:text-[#F87171]">
                           <CategoryIcon
                             category={tx.category}
                             transactionType={tx.transaction_type}
@@ -1164,10 +1212,10 @@ export function UtangPage() {
                           />
                         </span>
                         <div className="min-w-0">
-                          <p className="truncate font-semibold text-[#06132F] dark:text-white">
+                          <p className="truncate font-semibold text-[#101827] dark:text-white">
                             {tx.description || "Pembayaran Utang"}
                           </p>
-                          <p className="text-slate-500 dark:text-[#C7D0E0]/70">
+                          <p className="text-slate-500 dark:text-slate-400">
                             {formatDateID(tx.transaction_date, dateFormat)} ·{" "}
                             {tx.source_account_id
                               ? accountNameMap.get(tx.source_account_id) ?? "Akun"
@@ -1175,7 +1223,7 @@ export function UtangPage() {
                           </p>
                         </div>
                       </div>
-                      <span className="shrink-0 font-mono font-bold tabular-nums text-rose-600 dark:text-rose-400">
+                      <span className="shrink-0 font-mono font-bold tabular-nums text-[#DC2626] dark:text-[#F87171]">
                         -{formatIDR(tx.amount)}
                       </span>
                     </li>
@@ -1185,6 +1233,7 @@ export function UtangPage() {
             </section>
           </>
         )}
+        </EgoStaggerSection>
       </div>
 
       {/* Modal Catat / Edit Utang */}
@@ -1202,9 +1251,9 @@ export function UtangPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="debt-creditor"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
-                Nama Kreditur <span className="text-rose-600 dark:text-rose-400">*</span>
+                Nama Kreditur <span className="text-[#EF4444]">*</span>
               </label>
               <input
                 id="debt-creditor"
@@ -1213,14 +1262,14 @@ export function UtangPage() {
                 value={creditor}
                 onChange={(e) => setCreditor(e.target.value)}
                 placeholder="Contoh: Bank BCA KPR / Kartu Kredit"
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-[#C7D0E0]/45 dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500"
               />
             </div>
 
             <div className="space-y-1.5">
               <label
                 htmlFor="debt-type"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 Jenis Utang
               </label>
@@ -1228,7 +1277,7 @@ export function UtangPage() {
                 id="debt-type"
                 value={debtType}
                 onChange={(e) => setDebtType(e.target.value as DebtType)}
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               >
                 {DEBT_TYPE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -1259,7 +1308,7 @@ export function UtangPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="debt-frequency"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 Frekuensi Cicilan
               </label>
@@ -1269,7 +1318,7 @@ export function UtangPage() {
                 onChange={(e) =>
                   setPaymentFrequency(e.target.value as DebtPaymentFrequency)
                 }
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               >
                 {DEBT_FREQ_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -1284,7 +1333,7 @@ export function UtangPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="debt-interest"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 Bunga Tahunan (%/tahun)
               </label>
@@ -1300,7 +1349,7 @@ export function UtangPage() {
                     Math.max(0, Number.parseFloat(e.target.value || "0") || 0)
                   )
                 }
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 font-mono text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               />
             </div>
 
@@ -1316,7 +1365,7 @@ export function UtangPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="debt-due"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 Tanggal Jatuh Tempo
               </label>
@@ -1325,14 +1374,14 @@ export function UtangPage() {
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 font-mono text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               />
             </div>
 
             <div className="space-y-1.5">
               <label
                 htmlFor="debt-desc"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 Keterangan
               </label>
@@ -1342,7 +1391,7 @@ export function UtangPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Tenor / catatan"
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-[#C7D0E0]/45 dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500"
               />
             </div>
           </div>
@@ -1358,7 +1407,7 @@ export function UtangPage() {
             disabled={
               !ownerConfirmed || createDebt.isPending || updateDebt.isPending
             }
-            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#087BFF]/20 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none dark:disabled:from-[#102452] dark:disabled:to-[#102452] dark:disabled:text-[#C7D0E0]/45"
+            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-sm font-semibold text-[#101827] shadow-sm transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none dark:disabled:from-[#162032] dark:disabled:to-[#162032] dark:disabled:text-slate-500"
           >
             {createDebt.isPending || updateDebt.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -1382,26 +1431,26 @@ export function UtangPage() {
         {payingDebt ? (
           <form onSubmit={handlePayDebt} className="space-y-4">
             {isPendingPaymentRetry ? (
-              <div className="rounded-xl border border-amber-400/50 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-200">
+              <div className="rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37]/10 p-3 text-xs text-[#101827] dark:border-[#D4AF37]/35 dark:bg-[#D4AF37]/12 dark:text-amber-200">
                 Ada percobaan pembayaran sebelumnya yang belum mendapat konfirmasi hasil. Rincian dikunci agar tidak berubah; konfirmasi Owner lalu ulangi permintaan yang sama untuk memeriksa hasil tanpa membuat pembayaran kedua.
               </div>
             ) : null}
-            <div className="rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F]">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/65">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Sisa Pokok Terutang
               </p>
-              <p className="mt-0.5 font-mono text-lg font-bold tabular-nums text-rose-600 dark:text-rose-400">
+              <p className="mt-0.5 font-mono text-lg font-bold tabular-nums text-[#DC2626] dark:text-[#F87171]">
                 {formatIDR(payingDebt.outstanding_balance)}
               </p>
             </div>
 
             {activeAccounts.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-[#DCE4F0] bg-[#F4F7FB] p-4 text-xs text-slate-700 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]">
+              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-xs text-slate-700 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300">
                 Belum ada akun aktif sebagai sumber dana.{" "}
                 <Link
                   to="/akun"
                   onClick={() => setPayingDebt(null)}
-                  className="font-semibold text-[#087BFF] hover:underline dark:text-[#19D8FF]"
+                  className="font-semibold text-[#9A7411] hover:underline dark:text-[#E6C768]"
                 >
                   Tambah akun terlebih dahulu
                 </Link>
@@ -1421,7 +1470,7 @@ export function UtangPage() {
                         setPaymentRequestId(crypto.randomUUID());
                         setPayConfirmed(false);
                       }}
-                      className="min-h-[36px] rounded-xl border border-[#087BFF]/35 bg-[#087BFF]/10 px-3 py-1.5 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/35 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                      className="min-h-[36px] rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37]/12 px-3 py-1.5 text-xs font-semibold text-[#9A7411] hover:bg-[#D4AF37]/20 dark:border-[#D4AF37]/35 dark:bg-[#D4AF37]/15 dark:text-[#E6C768]"
                     >
                       Cicilan Rutin ({formatIDR(payingDebt.installment_amount ?? 0, true)})
                     </button>
@@ -1430,11 +1479,13 @@ export function UtangPage() {
                     type="button"
                     disabled={isPendingPaymentRetry}
                     onClick={() => {
-                      setPayAmount(Math.max(1, Math.round(payingDebt.outstanding_balance * 0.25)));
+                      setPayAmount(
+                        Math.max(1, Math.round(payingDebt.outstanding_balance * 0.25))
+                      );
                       setPaymentRequestId(crypto.randomUUID());
                       setPayConfirmed(false);
                     }}
-                    className="min-h-[36px] rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-1.5 text-xs font-semibold text-[#06132F] hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
+                    className="min-h-[36px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-[#101827] hover:border-[#D4AF37]/50 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200"
                   >
                     25%
                   </button>
@@ -1442,11 +1493,13 @@ export function UtangPage() {
                     type="button"
                     disabled={isPendingPaymentRetry}
                     onClick={() => {
-                      setPayAmount(Math.max(1, Math.round(payingDebt.outstanding_balance * 0.5)));
+                      setPayAmount(
+                        Math.max(1, Math.round(payingDebt.outstanding_balance * 0.5))
+                      );
                       setPaymentRequestId(crypto.randomUUID());
                       setPayConfirmed(false);
                     }}
-                    className="min-h-[36px] rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-1.5 text-xs font-semibold text-[#06132F] hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
+                    className="min-h-[36px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-[#101827] hover:border-[#D4AF37]/50 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200"
                   >
                     50%
                   </button>
@@ -1458,7 +1511,7 @@ export function UtangPage() {
                       setPaymentRequestId(crypto.randomUUID());
                       setPayConfirmed(false);
                     }}
-                    className="min-h-[36px] rounded-xl border border-[#087BFF]/35 bg-[#087BFF]/10 px-3 py-1.5 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/35 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                    className="min-h-[36px] rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37]/12 px-3 py-1.5 text-xs font-semibold text-[#9A7411] hover:bg-[#D4AF37]/20 dark:border-[#D4AF37]/35 dark:bg-[#D4AF37]/15 dark:text-[#E6C768]"
                   >
                     Lunasi Penuh
                   </button>
@@ -1483,10 +1536,10 @@ export function UtangPage() {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="pay-debt-acc"
-                    className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                    className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
                   >
                     Akun Sumber Dana{" "}
-                    <span className="text-rose-600 dark:text-rose-400">*</span>
+                    <span className="text-[#EF4444]">*</span>
                   </label>
                   <select
                     id="pay-debt-acc"
@@ -1498,7 +1551,7 @@ export function UtangPage() {
                       setPaymentRequestId(crypto.randomUUID());
                       setPayConfirmed(false);
                     }}
-                    className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
                   >
                     <option value="">Pilih akun...</option>
                     {activeAccounts.map((acc) => (
@@ -1512,7 +1565,7 @@ export function UtangPage() {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="pay-debt-notes"
-                    className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                    className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
                   >
                     Catatan Pembayaran (Opsional)
                   </label>
@@ -1527,7 +1580,7 @@ export function UtangPage() {
                       setPayConfirmed(false);
                     }}
                     placeholder="Misal: Cicilan bulan ke-4"
-                    className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
                   />
                 </div>
 
@@ -1542,14 +1595,14 @@ export function UtangPage() {
                     type="button"
                     disabled={isPendingPaymentRetry}
                     onClick={() => setPayingDebt(null)}
-                    className="min-h-[44px] flex-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-4 py-2.5 text-xs font-semibold text-[#06132F] hover:bg-slate-200 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
+                    className="min-h-[44px] flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-[#101827] hover:bg-slate-200 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
                     disabled={!payConfirmed || payDebt.isPending}
-                    className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-xs font-semibold text-white hover:brightness-110 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 dark:disabled:from-[#102452] dark:disabled:to-[#102452] dark:disabled:text-[#C7D0E0]/45"
+                    className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-xs font-semibold text-[#101827] hover:brightness-105 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 dark:disabled:from-[#162032] dark:disabled:to-[#162032] dark:disabled:text-slate-500"
                   >
                     {payDebt.isPending ? (
                       <Loader2
@@ -1574,44 +1627,50 @@ export function UtangPage() {
       <ModalSheet
         open={Boolean(historyDebt)}
         onClose={() => setHistoryDebt(null)}
-        title={historyDebt ? `Log Pembayaran: ${historyDebt.creditor}` : "Riwayat Cicilan"}
+        title={
+          historyDebt
+            ? `Log Pembayaran: ${historyDebt.creditor}`
+            : "Riwayat Cicilan"
+        }
         subtitle="Daftar pembayaran cicilan atau pelunasan yang telah dieksekusi Owner."
       >
         {historyDebt ? (
           historyDebtLogs.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-[#DCE4F0] bg-[#F4F7FB] p-4 text-center text-xs text-slate-600 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]/75">
+            <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs text-slate-600 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-400">
               Belum ada log pembayaran untuk kewajiban ini.
             </p>
           ) : (
-            <ul className="divide-y divide-[#DCE4F0] dark:divide-[#1B3163]">
+            <ul className="divide-y divide-slate-200 dark:divide-[#1E293B]">
               {historyDebtLogs.map((log) => {
                 const linkedTx = log.transaction_id
                   ? txById.get(log.transaction_id)
                   : undefined;
-                const accountLabel =
-                  linkedTx?.source_account_id
-                    ? accountNameMap.get(linkedTx.source_account_id) ?? "Akun"
-                    : "Pembayaran Terverifikasi";
+                const accountLabel = linkedTx?.source_account_id
+                  ? accountNameMap.get(linkedTx.source_account_id) ?? "Akun"
+                  : "Pembayaran Terverifikasi";
                 return (
                   <li
                     key={log.id}
                     className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0 text-xs"
                   >
                     <div>
-                      <p className="font-semibold text-[#06132F] dark:text-white">
-                        {formatDateID(linkedTx?.transaction_date ?? log.created_at, dateFormat)}
+                      <p className="font-semibold text-[#101827] dark:text-white">
+                        {formatDateID(
+                          linkedTx?.transaction_date ?? log.created_at,
+                          dateFormat
+                        )}
                       </p>
-                      <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/75">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
                         {accountLabel}
                         {log.notes ? ` · ${log.notes}` : ""}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-mono font-bold text-[#087BFF] dark:text-[#19D8FF]">
+                      <p className="font-mono font-bold text-[#0D9488] dark:text-[#2DD4BF]">
                         -{formatIDR(log.amount)}
                       </p>
                       {log.remaining_after > 0 ? (
-                        <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
                           Sisa: {formatIDR(log.remaining_after, true)}
                         </p>
                       ) : null}

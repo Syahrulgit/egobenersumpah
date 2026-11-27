@@ -84,34 +84,34 @@ export function ThemeToggleButton({
     <div
       role="group"
       aria-label="Pilih tema tampilan"
-      className={`inline-flex items-center rounded-xl border border-[#DCE4F0] bg-[#EEF3FA] p-1 dark:border-[#1B3163] dark:bg-[#06132F] ${className}`}
+      className={`inline-flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-[#1E293B] dark:bg-[#0B111E] ${className}`}
     >
       <button
         type="button"
         aria-pressed={theme === "light"}
         onClick={() => setTheme("light")}
-        className={`inline-flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap ${
+        className={`inline-flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap ${
           theme === "light"
-            ? "bg-white text-[#06132F] shadow-xs dark:bg-[#0D1E45] dark:text-white"
-            : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+            ? "bg-white text-[#101827] shadow-xs ring-1 ring-slate-200/80"
+            : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
         }`}
       >
-        <Sun className="h-3.5 w-3.5 text-[#087BFF]" aria-hidden="true" />
+        <Sun className="h-3.5 w-3.5 text-[#D4AF37]" aria-hidden="true" />
         {!compact ? <span>Terang</span> : null}
       </button>
       <button
         type="button"
         aria-pressed={theme === "dark"}
         onClick={() => setTheme("dark")}
-        className={`inline-flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap ${
+        className={`inline-flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap ${
           theme === "dark"
-            ? "bg-[#087BFF] text-white shadow-xs"
-            : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+            ? "bg-[#101827] text-[#E6C768] shadow-xs ring-1 ring-[#D4AF37]/40"
+            : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
         }`}
       >
         <Moon
           className={`h-3.5 w-3.5 ${
-            theme === "dark" ? "text-[#19D8FF]" : "text-[#06132F] dark:text-[#19D8FF]"
+            theme === "dark" ? "text-[#E6C768]" : "text-[#101827] dark:text-[#E6C768]"
           }`}
           aria-hidden="true"
         />

@@ -326,20 +326,20 @@ export function TransactionSheetProvider({
         maxWidthClass="max-w-xl"
       >
         {activeAccounts.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[#DCE4F0] bg-[#F4F7FB] p-6 text-center dark:border-[#1B3163] dark:bg-[#06132F]">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#087BFF]/10 text-[#087BFF] dark:text-[#19D8FF]">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center dark:border-[#1E293B] dark:bg-[#0B111E]">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#101827] text-[#E6C768] dark:bg-[#D4AF37]/15">
               <Wallet className="h-6 w-6" aria-hidden="true" />
             </div>
-            <h3 className="mt-3 text-sm font-bold text-[#06132F] dark:text-white">
+            <h3 className="mt-3 text-sm font-bold text-[#101827] dark:text-white">
               Belum Ada Akun Aktif
             </h3>
-            <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/80">
+            <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
               Daftarkan minimal satu rekening bank, e-wallet, atau dompet tunai sebelum mencatat transaksi.
             </p>
             <Link
               to="/akun"
               onClick={() => setIsOpen(false)}
-              className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[#087BFF] px-5 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#0666DB]"
+              className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-gradient-to-r from-[#E6C768] to-[#D4AF37] px-5 py-2.5 text-xs font-bold text-[#101827] transition-all hover:brightness-105"
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
               <span>Buka Halaman Akun</span>
@@ -351,7 +351,7 @@ export function TransactionSheetProvider({
             <div
               role="tablist"
               aria-label="Jenis Transaksi"
-              className="grid grid-cols-3 gap-1.5 rounded-2xl border border-[#DCE4F0] bg-[#EEF3FA] p-1 dark:border-[#1B3163] dark:bg-[#06132F]"
+              className="grid grid-cols-3 gap-1.5 rounded-2xl border border-slate-200 bg-slate-100 p-1 dark:border-[#1E293B] dark:bg-[#0B111E]"
             >
               {(
                 [
@@ -360,21 +360,21 @@ export function TransactionSheetProvider({
                     label: "Pengeluaran",
                     icon: ArrowUpRight,
                     activeCls:
-                      "bg-rose-600 text-white shadow-xs dark:bg-rose-500",
+                      "bg-[#EF4444] text-white shadow-xs",
                   },
                   {
                     id: "income",
                     label: "Pemasukan",
                     icon: ArrowDownLeft,
                     activeCls:
-                      "bg-[#087BFF] text-white shadow-xs",
+                      "bg-[#14B8A6] text-white shadow-xs",
                   },
                   {
                     id: "transfer",
                     label: "Transfer",
                     icon: ArrowLeftRight,
                     activeCls:
-                      "bg-[#06132F] text-[#19D8FF] shadow-xs dark:bg-[#19D8FF] dark:text-[#06132F]",
+                      "bg-[#101827] text-[#E6C768] shadow-xs ring-1 ring-[#D4AF37]/40 dark:bg-[#D4AF37] dark:text-[#101827]",
                   },
                 ] as const
               ).map((tab) => {
@@ -387,10 +387,10 @@ export function TransactionSheetProvider({
                     role="tab"
                     aria-selected={active}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-semibold transition-colors whitespace-nowrap ${
+                    className={`ego-pressable flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-semibold transition-colors whitespace-nowrap ${
                       active
                         ? tab.activeCls
-                        : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+                        : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -422,7 +422,7 @@ export function TransactionSheetProvider({
                       setAmount(preset);
                       setFormError(null);
                     }}
-                    className="min-h-[34px] rounded-lg border border-[#DCE4F0] bg-[#F4F7FB] px-2.5 py-1 font-mono text-[11px] font-medium text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:bg-[#087BFF]/8 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:border-[#19D8FF]/50"
+                    className="ego-pressable min-h-[36px] rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-[11px] font-medium text-[#101827] transition-colors hover:border-[#D4AF37]/60 hover:bg-[#D4AF37]/10 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300 dark:hover:border-[#D4AF37]/50"
                   >
                     +{formatIDR(preset, true)}
                   </button>
@@ -440,10 +440,10 @@ export function TransactionSheetProvider({
                 <div className="space-y-1.5">
                   <label
                     htmlFor="sheet-tx-source"
-                    className="block text-xs font-medium text-slate-700 dark:text-[#C7D0E0]"
+                    className="block text-xs font-medium text-slate-700 dark:text-slate-300"
                   >
                     Akun Sumber{" "}
-                    <span className="text-rose-600 dark:text-rose-400">*</span>
+                    <span className="text-[#EF4444]">*</span>
                   </label>
                   <select
                     id="sheet-tx-source"
@@ -453,7 +453,7 @@ export function TransactionSheetProvider({
                       setSourceId(e.target.value);
                       setFormError(null);
                     }}
-                    className="min-h-[44px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                    className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                   >
                     <option value="">Pilih akun sumber...</option>
                     {activeAccounts.map((acc) => (
@@ -469,10 +469,10 @@ export function TransactionSheetProvider({
                 <div className="space-y-1.5">
                   <label
                     htmlFor="sheet-tx-dest"
-                    className="block text-xs font-medium text-slate-700 dark:text-[#C7D0E0]"
+                    className="block text-xs font-medium text-slate-700 dark:text-slate-300"
                   >
                     Akun Tujuan{" "}
-                    <span className="text-rose-600 dark:text-rose-400">*</span>
+                    <span className="text-[#EF4444]">*</span>
                   </label>
                   <select
                     id="sheet-tx-dest"
@@ -482,7 +482,7 @@ export function TransactionSheetProvider({
                       setDestId(e.target.value);
                       setFormError(null);
                     }}
-                    className="min-h-[44px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                    className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                   >
                     <option value="">Pilih akun tujuan...</option>
                     {activeAccounts.map((acc) => (
@@ -500,7 +500,7 @@ export function TransactionSheetProvider({
               <div className="space-y-1.5">
                 <label
                   htmlFor="sheet-tx-category"
-                  className="block text-xs font-medium text-slate-700 dark:text-[#C7D0E0]"
+                  className="block text-xs font-medium text-slate-700 dark:text-slate-300"
                 >
                   Kategori
                 </label>
@@ -508,7 +508,7 @@ export function TransactionSheetProvider({
                   id="sheet-tx-category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="min-h-[44px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                  className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                 >
                   {CATEGORIES_BY_TYPE[txType].map((cat) => (
                     <option key={cat} value={cat}>
@@ -521,7 +521,7 @@ export function TransactionSheetProvider({
               <div className="space-y-1.5">
                 <label
                   htmlFor="sheet-tx-date"
-                  className="block text-xs font-medium text-slate-700 dark:text-[#C7D0E0]"
+                  className="block text-xs font-medium text-slate-700 dark:text-slate-300"
                 >
                   Tanggal Transaksi
                 </label>
@@ -531,7 +531,7 @@ export function TransactionSheetProvider({
                   required
                   value={txDate}
                   onChange={(e) => setTxDate(e.target.value)}
-                  className="min-h-[44px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 font-mono text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                  className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm text-[#101827] focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                 />
               </div>
             </div>
@@ -540,7 +540,7 @@ export function TransactionSheetProvider({
             <div className="space-y-1.5">
               <label
                 htmlFor="sheet-tx-desc"
-                className="block text-xs font-medium text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-medium text-slate-700 dark:text-slate-300"
               >
                 Keterangan
               </label>
@@ -550,47 +550,47 @@ export function TransactionSheetProvider({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Contoh: Kopi pagi, Gaji bulanan, atau Top up e-wallet"
-                className="min-h-[44px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[#19D8FF]"
+                className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[#D4AF37]"
               />
             </div>
 
             {/* Pre-save Confirmation Summary */}
-            <div className="rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] p-4 dark:border-[#1B3163] dark:bg-[#06132F]">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/70">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-[#1E293B] dark:bg-[#0B111E]">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Ringkasan Sebelum Penyimpanan
               </p>
               <div className="mt-2.5 grid grid-cols-2 gap-y-1.5 text-xs">
-                <span className="text-slate-500 dark:text-[#C7D0E0]/70">
+                <span className="text-slate-500 dark:text-slate-400">
                   Jenis &amp; Kategori
                 </span>
-                <span className="text-right font-semibold text-[#06132F] dark:text-white">
+                <span className="text-right font-semibold text-[#101827] dark:text-white">
                   {typeLabel} · {category}
                 </span>
 
-                <span className="text-slate-500 dark:text-[#C7D0E0]/70">
+                <span className="text-slate-500 dark:text-slate-400">
                   Alur Akun
                 </span>
-                <span className="truncate text-right font-medium text-[#06132F] dark:text-[#C7D0E0]">
+                <span className="truncate text-right font-medium text-[#101827] dark:text-slate-200">
                   {summaryFlow}
                 </span>
 
-                <span className="text-slate-500 dark:text-[#C7D0E0]/70">
+                <span className="text-slate-500 dark:text-slate-400">
                   Tanggal
                 </span>
-                <span className="text-right font-mono text-[#06132F] dark:text-[#C7D0E0]">
+                <span className="text-right font-mono text-[#101827] dark:text-slate-200">
                   {formatDateID(txDate, dateFormat)}
                 </span>
 
-                <span className="text-slate-500 dark:text-[#C7D0E0]/70">
+                <span className="text-slate-500 dark:text-slate-400">
                   Nominal
                 </span>
                 <span
                   className={`text-right font-mono text-sm font-bold tabular-nums ${
                     txType === "income"
-                      ? "text-[#087BFF] dark:text-[#19D8FF]"
+                      ? "text-[#0D9488] dark:text-[#2DD4BF]"
                       : txType === "expense"
-                        ? "text-rose-600 dark:text-rose-400"
-                        : "text-[#06132F] dark:text-white"
+                        ? "text-[#DC2626] dark:text-[#F87171]"
+                        : "text-[#101827] dark:text-[#E6C768]"
                   }`}
                 >
                   {formatIDR(amount)}
@@ -601,7 +601,7 @@ export function TransactionSheetProvider({
             {formError ? (
               <div
                 role="alert"
-                className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300"
+                className="flex items-start gap-2 rounded-xl border border-[#EF4444]/35 bg-[#EF4444]/10 px-3.5 py-2.5 text-xs font-medium text-[#DC2626] dark:text-[#F87171]"
               >
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>{formError}</span>
@@ -618,7 +618,7 @@ export function TransactionSheetProvider({
             <button
               type="submit"
               disabled={!ownerConfirmed || createTx.isPending}
-              className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-3 text-sm font-semibold text-white shadow-md shadow-[#087BFF]/20 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-500 disabled:shadow-none dark:disabled:bg-[#122652] dark:disabled:from-[#122652] dark:disabled:to-[#122652] dark:disabled:text-slate-500"
+              className="ego-pressable flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#E6C768] to-[#D4AF37] px-4 py-3 text-sm font-bold text-[#101827] shadow-md shadow-[#D4AF37]/20 transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-500 disabled:shadow-none dark:disabled:bg-[#162032] dark:disabled:from-[#162032] dark:disabled:to-[#162032] dark:disabled:text-slate-500"
             >
               {createTx.isPending ? (
                 <>

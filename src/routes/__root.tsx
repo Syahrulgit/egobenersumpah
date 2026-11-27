@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Toaster } from "sonner";
 import { egoKeys } from "../lib/queries";
 import { supabase } from "../lib/supabase";
+import { MotionConfig } from "motion/react";
 import { ThemeProvider, useTheme } from "../lib/theme";
 
 const queryClient = new QueryClient({
@@ -37,11 +38,12 @@ function RootContent() {
       <Outlet />
       <Toaster
         position="bottom-right"
+        duration={3200}
         theme={theme}
         toastOptions={{
           classNames: {
             toast:
-              "mb-16 md:mb-0 rounded-2xl border border-[#DCE4F0] bg-white text-[#06132F] shadow-lg dark:border-[#1B3163] dark:bg-[#091634] dark:text-white",
+              "mb-16 md:mb-0 rounded-2xl border border-slate-200 bg-white text-[#101827] shadow-xl dark:border-[#D4AF37]/30 dark:bg-[#101827] dark:text-white",
           },
         }}
       />
@@ -51,10 +53,12 @@ function RootContent() {
 
 export function RootComponent() {
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <RootContent />
-      </QueryClientProvider>
-    </ThemeProvider>
+    <MotionConfig reducedMotion="user">
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <RootContent />
+        </QueryClientProvider>
+      </ThemeProvider>
+    </MotionConfig>
   );
 }

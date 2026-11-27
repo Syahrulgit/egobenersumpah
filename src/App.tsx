@@ -46,17 +46,17 @@ function EgoStartupSplash() {
     <div
       role="status"
       aria-label="EGO Personal AI sedang dimulai"
-      className={`pointer-events-none fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#040B1C] transition-opacity duration-150 motion-reduce:transition-none ${visible ? "opacity-100" : "opacity-0"}`}
+      className={`pointer-events-none fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#0B111E] transition-opacity duration-150 motion-reduce:transition-none ${visible ? "opacity-100" : "opacity-0"}`}
     >
       <div className="relative flex items-center justify-center">
-        <div className="ego-splash-glow absolute h-28 w-28 rounded-full bg-[#19D8FF]/15 blur-2xl motion-safe:animate-[ego-splash-glow_1.8s_ease-in-out_infinite]" />
+        <div className="ego-splash-glow absolute h-28 w-28 rounded-full bg-[#D4AF37]/20 blur-2xl motion-safe:animate-[ego-splash-glow_1.8s_ease-in-out_infinite]" />
         <EgoAnimatedMark size="lg" mode="processing" className="scale-150" />
       </div>
       <p className="mt-7 text-sm font-bold tracking-[0.22em] text-white">
-        EGO PERSONAL AI
+        EGO <span className="text-[#E6C768]">PERSONAL AI</span>
       </p>
-      <p className="mt-2 text-[10px] font-medium tracking-[0.16em] text-[#19D8FF]/75">
-        PERSONAL FINANCE COMMAND CENTER
+      <p className="mt-2 text-[10px] font-medium tracking-[0.16em] text-[#FF9EEA]/80">
+        LUXURY WEALTH &amp; AI COMMAND CENTER
       </p>
     </div>
   );

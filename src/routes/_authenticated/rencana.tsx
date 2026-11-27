@@ -17,6 +17,11 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/ego/app-shell";
 import { ApprovalCheck } from "../../components/ego/approval-check";
+import {
+  EgoAnimatedBar,
+  EgoCountUp,
+  EgoStaggerSection,
+} from "../../components/ego/ego-motion";
 import { GoalSimulatorPanel } from "../../components/ego/goal-simulator-panel";
 import { ModalSheet } from "../../components/ego/modal-sheet";
 import { MoneyInput } from "../../components/ego/money-input";
@@ -342,7 +347,7 @@ export function RencanaPage() {
               ? setBillModalOpen(true)
               : setGoalModalOpen(true)
           }
-          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#087BFF]/20 hover:brightness-110 whitespace-nowrap"
+          className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-3.5 py-2 text-xs font-semibold text-[#101827] shadow-sm shadow-[#D4AF37]/20 hover:brightness-105 whitespace-nowrap"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden="true" />
           <span>{activeTab === "tagihan" ? "Tambah Tagihan" : "Buat Target"}</span>
@@ -351,23 +356,24 @@ export function RencanaPage() {
     >
       <div className="space-y-6">
         {/* Top KPI Cards */}
+        <EgoStaggerSection index={0}>
         <section className="grid gap-4 sm:grid-cols-3">
-          <div className="ego-card-hero rounded-3xl border border-[#1B3163] p-5 text-white shadow-lg shadow-[#06132F]/15">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#C7D0E0]/80">
+          <div className="ego-card-hero ego-card-hero--living rounded-3xl border border-[#D4AF37]/30 p-5 text-white shadow-lg shadow-[#101827]/20">
+            <div className="relative z-10 flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#E6C768]/90">
                 Ketahanan Dana Darurat
               </p>
               <ShieldCheck
-                className="h-4 w-4 text-[#19D8FF]"
+                className="h-4 w-4 text-[#E6C768]"
                 aria-hidden="true"
               />
             </div>
-            <p className="mt-2 font-mono text-2xl font-bold tabular-nums text-white">
+            <p className="relative z-10 mt-2 font-mono text-2xl font-bold tabular-nums text-white">
               {emergencyMonths !== null ? `${emergencyMonths} bulan` : "—"}
             </p>
-            <p className="mt-1.5 text-xs text-[#C7D0E0]/80">
+            <p className="relative z-10 mt-1.5 text-xs text-slate-300">
               Likuid{" "}
-              <span className="font-mono tabular-nums text-white">
+              <span className="font-mono tabular-nums text-[#E6C768]">
                 {formatIDR(netWorth.totalAccountBalance, true)}
               </span>{" "}
               · Rata keluar{" "}
@@ -379,67 +385,75 @@ export function RencanaPage() {
             </p>
           </div>
 
-          <div className="rounded-3xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/70">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Target Keuangan
               </p>
               <Target
-                className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]"
+                className="h-4 w-4 text-[#9A7411] dark:text-[#E6C768]"
                 aria-hidden="true"
               />
             </div>
-            <p className="mt-2 font-mono text-2xl font-bold tabular-nums text-[#06132F] dark:text-white">
-              {activeGoalsCount} Aktif
+            <p className="mt-2 font-mono text-2xl font-bold tabular-nums text-[#101827] dark:text-white">
+              <EgoCountUp
+                value={activeGoalsCount}
+                formatter={(v) => `${Math.round(v)} Aktif`}
+              />
             </p>
-            <p className="mt-1.5 text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
               {completedGoalsCount} target tercapai · Total {goals.length} rencana
             </p>
           </div>
 
-          <div className="rounded-3xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/70">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Tagihan ≤ 7 Hari
               </p>
               <CalendarClock
-                className="h-4 w-4 text-amber-600 dark:text-amber-400"
+                className="h-4 w-4 text-[#D4AF37]"
                 aria-hidden="true"
               />
             </div>
             <p
               className={`mt-2 font-mono text-2xl font-bold tabular-nums ${
                 dueBills.length > 0
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-[#087BFF] dark:text-[#19D8FF]"
+                  ? "text-[#9A7411] dark:text-[#E6C768]"
+                  : "text-[#0D9488] dark:text-[#2DD4BF]"
               }`}
             >
-              {dueBills.length} Jadwal
+              <EgoCountUp
+                value={dueBills.length}
+                formatter={(v) => `${Math.round(v)} Jadwal`}
+              />
             </p>
-            <p className="mt-1.5 text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
               {dueBills.length > 0
                 ? `Estimasi total ${formatIDR(dueTotal)}`
                 : "Tidak ada tagihan mendesak dalam 7 hari"}
             </p>
           </div>
         </section>
+        </EgoStaggerSection>
 
+        <EgoStaggerSection index={1} className="space-y-6">
         {/* Tab Bar + Quick Actions */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div
             role="tablist"
             aria-label="Pilih tampilan Target, Simulator, atau Tagihan"
-            className="inline-flex flex-wrap items-center gap-1 rounded-2xl border border-[#DCE4F0] bg-white p-1.5 dark:border-[#1B3163] dark:bg-[#091634]"
+            className="inline-flex flex-wrap items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 dark:border-[#1E293B] dark:bg-[#101827]"
           >
             <button
               type="button"
               role="tab"
               aria-selected={activeTab === "target"}
               onClick={() => setActiveTab("target")}
-              className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
+              className={`ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
                 activeTab === "target"
-                  ? "bg-[#087BFF] text-white shadow-xs"
-                  : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+                  ? "bg-[#101827] text-white shadow-xs dark:bg-[#D4AF37] dark:text-[#101827]"
+                  : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
               }`}
             >
               <Target className="h-3.5 w-3.5" aria-hidden="true" />
@@ -452,8 +466,8 @@ export function RencanaPage() {
               onClick={() => setActiveTab("simulator")}
               className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
                 activeTab === "simulator"
-                  ? "bg-[#087BFF] text-white shadow-xs"
-                  : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+                  ? "bg-[#101827] text-white shadow-xs dark:bg-[#D4AF37] dark:text-[#101827]"
+                  : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
               }`}
             >
               <Calculator className="h-3.5 w-3.5" aria-hidden="true" />
@@ -466,8 +480,8 @@ export function RencanaPage() {
               onClick={() => setActiveTab("tagihan")}
               className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
                 activeTab === "tagihan"
-                  ? "bg-[#087BFF] text-white shadow-xs"
-                  : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+                  ? "bg-[#101827] text-white shadow-xs dark:bg-[#D4AF37] dark:text-[#101827]"
+                  : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
               }`}
             >
               <CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />
@@ -478,7 +492,7 @@ export function RencanaPage() {
           <Link
             to="/owner"
             search={{ tab: "control" }}
-            className="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border border-[#087BFF]/30 bg-[#087BFF]/10 px-3.5 py-2 text-xs font-semibold text-[#087BFF] transition-colors hover:bg-[#087BFF]/15 whitespace-nowrap dark:border-[#19D8FF]/30 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+            className="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border border-[#FF4DDE]/30 bg-[#FF4DDE]/8 px-3.5 py-2 text-xs font-semibold text-[#A21CAF] transition-colors hover:bg-[#FF4DDE]/15 whitespace-nowrap dark:border-[#FF4DDE]/35 dark:bg-[#FF4DDE]/12 dark:text-[#FF9EEA]"
           >
             <span>Buka Antrean Persetujuan</span>
             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -487,20 +501,20 @@ export function RencanaPage() {
 
         {/* Tab 1: Target Keuangan */}
         {activeTab === "target" ? (
-          <section className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                <h2 className="text-base font-bold text-[#101827] dark:text-white">
                   Daftar Target Tabungan &amp; Dana Darurat ({goals.length})
                 </h2>
-                <p className="text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Progres target dana beserta estimasi bulan pencapaian dari surplus kas Anda.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setGoalModalOpen(true)}
-                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#0666DB] whitespace-nowrap"
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-3.5 py-2 text-xs font-semibold text-[#101827] hover:brightness-105 whitespace-nowrap"
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Buat Target Baru</span>
@@ -508,22 +522,22 @@ export function RencanaPage() {
             </div>
 
             {isLoading ? (
-              <div className="h-40 animate-pulse rounded-2xl bg-[#F4F7FB] dark:bg-[#06132F]" />
+              <div className="h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-[#0B111E]" />
             ) : goals.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#DCE4F0] bg-[#F4F7FB] p-8 text-center dark:border-[#1B3163] dark:bg-[#06132F]/60">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-[#1E293B] dark:bg-[#0B111E]/70">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D4AF37]/15 text-[#9A7411] dark:bg-[#D4AF37]/15 dark:text-[#E6C768]">
                   <Target className="h-6 w-6" aria-hidden="true" />
                 </div>
-                <p className="mt-3 text-sm font-bold text-[#06132F] dark:text-white">
+                <p className="mt-3 text-sm font-bold text-[#101827] dark:text-white">
                   Belum ada target tabungan atau dana darurat
                 </p>
-                <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+                <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                   Tetapkan target dana darurat 3–6 bulan pengeluaran atau sasaran tabungan khusus Anda.
                 </p>
                 <button
                   type="button"
                   onClick={() => setGoalModalOpen(true)}
-                  className="mt-4 inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0666DB]"
+                  className="mt-4 inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2 text-xs font-semibold text-[#101827] hover:brightness-105"
                 >
                   <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Buat Target Pertama</span>
@@ -546,20 +560,20 @@ export function RencanaPage() {
                   return (
                     <div
                       key={goal.id}
-                      className="flex flex-col justify-between gap-4 rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB]/70 p-4 dark:border-[#1B3163] dark:bg-[#06132F]/80"
+                      className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50/75 p-4 dark:border-[#1E293B] dark:bg-[#0B111E]/85"
                     >
                       <div className="space-y-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="text-sm font-bold text-[#06132F] dark:text-white">
+                              <h3 className="text-sm font-bold text-[#101827] dark:text-white">
                                 {goal.title}
                               </h3>
                               <span
-                                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
                                   progress.isCompleted
-                                    ? "bg-[#087BFF]/15 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
-                                    : "bg-slate-200/80 text-slate-700 dark:bg-[#132652] dark:text-[#C7D0E0]"
+                                    ? "bg-[#14B8A6]/15 text-[#0D9488] dark:bg-[#14B8A6]/20 dark:text-[#2DD4BF]"
+                                    : "bg-[#D4AF37]/15 text-[#9A7411] dark:bg-[#D4AF37]/18 dark:text-[#E6C768]"
                                 }`}
                               >
                                 {progress.isCompleted
@@ -569,7 +583,7 @@ export function RencanaPage() {
                                     : "Target Tabungan"}
                               </span>
                             </div>
-                            <p className="mt-1 text-xs text-slate-500 dark:text-[#C7D0E0]/70">
+                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                               {linkedAcc
                                 ? `Tersinkron: ${linkedAcc.account_name}`
                                 : "Progres manual"}
@@ -581,58 +595,42 @@ export function RencanaPage() {
                                 : ""}
                             </p>
                             {goal.notes ? (
-                              <p className="mt-0.5 text-xs text-slate-500 dark:text-[#C7D0E0]/65">
+                              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                                 {goal.notes}
                               </p>
                             ) : null}
                           </div>
 
-                          <span className="shrink-0 font-mono text-base font-bold tabular-nums text-[#087BFF] dark:text-[#19D8FF]">
+                          <span className="shrink-0 font-mono text-base font-bold tabular-nums text-[#9A7411] dark:text-[#E6C768]">
                             {progress.percentage}%
                           </span>
                         </div>
 
                         <div>
                           <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                            <span className="font-mono text-sm font-bold tabular-nums text-[#06132F] dark:text-white">
+                            <span className="font-mono text-sm font-bold tabular-nums text-[#101827] dark:text-white">
                               {formatIDR(progress.savedAmount)}
                             </span>
-                            <span className="font-mono text-xs tabular-nums text-slate-500 dark:text-[#C7D0E0]/70">
+                            <span className="font-mono text-xs tabular-nums text-slate-500 dark:text-slate-400">
                               dari {formatIDR(progress.targetAmount)}
                             </span>
                           </div>
-                          <svg
-                            viewBox="0 0 100 6"
-                            preserveAspectRatio="none"
-                            aria-hidden="true"
-                            className="h-2 w-full overflow-hidden rounded-full"
-                          >
-                            <rect
-                              x={0}
-                              y={0}
-                              width={100}
-                              height={6}
-                              rx={3}
-                              className="fill-slate-200 dark:fill-[#132652]"
-                            />
-                            {progress.percentage > 0 ? (
-                              <rect
-                                x={0}
-                                y={0}
-                                width={progress.percentage}
-                                height={6}
-                                rx={3}
-                                className="fill-[#087BFF] transition-all dark:fill-[#19D8FF]"
-                              />
-                            ) : null}
-                          </svg>
-                          <p className="mt-1 font-mono text-[11px] tabular-nums text-slate-500 dark:text-[#C7D0E0]/70">
+                          <EgoAnimatedBar
+                            percentage={progress.percentage}
+                            barClassName={
+                              progress.isCompleted
+                                ? "bg-[#14B8A6]"
+                                : "bg-gradient-to-r from-[#B8901F] to-[#D4AF37]"
+                            }
+                            heightClassName="h-2"
+                          />
+                          <p className="mt-1 font-mono text-[11px] tabular-nums text-slate-500 dark:text-slate-400">
                             Sisa target: {formatIDR(progress.remainingAmount)}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2 border-t border-[#DCE4F0]/80 pt-3 dark:border-[#1B3163]">
+                      <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 pt-3 dark:border-[#1E293B]">
                         {linkedAcc ? (
                           <button
                             type="button"
@@ -644,7 +642,7 @@ export function RencanaPage() {
                                 description: `Setoran target: ${goal.title}`,
                               })
                             }
-                            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-[#087BFF]/10 px-3 py-1.5 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                            className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#D4AF37]/15 px-3 py-1.5 text-xs font-semibold text-[#9A7411] hover:bg-[#D4AF37]/25 dark:bg-[#D4AF37]/18 dark:text-[#E6C768]"
                           >
                             <span>Catat Setoran</span>
                             <ArrowRight className="h-3 w-3" aria-hidden="true" />
@@ -657,7 +655,7 @@ export function RencanaPage() {
                               setEditGoalAmount(goal.current_amount);
                               setEditGoalConfirmed(false);
                             }}
-                            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-[#087BFF]/10 px-3 py-1.5 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                            className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#D4AF37]/15 px-3 py-1.5 text-xs font-semibold text-[#9A7411] hover:bg-[#D4AF37]/25 dark:bg-[#D4AF37]/18 dark:text-[#E6C768]"
                           >
                             <span>Perbarui Progres</span>
                           </button>
@@ -669,9 +667,9 @@ export function RencanaPage() {
                             setSimGoalId(goal.id);
                             setActiveTab("simulator");
                           }}
-                          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[#087BFF]/30 bg-[#087BFF]/8 px-3 py-1.5 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/30 dark:bg-[#19D8FF]/10 dark:text-[#19D8FF]"
+                          className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#101827] hover:border-[#D4AF37]/50 dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-200"
                         >
-                          <Calculator className="h-3.5 w-3.5" aria-hidden="true" />
+                          <Calculator className="h-3.5 w-3.5 text-[#9A7411] dark:text-[#E6C768]" aria-hidden="true" />
                           <span>Simulasikan</span>
                         </button>
 
@@ -679,9 +677,9 @@ export function RencanaPage() {
                           type="button"
                           onClick={() => handleToggleGoalStatus(goal)}
                           disabled={updateGoal.isPending}
-                          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-3 py-1.5 text-xs font-medium text-[#06132F] hover:bg-slate-100 dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45]"
+                          className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-[#101827] hover:bg-slate-100 dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-200 dark:hover:bg-[#162032]"
                         >
-                          <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                          <CheckCircle2 className="h-3.5 w-3.5 text-[#14B8A6]" aria-hidden="true" />
                           <span>
                             {goal.status === "completed"
                               ? "Aktifkan"
@@ -694,7 +692,7 @@ export function RencanaPage() {
                           onClick={() => handleDeleteGoal(goal)}
                           disabled={deleteGoal.isPending}
                           aria-label={`Hapus target ${goal.title}`}
-                          className="inline-flex min-h-[38px] items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-500/10 dark:text-rose-400"
+                          className="inline-flex min-h-[38px] items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium text-[#DC2626] hover:bg-[#EF4444]/10 dark:text-[#F87171]"
                         >
                           <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                         </button>
@@ -705,15 +703,21 @@ export function RencanaPage() {
               </div>
             )}
             {goals.length > 0 ? (
-              <div className="mt-4 flex flex-col items-center gap-2 border-t border-[#DCE4F0]/80 pt-4 dark:border-[#1B3163]">
-                <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+              <div className="mt-4 flex flex-col items-center gap-2 border-t border-slate-200 pt-4 dark:border-[#1E293B]">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   {showAllGoals
                     ? `${goals.length} target ditampilkan`
                     : `${visibleGoals.length} dari ${goals.length} target ditampilkan`}
                 </p>
                 {goals.length > 3 ? (
-                  <button type="button" onClick={() => setShowAllGoals((current) => !current)} className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-[#087BFF]/25 bg-[#087BFF]/8 px-4 py-2 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/25 dark:bg-[#19D8FF]/10 dark:text-[#19D8FF]">
-                    {showAllGoals ? "Tampilkan Lebih Sedikit" : `Lihat Semua Target (${goals.length})`}
+                  <button
+                    type="button"
+                    onClick={() => setShowAllGoals((current) => !current)}
+                    className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-4 py-2 text-xs font-semibold text-[#9A7411] hover:bg-[#D4AF37]/18 dark:border-[#D4AF37]/30 dark:bg-[#D4AF37]/15 dark:text-[#E6C768]"
+                  >
+                    {showAllGoals
+                      ? "Tampilkan Lebih Sedikit"
+                      : `Lihat Semua Target (${goals.length})`}
                   </button>
                 ) : null}
               </div>
@@ -730,20 +734,20 @@ export function RencanaPage() {
           />
         ) : (
           /* Tab 3: Tagihan Rutin */
-          <section className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                <h2 className="text-base font-bold text-[#101827] dark:text-white">
                   Jadwal Tagihan &amp; Pemasukan Rutin ({bills.length})
                 </h2>
-                <p className="text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Ajukan tagihan ke Antrean Persetujuan. Saldo hanya berubah setelah Anda menyetujui draf di Owner Control.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setBillModalOpen(true)}
-                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#0666DB] whitespace-nowrap"
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-3.5 py-2 text-xs font-semibold text-[#101827] hover:brightness-105 whitespace-nowrap"
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Tambah Jadwal</span>
@@ -751,29 +755,29 @@ export function RencanaPage() {
             </div>
 
             {isLoading ? (
-              <div className="h-40 animate-pulse rounded-2xl bg-[#F4F7FB] dark:bg-[#06132F]" />
+              <div className="h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-[#0B111E]" />
             ) : bills.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#DCE4F0] bg-[#F4F7FB] p-8 text-center dark:border-[#1B3163] dark:bg-[#06132F]/60">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-[#1E293B] dark:bg-[#0B111E]/70">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D4AF37]/15 text-[#9A7411] dark:bg-[#D4AF37]/15 dark:text-[#E6C768]">
                   <CalendarClock className="h-6 w-6" aria-hidden="true" />
                 </div>
-                <p className="mt-3 text-sm font-bold text-[#06132F] dark:text-white">
+                <p className="mt-3 text-sm font-bold text-[#101827] dark:text-white">
                   Belum ada jadwal tagihan atau pemasukan rutin
                 </p>
-                <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+                <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                   Daftarkan listrik, internet, langganan, atau jadwal gaji agar EGO mengingatkan Anda sebelum jatuh tempo.
                 </p>
                 <button
                   type="button"
                   onClick={() => setBillModalOpen(true)}
-                  className="mt-4 inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0666DB]"
+                  className="mt-4 inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2 text-xs font-semibold text-[#101827] hover:brightness-105"
                 >
                   <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Tambah Jadwal Pertama</span>
                 </button>
               </div>
             ) : (
-              <div className="divide-y divide-[#DCE4F0]/80 dark:divide-[#1B3163]">
+              <div className="divide-y divide-slate-200 dark:divide-[#1E293B]">
                 {visibleBills.map((bill) => {
                   const delta = daysUntilDue(bill.next_due_date);
                   const acc = bill.account_id
@@ -789,12 +793,12 @@ export function RencanaPage() {
                           : `${delta} hari lagi`;
 
                   const dueTone = !bill.is_active
-                    ? "text-slate-400 dark:text-[#C7D0E0]/45"
+                    ? "text-slate-400 dark:text-slate-500"
                     : delta !== null && delta < 0
-                      ? "text-rose-600 dark:text-rose-400"
+                      ? "text-[#DC2626] dark:text-[#F87171]"
                       : delta !== null && delta <= 7
-                        ? "text-amber-600 dark:text-amber-400"
-                        : "text-slate-500 dark:text-[#C7D0E0]/75";
+                        ? "text-[#9A7411] dark:text-[#E6C768]"
+                        : "text-slate-500 dark:text-slate-400";
 
                   return (
                     <div
@@ -806,14 +810,14 @@ export function RencanaPage() {
                           <h3
                             className={`text-sm font-bold ${
                               bill.is_active
-                                ? "text-[#06132F] dark:text-white"
-                                : "text-slate-400 line-through dark:text-[#C7D0E0]/45"
+                                ? "text-[#101827] dark:text-white"
+                                : "text-slate-400 line-through dark:text-slate-500"
                             }`}
                           >
                             {bill.title}
                           </h3>
-                          <span className="rounded-full bg-[#F4F7FB] px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-[#06132F] dark:text-[#C7D0E0]/80">
-                            {recurringFrequencyLabel(bill.frequency)} ·{" "}
+                          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                            · {recurringFrequencyLabel(bill.frequency)} ·{" "}
                             {bill.category}
                             {acc ? ` · ${acc.account_name}` : ""}
                           </span>
@@ -830,8 +834,8 @@ export function RencanaPage() {
                         <span
                           className={`mr-1 font-mono text-sm font-bold tabular-nums ${
                             bill.transaction_type === "income"
-                              ? "text-[#087BFF] dark:text-[#19D8FF]"
-                              : "text-rose-600 dark:text-rose-400"
+                              ? "text-[#0D9488] dark:text-[#2DD4BF]"
+                              : "text-[#DC2626] dark:text-[#F87171]"
                           }`}
                         >
                           {bill.transaction_type === "income" ? "+" : "-"}
@@ -843,7 +847,7 @@ export function RencanaPage() {
                             type="button"
                             onClick={() => handleQueueBill(bill)}
                             disabled={queueBill.isPending}
-                            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-[#087BFF]/10 px-3 py-1.5 text-xs font-semibold text-[#087BFF] transition-colors hover:bg-[#087BFF]/15 whitespace-nowrap dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-[#D4AF37]/15 px-3 py-1.5 text-xs font-semibold text-[#9A7411] transition-colors hover:bg-[#D4AF37]/25 whitespace-nowrap dark:bg-[#D4AF37]/18 dark:text-[#E6C768]"
                           >
                             <Send className="h-3 w-3" aria-hidden="true" />
                             <span>Ajukan Bayar</span>
@@ -859,7 +863,7 @@ export function RencanaPage() {
                               ? `Jeda jadwal ${bill.title}`
                               : `Aktifkan jadwal ${bill.title}`
                           }
-                          className="inline-flex min-h-[38px] items-center gap-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-2.5 py-1.5 text-xs font-medium text-[#06132F] hover:bg-slate-200 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45]"
+                          className="inline-flex min-h-[38px] items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-[#101827] hover:bg-slate-200 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200 dark:hover:bg-[#162032]"
                         >
                           {bill.is_active ? (
                             <>
@@ -879,7 +883,7 @@ export function RencanaPage() {
                           onClick={() => handleDeleteBill(bill)}
                           disabled={deleteBill.isPending}
                           aria-label={`Hapus jadwal ${bill.title}`}
-                          className="inline-flex min-h-[38px] items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-500/10 dark:text-rose-400"
+                          className="inline-flex min-h-[38px] items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium text-[#DC2626] hover:bg-[#EF4444]/10 dark:text-[#F87171]"
                         >
                           <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                         </button>
@@ -890,21 +894,28 @@ export function RencanaPage() {
               </div>
             )}
             {bills.length > 0 ? (
-              <div className="mt-4 flex flex-col items-center gap-2 border-t border-[#DCE4F0]/80 pt-4 dark:border-[#1B3163]">
-                <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+              <div className="mt-4 flex flex-col items-center gap-2 border-t border-slate-200 pt-4 dark:border-[#1E293B]">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   {showAllBills
                     ? `${bills.length} jadwal ditampilkan`
                     : `${visibleBills.length} dari ${bills.length} jadwal ditampilkan`}
                 </p>
                 {bills.length > 3 ? (
-                  <button type="button" onClick={() => setShowAllBills((current) => !current)} className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-[#087BFF]/25 bg-[#087BFF]/8 px-4 py-2 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/25 dark:bg-[#19D8FF]/10 dark:text-[#19D8FF]">
-                    {showAllBills ? "Tampilkan Lebih Sedikit" : `Lihat Semua Jadwal (${bills.length})`}
+                  <button
+                    type="button"
+                    onClick={() => setShowAllBills((current) => !current)}
+                    className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-4 py-2 text-xs font-semibold text-[#9A7411] hover:bg-[#D4AF37]/18 dark:border-[#D4AF37]/30 dark:bg-[#D4AF37]/15 dark:text-[#E6C768]"
+                  >
+                    {showAllBills
+                      ? "Tampilkan Lebih Sedikit"
+                      : `Lihat Semua Jadwal (${bills.length})`}
                   </button>
                 ) : null}
               </div>
             ) : null}
           </section>
         )}
+        </EgoStaggerSection>
       </div>
 
       {/* Modal Buat Target Tabungan */}
@@ -918,10 +929,10 @@ export function RencanaPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="goal-title"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
               Nama Target{" "}
-              <span className="text-rose-600 dark:text-rose-400">*</span>
+              <span className="text-[#EF4444]">*</span>
             </label>
             <input
               id="goal-title"
@@ -930,14 +941,14 @@ export function RencanaPage() {
               value={goalTitle}
               onChange={(e) => setGoalTitle(e.target.value)}
               placeholder="Contoh: Dana Darurat 6 Bulan"
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-[#C7D0E0]/45 dark:focus:border-[#19D8FF]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500"
             />
           </div>
 
           <div className="space-y-1.5">
             <label
               htmlFor="goal-type"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
               Jenis Sasaran
             </label>
@@ -945,7 +956,7 @@ export function RencanaPage() {
               id="goal-type"
               value={goalType}
               onChange={(e) => setGoalType(e.target.value as GoalType)}
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
             >
               <option value="emergency_fund">Dana Darurat</option>
               <option value="savings_target">Target Tabungan</option>
@@ -963,7 +974,7 @@ export function RencanaPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="goal-track-mode"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
               Metode Pantau Dana
             </label>
@@ -973,7 +984,7 @@ export function RencanaPage() {
               onChange={(e) =>
                 setGoalTrackMode(e.target.value as "manual" | "account")
               }
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
             >
               <option value="manual">Catat Progres Manual</option>
               <option value="account">Sinkronkan Saldo Akun Aktif</option>
@@ -984,16 +995,16 @@ export function RencanaPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="goal-linked-acc"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 Akun Khusus Tabungan{" "}
-                <span className="text-rose-600 dark:text-rose-400">*</span>
+                <span className="text-[#EF4444]">*</span>
               </label>
               <select
                 id="goal-linked-acc"
                 value={goalLinkedAccountId}
                 onChange={(e) => setGoalLinkedAccountId(e.target.value)}
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               >
                 <option value="">Pilih akun aktif...</option>
                 {activeAccounts.map((acc) => (
@@ -1015,7 +1026,7 @@ export function RencanaPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="goal-target-date"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
               Target Tanggal (Opsional)
             </label>
@@ -1024,14 +1035,14 @@ export function RencanaPage() {
               type="date"
               value={goalTargetDate}
               onChange={(e) => setGoalTargetDate(e.target.value)}
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 font-mono text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
             />
           </div>
 
           <div className="space-y-1.5">
             <label
               htmlFor="goal-notes"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
               Catatan (Opsional)
             </label>
@@ -1041,7 +1052,7 @@ export function RencanaPage() {
               value={goalNotes}
               onChange={(e) => setGoalNotes(e.target.value)}
               placeholder="Alokasi bulanan atau tujuan dana"
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-[#C7D0E0]/45 dark:focus:border-[#19D8FF]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500"
             />
           </div>
 
@@ -1054,7 +1065,7 @@ export function RencanaPage() {
           <button
             type="submit"
             disabled={!goalConfirmed || createGoal.isPending}
-            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#087BFF]/20 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none dark:disabled:from-[#102452] dark:disabled:to-[#102452] dark:disabled:text-[#C7D0E0]/45"
+            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-sm font-semibold text-[#101827] shadow-sm transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none dark:disabled:from-[#162032] dark:disabled:to-[#162032] dark:disabled:text-slate-500"
           >
             {createGoal.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -1097,14 +1108,14 @@ export function RencanaPage() {
               <button
                 type="button"
                 onClick={() => setEditingGoal(null)}
-                className="min-h-[44px] flex-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-4 py-2.5 text-xs font-semibold text-[#06132F] hover:bg-slate-200 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
+                className="min-h-[44px] flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-[#101827] hover:bg-slate-200 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200"
               >
                 Batal
               </button>
               <button
                 type="submit"
                 disabled={!editGoalConfirmed || updateGoal.isPending}
-                className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-xs font-semibold text-white hover:brightness-110 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 dark:disabled:from-[#102452] dark:disabled:to-[#102452] dark:disabled:text-[#C7D0E0]/45"
+                className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-xs font-semibold text-[#101827] hover:brightness-105 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 dark:disabled:from-[#162032] dark:disabled:to-[#162032] dark:disabled:text-slate-500"
               >
                 {updateGoal.isPending ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -1127,10 +1138,10 @@ export function RencanaPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="bill-title"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
               Nama Tagihan / Pemasukan{" "}
-              <span className="text-rose-600 dark:text-rose-400">*</span>
+              <span className="text-[#EF4444]">*</span>
             </label>
             <input
               id="bill-title"
@@ -1139,7 +1150,7 @@ export function RencanaPage() {
               value={billTitle}
               onChange={(e) => setBillTitle(e.target.value)}
               placeholder="Contoh: Internet Biznet / Gaji Bulanan"
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-[#C7D0E0]/45 dark:focus:border-[#19D8FF]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500"
             />
           </div>
 
@@ -1147,7 +1158,7 @@ export function RencanaPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="bill-type"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 Jenis
               </label>
@@ -1163,7 +1174,7 @@ export function RencanaPage() {
                       : RECURRING_EXPENSE_CATEGORIES[0]
                   );
                 }}
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               >
                 <option value="expense">Pengeluaran</option>
                 <option value="income">Pemasukan</option>
@@ -1173,7 +1184,7 @@ export function RencanaPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="bill-frequency"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 Frekuensi
               </label>
@@ -1183,7 +1194,7 @@ export function RencanaPage() {
                 onChange={(e) =>
                   setBillFrequency(e.target.value as RecurringFrequency)
                 }
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               >
                 <option value="weekly">Mingguan</option>
                 <option value="monthly">Bulanan</option>
@@ -1203,7 +1214,7 @@ export function RencanaPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="bill-category"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
               Kategori
             </label>
@@ -1211,7 +1222,7 @@ export function RencanaPage() {
               id="bill-category"
               value={billCategory}
               onChange={(e) => setBillCategory(e.target.value)}
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
             >
               {(billType === "income"
                 ? RECURRING_INCOME_CATEGORIES
@@ -1227,7 +1238,7 @@ export function RencanaPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="bill-account"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
               Akun Sumber / Tujuan
             </label>
@@ -1235,7 +1246,7 @@ export function RencanaPage() {
               id="bill-account"
               value={billAccountId}
               onChange={(e) => setBillAccountId(e.target.value)}
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
             >
               <option value="">Pilih nanti saat persetujuan</option>
               {activeAccounts.map((acc) => (
@@ -1249,10 +1260,10 @@ export function RencanaPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="bill-due-date"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
               Jatuh Tempo Berikutnya{" "}
-              <span className="text-rose-600 dark:text-rose-400">*</span>
+              <span className="text-[#EF4444]">*</span>
             </label>
             <input
               id="bill-due-date"
@@ -1260,14 +1271,14 @@ export function RencanaPage() {
               required
               value={billDueDate}
               onChange={(e) => setBillDueDate(e.target.value)}
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 font-mono text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
             />
           </div>
 
           <div className="space-y-1.5">
             <label
               htmlFor="bill-notes"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
               Catatan (Opsional)
             </label>
@@ -1277,7 +1288,7 @@ export function RencanaPage() {
               value={billNotes}
               onChange={(e) => setBillNotes(e.target.value)}
               placeholder="Nomor pelanggan atau keterangan singkat"
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-[#C7D0E0]/45 dark:focus:border-[#19D8FF]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500"
             />
           </div>
 
@@ -1290,7 +1301,7 @@ export function RencanaPage() {
           <button
             type="submit"
             disabled={!billConfirmed || createBill.isPending}
-            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#087BFF]/20 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none dark:disabled:from-[#102452] dark:disabled:to-[#102452] dark:disabled:text-[#C7D0E0]/45"
+            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-sm font-semibold text-[#101827] shadow-sm transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none dark:disabled:from-[#162032] dark:disabled:to-[#162032] dark:disabled:text-slate-500"
           >
             {createBill.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />

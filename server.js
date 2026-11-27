@@ -1,8 +1,8 @@
 // server.ts
-import crypto3 from "node:crypto";
-import fs3 from "node:fs";
+import crypto4 from "node:crypto";
+import fs5 from "node:fs";
 import http from "node:http";
-import path3 from "node:path";
+import path5 from "node:path";
 
 // server/loadEnv.ts
 import fs from "node:fs";
@@ -31,6 +31,24 @@ hydrateEnvFromDotEnv();
 // server.ts
 import express from "express";
 import { WebSocketServer } from "ws";
+
+// src/lib/transaction-idempotency.ts
+var TRANSACTION_REQUEST_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function isValidTransactionRequestId(value) {
+  return typeof value === "string" && TRANSACTION_REQUEST_ID_PATTERN.test(value);
+}
+function isSameConfirmedTransactionRequest(existing, requested) {
+  return Boolean(
+    existing && requested.status === "posted" && requested.owner_confirmed === true && existing.transaction_type === requested.transaction_type && existing.source_account_id === requested.source_account_id && existing.destination_account_id === requested.destination_account_id && Number(existing.amount) === requested.amount && existing.transaction_date === requested.transaction_date && existing.category === requested.category && existing.description === requested.description && existing.status === "posted" && existing.owner_confirmed === true
+  );
+}
+
+// src/lib/debt-payment-idempotency.ts
+function isSameDebtPaymentRequest(log, transaction, request) {
+  return Boolean(
+    log && transaction && log.request_id === request.request_id && log.debt_id === request.debt_id && Number(log.amount) === request.amount && (log.notes ?? null) === (request.notes ?? null) && transaction.transaction_type === "expense" && transaction.source_account_id === request.source_account_id && Number(transaction.amount) === request.amount && transaction.category === "Utang & Cicilan" && transaction.status === "posted" && transaction.owner_confirmed === true
+  );
+}
 
 // src/lib/finance.ts
 function roundCurrency(value) {
@@ -388,13 +406,278 @@ function parseNaturalCommand(commandText, accounts = []) {
   };
 }
 
+// src/lib/reminders.ts
+function advanceReminderDueDate(dueDateISO, frequency) {
+  if (frequency === "once") {
+    return dueDateISO.slice(0, 10);
+  }
+  return advanceDueDate(dueDateISO, frequency);
+}
+function buildReminderDedupeKey(kind, sourceId) {
+  return `${kind}:${sourceId}`;
+}
+function normalizeReminderOffsets(offsets, customDaysBefore) {
+  const set = /* @__PURE__ */ new Set();
+  for (const val of offsets) {
+    if (Number.isInteger(val) && val >= 0 && val <= 90) {
+      set.add(val);
+    }
+  }
+  if (customDaysBefore !== null && customDaysBefore !== void 0 && Number.isInteger(customDaysBefore) && customDaysBefore >= 0 && customDaysBefore <= 90) {
+    set.add(customDaysBefore);
+  }
+  return Array.from(set).sort((a, b) => b - a);
+}
+function buildSourceSyncReminders(bills, debts, existingReminders, ownerId) {
+  const existingKeys = /* @__PURE__ */ new Set();
+  for (const r of existingReminders) {
+    if (r.dedupe_key) existingKeys.add(r.dedupe_key);
+    if (r.linked_bill_id) existingKeys.add(buildReminderDedupeKey("bill", r.linked_bill_id));
+    if (r.linked_debt_id) existingKeys.add(buildReminderDedupeKey("debt", r.linked_debt_id));
+  }
+  const payloads = [];
+  for (const bill of bills) {
+    if (!bill.is_active) continue;
+    const dedupeKey = buildReminderDedupeKey("bill", bill.id);
+    if (existingKeys.has(dedupeKey)) continue;
+    existingKeys.add(dedupeKey);
+    payloads.push({
+      owner_id: ownerId,
+      title: bill.title,
+      reminder_type: bill.transaction_type === "income" ? "pemasukan_rutin" : "tagihan_bulanan",
+      transaction_type: bill.transaction_type,
+      amount: bill.amount,
+      due_date: bill.next_due_date.slice(0, 10),
+      reminder_time: "08:00",
+      frequency: bill.frequency,
+      remind_offsets: [7, 3, 1, 0],
+      custom_days_before: null,
+      is_active: true,
+      is_read: false,
+      read_at: null,
+      last_notified_key: null,
+      last_notified_at: null,
+      linked_account_id: bill.account_id,
+      linked_goal_id: null,
+      linked_debt_id: null,
+      linked_bill_id: bill.id,
+      dedupe_key: dedupeKey,
+      notes: bill.notes
+    });
+  }
+  for (const debt of debts) {
+    if (debt.status !== "active" || debt.outstanding_balance <= 0 || !debt.due_date) {
+      continue;
+    }
+    const dedupeKey = buildReminderDedupeKey("debt", debt.id);
+    if (existingKeys.has(dedupeKey)) continue;
+    existingKeys.add(dedupeKey);
+    payloads.push({
+      owner_id: ownerId,
+      title: `Cicilan ${debt.creditor}`,
+      reminder_type: "cicilan_utang",
+      transaction_type: "expense",
+      amount: debt.outstanding_balance,
+      due_date: debt.due_date.slice(0, 10),
+      reminder_time: "08:00",
+      frequency: "monthly",
+      remind_offsets: [7, 3, 1, 0],
+      custom_days_before: null,
+      is_active: true,
+      is_read: false,
+      read_at: null,
+      last_notified_key: null,
+      last_notified_at: null,
+      linked_account_id: null,
+      linked_goal_id: null,
+      linked_debt_id: debt.id,
+      linked_bill_id: null,
+      dedupe_key: dedupeKey,
+      notes: debt.description
+    });
+  }
+  return payloads;
+}
+
+// src/lib/budgets.ts
+function normalizeBudgetCategoryKey(category) {
+  const cleaned = (category ?? "").trim().toLowerCase();
+  return cleaned || "umum";
+}
+function classifyBudgetThreshold(spentAmount, limitAmount) {
+  const safeSpent = Math.max(0, Number.isFinite(spentAmount) ? spentAmount : 0);
+  const safeLimit = Math.max(0, Number.isFinite(limitAmount) ? limitAmount : 0);
+  if (safeLimit <= 0) {
+    return {
+      usagePct: 0,
+      crossedThreshold: null,
+      severity: "safe",
+      label: "Aman",
+      shortLabel: "Aman"
+    };
+  }
+  const rawRatioPct = safeSpent / safeLimit * 100;
+  const usagePct = Math.round((rawRatioPct + Number.EPSILON) * 10) / 10;
+  if (safeSpent > safeLimit + 1e-3) {
+    return {
+      usagePct,
+      crossedThreshold: 101,
+      severity: "exceeded_over",
+      label: "Anggaran terlampaui",
+      shortLabel: ">100% Terlampaui"
+    };
+  }
+  if (safeSpent >= safeLimit - 1e-3) {
+    return {
+      usagePct: Math.max(100, usagePct),
+      crossedThreshold: 100,
+      severity: "reached_100",
+      label: "Anggaran tercapai (100%)",
+      shortLabel: "100% Tercapai"
+    };
+  }
+  if (rawRatioPct >= 90) {
+    return {
+      usagePct,
+      crossedThreshold: 90,
+      severity: "high_90",
+      label: "Peringatan tinggi (\u2265 90%)",
+      shortLabel: "\u226590% Kritis"
+    };
+  }
+  if (rawRatioPct >= 75) {
+    return {
+      usagePct,
+      crossedThreshold: 75,
+      severity: "warning_75",
+      label: "Mulai mendekati batas (\u2265 75%)",
+      shortLabel: "\u226575% Mendekati"
+    };
+  }
+  if (rawRatioPct >= 50) {
+    return {
+      usagePct,
+      crossedThreshold: 50,
+      severity: "info_50",
+      label: "Informasi penggunaan (\u2265 50%)",
+      shortLabel: "\u226550% Terpakai"
+    };
+  }
+  return {
+    usagePct,
+    crossedThreshold: null,
+    severity: "safe",
+    label: "Dalam batas aman",
+    shortLabel: "Aman"
+  };
+}
+function budgetThresholdLabel(level) {
+  switch (level) {
+    case 50:
+      return "50% \u2014 Informasi Penggunaan";
+    case 75:
+      return "75% \u2014 Mulai Mendekati Batas";
+    case 90:
+      return "90% \u2014 Peringatan Tinggi";
+    case 100:
+      return "100% \u2014 Anggaran Tercapai";
+    case 101:
+      return ">100% \u2014 Anggaran Terlampaui";
+  }
+}
+function isThresholdAlreadyNotified(budget, periodMonth, threshold, alertLogs) {
+  if (budget.last_alert_period === periodMonth && budget.last_alert_threshold !== null && budget.last_alert_threshold >= threshold) {
+    return true;
+  }
+  return alertLogs.some(
+    (log) => log.budget_id === budget.id && log.period_month === periodMonth && log.event_type === "threshold_crossed" && log.threshold_level >= threshold
+  );
+}
+function computeConfirmedExpensesByCategoryForMonth(transactions, periodMonth) {
+  const byCategoryKey = /* @__PURE__ */ new Map();
+  let totalConfirmedExpense = 0;
+  let confirmedTxCount = 0;
+  for (const tx of transactions) {
+    if (!isPostedConfirmed(tx)) continue;
+    if (tx.transaction_type !== "expense") continue;
+    if (!tx.transaction_date.slice(0, 7).startsWith(periodMonth)) continue;
+    const amt = Number(tx.amount) || 0;
+    if (amt <= 0) continue;
+    const rawCat = (tx.category ?? "").trim() || "Umum";
+    const key = normalizeBudgetCategoryKey(rawCat);
+    const existing = byCategoryKey.get(key) ?? {
+      displayCategory: rawCat,
+      total: 0,
+      count: 0
+    };
+    existing.total = roundCurrency(existing.total + amt);
+    existing.count += 1;
+    byCategoryKey.set(key, existing);
+    totalConfirmedExpense = roundCurrency(totalConfirmedExpense + amt);
+    confirmedTxCount += 1;
+  }
+  return { byCategoryKey, totalConfirmedExpense, confirmedTxCount };
+}
+
+// src/lib/debt-manager.ts
+function normalizeDebt(debt) {
+  return {
+    ...debt,
+    debt_type: debt.debt_type ?? "lainnya",
+    interest_rate_annual: Math.max(0, Number(debt.interest_rate_annual ?? 0) || 0),
+    monthly_fee: Math.max(0, Number(debt.monthly_fee ?? 0) || 0),
+    installment_amount: Math.max(0, Number(debt.installment_amount ?? 0) || 0),
+    payment_frequency: debt.payment_frequency ?? "monthly"
+  };
+}
+
 // server/authVerify.ts
 import { createClient } from "@supabase/supabase-js";
 
 // server/vaultStore.ts
 import crypto2 from "node:crypto";
+
+// server/fileLock.ts
 import fs2 from "node:fs";
 import path2 from "node:path";
+function withFileLock(lockPath, operation, timeoutMs = 5e3, staleMs = 6e4) {
+  const parent = path2.dirname(lockPath);
+  fs2.mkdirSync(parent, { recursive: true, mode: 448 });
+  const startedAt = Date.now();
+  const waitCell = new Int32Array(new SharedArrayBuffer(4));
+  let acquired = false;
+  while (!acquired) {
+    try {
+      fs2.mkdirSync(lockPath, { mode: 448 });
+      acquired = true;
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+      try {
+        const ageMs = Date.now() - fs2.statSync(lockPath).mtimeMs;
+        if (ageMs > staleMs) {
+          fs2.rmSync(lockPath, { recursive: true, force: true });
+          continue;
+        }
+      } catch (statError) {
+        if (statError.code === "ENOENT") continue;
+        throw statError;
+      }
+      if (Date.now() - startedAt >= timeoutMs) {
+        throw new Error("Brankas sedang digunakan proses lain. Silakan coba kembali.");
+      }
+      Atomics.wait(waitCell, 0, 0, 10);
+    }
+  }
+  try {
+    return operation();
+  } finally {
+    fs2.rmSync(lockPath, { recursive: true, force: true });
+  }
+}
+
+// server/vaultStore.ts
+import fs3 from "node:fs";
+import path3 from "node:path";
 
 // src/lib/vault-validation.ts
 var OWNER_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -407,7 +690,48 @@ var VALID_ASSET_TYPES = /* @__PURE__ */ new Set([
   "elektronik",
   "lainnya"
 ]);
+var VALID_DEBT_TYPES = /* @__PURE__ */ new Set([
+  "kpr",
+  "kendaraan",
+  "kartu_kredit",
+  "pinjaman_pribadi",
+  "paylater",
+  "usaha",
+  "lainnya"
+]);
+var VALID_DEBT_FREQUENCIES = /* @__PURE__ */ new Set([
+  "weekly",
+  "biweekly",
+  "monthly",
+  "quarterly",
+  "yearly"
+]);
+var VALID_WHATIF_TYPES = /* @__PURE__ */ new Set([
+  "cash_purchase",
+  "installment_purchase",
+  "new_loan",
+  "accelerated_debt_payoff",
+  "income_change",
+  "living_cost_change",
+  "savings_boost",
+  "goal_milestone"
+]);
 var VALID_FREQUENCIES = /* @__PURE__ */ new Set([
+  "weekly",
+  "monthly",
+  "yearly"
+]);
+var VALID_REMINDER_CATEGORIES = /* @__PURE__ */ new Set([
+  "tagihan_bulanan",
+  "cicilan_utang",
+  "jatuh_tempo",
+  "tanggal_gajian",
+  "setoran_tabungan",
+  "target_keuangan",
+  "pemasukan_rutin"
+]);
+var VALID_REMINDER_FREQUENCIES = /* @__PURE__ */ new Set([
+  "once",
   "weekly",
   "monthly",
   "yearly"
@@ -481,11 +805,26 @@ function validateDebtInput(input) {
   if (creditor.length < 1 || creditor.length > 120) {
     throw new Error("Nama kreditur wajib diisi (maks 120 karakter).");
   }
+  if (input.debt_type !== void 0 && !VALID_DEBT_TYPES.has(input.debt_type)) {
+    throw new Error("Jenis utang tidak valid.");
+  }
   if (!Number.isFinite(input.original_amount) || input.original_amount <= 0) {
     throw new Error("Plafon awal utang harus lebih besar dari Rp 0.");
   }
   if (!Number.isFinite(input.outstanding_balance) || input.outstanding_balance < 0) {
     throw new Error("Sisa pokok utang tidak valid.");
+  }
+  if (input.interest_rate_annual !== void 0 && (!Number.isFinite(input.interest_rate_annual) || input.interest_rate_annual < 0 || input.interest_rate_annual > 300)) {
+    throw new Error("Bunga tahunan harus antara 0% hingga 300%.");
+  }
+  if (input.monthly_fee !== void 0 && (!Number.isFinite(input.monthly_fee) || input.monthly_fee < 0)) {
+    throw new Error("Biaya administrasi bulanan harus >= Rp 0.");
+  }
+  if (input.installment_amount !== void 0 && (!Number.isFinite(input.installment_amount) || input.installment_amount < 0)) {
+    throw new Error("Nominal cicilan rutin harus >= Rp 0.");
+  }
+  if (input.payment_frequency !== void 0 && !VALID_DEBT_FREQUENCIES.has(input.payment_frequency)) {
+    throw new Error("Frekuensi cicilan utang tidak valid.");
   }
 }
 function validateDebtPaymentInput(debt, paymentAmount, sourceAccountId, ownerConfirmed) {
@@ -550,6 +889,87 @@ function validateSavingsGoalInput(input) {
     throw new Error("Dana terkumpul awal harus >= Rp 0.");
   }
 }
+function validateFinancialReminderInput(input) {
+  if (!input.owner_confirmed) {
+    throw new Error(
+      "Persetujuan eksplisit Owner wajib dicentang sebelum menyimpan pengingat keuangan."
+    );
+  }
+  const title = (input.title ?? "").trim();
+  if (title.length < 1 || title.length > 140) {
+    throw new Error("Judul pengingat wajib diisi (1\u2013140 karakter).");
+  }
+  if (!VALID_REMINDER_CATEGORIES.has(input.reminder_type)) {
+    throw new Error("Jenis pengingat keuangan tidak valid.");
+  }
+  if (input.transaction_type !== "income" && input.transaction_type !== "expense" && input.transaction_type !== "transfer") {
+    throw new Error("Tipe arus kas pengingat tidak valid.");
+  }
+  if (!Number.isFinite(input.amount) || input.amount < 0) {
+    throw new Error("Nominal pengingat harus berupa angka >= Rp 0.");
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test((input.due_date ?? "").slice(0, 10))) {
+    throw new Error("Tanggal jatuh tempo wajib dalam format YYYY-MM-DD.");
+  }
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(input.reminder_time ?? "")) {
+    throw new Error("Waktu pengingat wajib dalam format JJ:MM (contoh 08:00).");
+  }
+  if (!VALID_REMINDER_FREQUENCIES.has(input.frequency)) {
+    throw new Error("Frekuensi pengingat tidak valid.");
+  }
+  if (!Array.isArray(input.remind_offsets)) {
+    throw new Error("Daftar jadwal pengingat (H-7/H-3/H-1/H-0) tidak valid.");
+  }
+  for (const offset of input.remind_offsets) {
+    if (!Number.isInteger(offset) || offset < 0 || offset > 90) {
+      throw new Error("Offset pengingat harus bilangan bulat antara 0 hingga 90 hari.");
+    }
+  }
+  if (input.custom_days_before !== null && input.custom_days_before !== void 0 && (!Number.isInteger(input.custom_days_before) || input.custom_days_before < 0 || input.custom_days_before > 90)) {
+    throw new Error("Pengingat khusus (H-n) harus antara 0 hingga 90 hari.");
+  }
+  const hasCustom = input.custom_days_before !== null && input.custom_days_before !== void 0;
+  if (input.remind_offsets.length === 0 && !hasCustom) {
+    throw new Error(
+      "Pilih minimal satu waktu pengingat (H-7, H-3, H-1, H-0, atau hari khusus)."
+    );
+  }
+}
+function validateCategoryBudgetInput(input) {
+  if (!input.owner_confirmed) {
+    throw new Error(
+      "Persetujuan eksplisit Owner wajib dicentang sebelum menyimpan anggaran kategori."
+    );
+  }
+  const category = (input.category ?? "").trim();
+  if (category.length < 1 || category.length > 80) {
+    throw new Error("Kategori anggaran wajib diisi (1\u201380 karakter).");
+  }
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test((input.period_month ?? "").trim())) {
+    throw new Error("Periode anggaran wajib dalam format YYYY-MM (contoh 2026-11).");
+  }
+  if (!Number.isFinite(input.limit_amount) || input.limit_amount <= 0) {
+    throw new Error("Batas anggaran harus lebih besar dari Rp 0.");
+  }
+}
+function validateWhatIfScenarioInput(input) {
+  const title = (input.title ?? "").trim();
+  if (title.length < 1 || title.length > 140) {
+    throw new Error("Nama skenario What-If wajib diisi (1\u2013140 karakter).");
+  }
+  if (!VALID_WHATIF_TYPES.has(input.scenario_type)) {
+    throw new Error("Jenis skenario simulasi What-If tidak valid.");
+  }
+  if (!Number.isFinite(input.amount) || input.amount < 0) {
+    throw new Error("Nominal simulasi tidak valid.");
+  }
+  if (!Number.isInteger(input.tenor_months) || input.tenor_months < 1 || input.tenor_months > 360) {
+    throw new Error("Tenor simulasi harus antara 1 hingga 360 bulan.");
+  }
+  if (!Number.isFinite(input.annual_interest_pct) || input.annual_interest_pct < 0 || input.annual_interest_pct > 200) {
+    throw new Error("Bunga tahunan simulasi harus antara 0% hingga 200%.");
+  }
+}
 
 // server/vaultRules.ts
 var DEFAULT_PREFERENCES = {
@@ -564,9 +984,16 @@ function createEmptyVault() {
     transactions: [],
     assets: [],
     debts: [],
+    debt_payment_logs: [],
     owner_commands: [],
     recurring_bills: [],
-    savings_goals: []
+    savings_goals: [],
+    financial_reminders: [],
+    financial_reminder_logs: [],
+    category_budgets: [],
+    budget_alert_logs: [],
+    whatif_scenarios: [],
+    financial_health_scores: []
   };
 }
 function assertSingleOwnerAvailable(db) {
@@ -595,50 +1022,6 @@ function validateTransactionInvariants(input, accounts) {
 }
 function validateDebtPayment(debt, paymentAmount, sourceAccountId, ownerConfirmed) {
   validateDebtPaymentInput(debt, paymentAmount, sourceAccountId, ownerConfirmed);
-}
-function createLoginRateLimiter(maxAttempts = 5, windowMs = 15 * 60 * 1e3) {
-  const attempts = /* @__PURE__ */ new Map();
-  function getActiveEntry(key, nowMs) {
-    const entry = attempts.get(key);
-    if (!entry) return null;
-    if (nowMs - entry.windowStart >= windowMs) {
-      attempts.delete(key);
-      return null;
-    }
-    return entry;
-  }
-  return {
-    check(key, nowMs = Date.now()) {
-      const entry = getActiveEntry(key, nowMs);
-      if (!entry || entry.count < maxAttempts) {
-        return {
-          allowed: true,
-          remainingAttempts: maxAttempts - (entry?.count ?? 0),
-          retryAfterSeconds: 0
-        };
-      }
-      const retryAfterSeconds = Math.max(
-        1,
-        Math.ceil((entry.windowStart + windowMs - nowMs) / 1e3)
-      );
-      const waitMinutes = Math.max(1, Math.ceil(retryAfterSeconds / 60));
-      return {
-        allowed: false,
-        remainingAttempts: 0,
-        retryAfterSeconds,
-        message: `Terlalu banyak percobaan masuk gagal. Demi keamanan brankas, silakan tunggu sekitar ${waitMinutes} menit sebelum mencoba lagi.`
-      };
-    },
-    recordFailure(key, nowMs = Date.now()) {
-      const existing = getActiveEntry(key, nowMs);
-      const next = existing ? { count: existing.count + 1, windowStart: existing.windowStart } : { count: 1, windowStart: nowMs };
-      attempts.set(key, next);
-      return this.check(key, nowMs);
-    },
-    reset(key) {
-      attempts.delete(key);
-    }
-  };
 }
 function validateChangePasswordInput(input) {
   if (!input.current_password) {
@@ -685,34 +1068,99 @@ function validateResetOwnerConfirmation(input) {
 }
 
 // server/vaultStore.ts
-var DATA_DIR = path2.resolve(process.cwd(), "data");
-var VAULT_FILE = path2.join(DATA_DIR, "ego-vault.json");
+var DATA_DIR = path3.resolve(process.cwd(), "data");
+var VAULT_FILE = path3.join(DATA_DIR, "ego-vault.json");
+var VAULT_MUTATION_LOCK = path3.join(DATA_DIR, "ego-vault-mutation.lock");
+function withVaultMutationLock(operation) {
+  return withFileLock(VAULT_MUTATION_LOCK, operation);
+}
+var VAULT_COLLECTIONS = [
+  "accounts",
+  "transactions",
+  "assets",
+  "debts",
+  "debt_payment_logs",
+  "owner_commands",
+  "recurring_bills",
+  "savings_goals",
+  "financial_reminders",
+  "financial_reminder_logs",
+  "category_budgets",
+  "budget_alert_logs",
+  "whatif_scenarios",
+  "financial_health_scores"
+];
+var VaultReadError = class extends Error {
+  constructor(message = "Brankas EGO tidak dapat dibaca. Data tidak diubah; pulihkan file cadangan atau periksa file brankas.") {
+    super(message);
+    this.name = "VaultReadError";
+  }
+};
+function parseVaultContent(raw) {
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new VaultReadError("File brankas EGO rusak atau bukan JSON yang valid. Data tidak diubah.");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new VaultReadError("Struktur file brankas EGO tidak valid. Data tidak diubah.");
+  }
+  const candidate = parsed;
+  if (candidate.owner !== void 0 && candidate.owner !== null && (typeof candidate.owner !== "object" || Array.isArray(candidate.owner))) {
+    throw new VaultReadError("Data Owner di dalam brankas tidak valid. Data tidak diubah.");
+  }
+  if (candidate.preferences !== void 0 && (!candidate.preferences || typeof candidate.preferences !== "object" || Array.isArray(candidate.preferences))) {
+    throw new VaultReadError("Pengaturan brankas EGO tidak valid. Data tidak diubah.");
+  }
+  for (const key of VAULT_COLLECTIONS) {
+    if (candidate[key] !== void 0 && !Array.isArray(candidate[key])) {
+      throw new VaultReadError(`Bagian ${key} di dalam brankas tidak valid. Data tidak diubah.`);
+    }
+  }
+  const empty = createEmptyVault();
+  return {
+    ...empty,
+    ...candidate,
+    preferences: {
+      ...empty.preferences,
+      ...candidate.preferences ?? {}
+    }
+  };
+}
 function loadVault() {
-  if (!fs2.existsSync(VAULT_FILE)) {
+  if (!fs3.existsSync(VAULT_FILE)) {
     return createEmptyVault();
   }
   try {
-    const raw = fs2.readFileSync(VAULT_FILE, "utf8");
-    const parsed = JSON.parse(raw);
-    return {
-      ...createEmptyVault(),
-      ...parsed,
-      preferences: {
-        ...createEmptyVault().preferences,
-        ...parsed.preferences ?? {}
-      }
-    };
-  } catch {
-    return createEmptyVault();
+    return parseVaultContent(fs3.readFileSync(VAULT_FILE, "utf8"));
+  } catch (error) {
+    if (error instanceof VaultReadError) throw error;
+    throw new VaultReadError();
+  }
+}
+function writePrivateJsonFile(filePath, value) {
+  if (!fs3.existsSync(DATA_DIR)) {
+    fs3.mkdirSync(DATA_DIR, { recursive: true, mode: 448 });
+  }
+  const tmpFile = `${filePath}.${process.pid}.${crypto2.randomUUID()}.tmp`;
+  try {
+    fs3.writeFileSync(tmpFile, JSON.stringify(value, null, 2), {
+      encoding: "utf8",
+      mode: 384,
+      flag: "wx"
+    });
+    fs3.renameSync(tmpFile, filePath);
+  } catch (error) {
+    try {
+      fs3.rmSync(tmpFile, { force: true });
+    } catch {
+    }
+    throw error;
   }
 }
 function saveVault(db) {
-  if (!fs2.existsSync(DATA_DIR)) {
-    fs2.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  const tmpFile = `${VAULT_FILE}.tmp`;
-  fs2.writeFileSync(tmpFile, JSON.stringify(db, null, 2), "utf8");
-  fs2.renameSync(tmpFile, VAULT_FILE);
+  writePrivateJsonFile(VAULT_FILE, db);
 }
 function hashPassword(password) {
   const salt = crypto2.randomBytes(16).toString("hex");
@@ -727,44 +1175,85 @@ function verifyPassword(password, storedHash) {
   if (derived.length !== original.length) return false;
   return crypto2.timingSafeEqual(derived, original);
 }
-var SESSIONS_FILE = path2.join(DATA_DIR, "ego-sessions.json");
-function loadSessions() {
-  if (!fs2.existsSync(SESSIONS_FILE)) return [];
+var SESSIONS_FILE = path3.join(DATA_DIR, "ego-sessions.json");
+function parseSessionsContent(raw) {
+  let parsed;
   try {
-    return JSON.parse(fs2.readFileSync(SESSIONS_FILE, "utf8"));
+    parsed = JSON.parse(raw);
   } catch {
-    return [];
+    throw new Error("File sesi EGO rusak. Login ditahan demi keamanan; file tidak dikosongkan.");
+  }
+  if (!Array.isArray(parsed) || parsed.some(
+    (item) => !item || typeof item !== "object" || typeof item.owner_id !== "string" || typeof item.created_at !== "string" || typeof item.token !== "string" && typeof item.token_hash !== "string"
+  )) {
+    throw new Error("Struktur file sesi EGO tidak valid. Login ditahan demi keamanan.");
+  }
+  return parsed;
+}
+function loadSessions() {
+  if (!fs3.existsSync(SESSIONS_FILE)) return [];
+  try {
+    return parseSessionsContent(fs3.readFileSync(SESSIONS_FILE, "utf8"));
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("File sesi EGO")) throw error;
+    if (error instanceof Error && error.message.startsWith("Struktur file sesi EGO")) throw error;
+    throw new Error("File sesi EGO tidak dapat dibaca. Login ditahan demi keamanan; file tidak dikosongkan.");
   }
 }
 function saveSessions(sessions) {
-  if (!fs2.existsSync(DATA_DIR)) {
-    fs2.mkdirSync(DATA_DIR, { recursive: true });
+  writePrivateJsonFile(SESSIONS_FILE, sessions);
+}
+function hashSessionToken(token) {
+  return crypto2.createHash("sha256").update(token, "utf8").digest("hex");
+}
+function matchesSessionToken(session, token) {
+  if (session.token_hash) {
+    const stored2 = Buffer.from(session.token_hash, "hex");
+    const candidate2 = Buffer.from(hashSessionToken(token), "hex");
+    return stored2.length === candidate2.length && crypto2.timingSafeEqual(stored2, candidate2);
   }
-  fs2.writeFileSync(SESSIONS_FILE, JSON.stringify(sessions, null, 2), "utf8");
+  if (!session.token) return false;
+  const stored = Buffer.from(session.token, "utf8");
+  const candidate = Buffer.from(token, "utf8");
+  return stored.length === candidate.length && crypto2.timingSafeEqual(stored, candidate);
+}
+function upgradeLegacySession(session) {
+  if (!session.token || session.token_hash) return session;
+  return { owner_id: session.owner_id, created_at: session.created_at, token_hash: hashSessionToken(session.token) };
 }
 function createSession(ownerId) {
   const token = crypto2.randomBytes(32).toString("hex");
-  const sessions = loadSessions().filter((s) => s.owner_id === ownerId).slice(-4);
-  sessions.push({ token, owner_id: ownerId, created_at: (/* @__PURE__ */ new Date()).toISOString() });
-  saveSessions(sessions);
+  const sessions = loadSessions();
+  const otherOwners = sessions.filter((session) => session.owner_id !== ownerId);
+  const ownerSessions = sessions.filter((session) => session.owner_id === ownerId).slice(-4);
+  ownerSessions.push({
+    token_hash: hashSessionToken(token),
+    owner_id: ownerId,
+    created_at: (/* @__PURE__ */ new Date()).toISOString()
+  });
+  saveSessions([...otherOwners, ...ownerSessions].map(upgradeLegacySession));
   return token;
 }
 function validateSessionToken(token) {
   if (!token) return null;
   const sessions = loadSessions();
-  const found = sessions.find((s) => s.token === token);
-  return found ? found.owner_id : null;
+  const found = sessions.find((session) => matchesSessionToken(session, token));
+  if (!found) return null;
+  if (found.token && !found.token_hash) {
+    saveSessions(sessions.map((session) => session === found ? upgradeLegacySession(session) : session));
+  }
+  return found.owner_id;
 }
 function revokeSessionToken(token) {
   if (!token) return;
-  const sessions = loadSessions().filter((s) => s.token !== token);
-  saveSessions(sessions);
+  const sessions = loadSessions().filter((session) => !matchesSessionToken(session, token));
+  saveSessions(sessions.map(upgradeLegacySession));
 }
 function rotateSessionsForOwner(ownerId, keepToken) {
   const sessions = loadSessions().filter(
-    (s) => s.owner_id !== ownerId || keepToken !== void 0 && s.token === keepToken
+    (session) => session.owner_id !== ownerId || keepToken !== void 0 && matchesSessionToken(session, keepToken)
   );
-  saveSessions(sessions);
+  saveSessions(sessions.map(upgradeLegacySession));
 }
 function clearAllSessions() {
   saveSessions([]);
@@ -992,6 +1481,105 @@ async function runFinancialSearch(query) {
     result
   });
   return result;
+}
+async function runFinancialAdvisor(question, contextBrief, missingIndicators = []) {
+  const cleanQuestion = question.trim().slice(0, 600);
+  if (!cleanQuestion) {
+    throw new Error("Pertanyaan konsultasi keuangan wajib diisi.");
+  }
+  const cleanBrief = contextBrief.trim().slice(0, 12e3);
+  if (!cleanBrief) {
+    throw new Error("Ringkasan konteks keuangan Owner belum tersedia.");
+  }
+  const ai = getAIClient();
+  let usedModel = "gemini-4-hydrogen";
+  const response = await withGeminiRetryAndFallback(
+    ["gemini-4-hydrogen", "gemini-3.1-flash-lite"],
+    (model) => {
+      usedModel = model;
+      return ai.models.generateContent({
+        model,
+        contents: `PERTANYAAN OWNER:
+${cleanQuestion}
+
+KONTEKS BRANKAS OWNER (TERSTRUKTUR):
+${cleanBrief}`,
+        config: {
+          systemInstruction: "Anda adalah EGO AI Core, Penasihat Keuangan Pribadi (CFO Pribadi) untuk satu Owner tunggal dalam bahasa Indonesia formal, presisi, dan objektif. ATURAN KETAT: (1) Anda wajib memisahkan secara tegas antara Data Aktual terverifikasi, Data Estimasi proyeksi, Hasil Simulasi, dan Rekomendasi AI pada field JSON masing-masing. (2) JANGAN PERNAH mengarang, menebak, atau menginterpolasi angka yang tidak tertulis pada konteks. Jika sebuah metrik bertuliskan belum tersedia/kosong, nyatakan kekurangannya secara eksplisit pada peringatan_data. (3) Tegaskan bahwa perubahan saldo atau transaksi aktual hanya boleh terjadi setelah persetujuan eksplisit Owner.",
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              ringkasan: {
+                type: Type.STRING,
+                description: "Ringkasan eksekutif 1-3 kalimat menjawab langsung pertanyaan Owner secara akurat."
+              },
+              data_aktual: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: "Poin-poin angka dan fakta terverifikasi dari data aktual (saldo, utang, anggaran, skor kesehatan)."
+              },
+              data_estimasi: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: "Poin proyeksi cashflow 30/90 hari, risiko defisit, dan asumsi estimasi variabel."
+              },
+              hasil_simulasi: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: "Temuan dari simulasi strategi utang, target tabungan, atau skenario What-If yang relevan."
+              },
+              rekomendasi_ai: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: "Langkah tindakan konkret dan terukur yang disarankan untuk Owner tanpa mutasi otomatis."
+              },
+              peringatan_data: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: "Daftar keterbatasan atau data yang belum lengkap agar Owner memahami konteks keputusan."
+              }
+            },
+            required: [
+              "ringkasan",
+              "data_aktual",
+              "data_estimasi",
+              "hasil_simulasi",
+              "rekomendasi_ai",
+              "peringatan_data"
+            ]
+          }
+        }
+      });
+    }
+  );
+  const rawJson = response.text?.trim();
+  if (!rawJson) {
+    throw new Error("EGO AI Core tidak mengembalikan analisis terstruktur.");
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(rawJson);
+  } catch {
+    throw new Error("Format respons EGO AI Core tidak valid.");
+  }
+  const normalizeList = (arr) => Array.isArray(arr) ? arr.map((item) => typeof item === "string" ? item.trim() : "").filter((item) => item.length > 0) : [];
+  return {
+    question: cleanQuestion,
+    ringkasan: typeof parsed.ringkasan === "string" && parsed.ringkasan.trim() ? parsed.ringkasan.trim() : "Analisis keuangan selesai disusun berdasarkan data brankas Anda.",
+    data_aktual: normalizeList(parsed.data_aktual),
+    data_estimasi: normalizeList(parsed.data_estimasi),
+    hasil_simulasi: normalizeList(parsed.hasil_simulasi),
+    rekomendasi_ai: normalizeList(parsed.rekomendasi_ai),
+    peringatan_data: Array.from(
+      /* @__PURE__ */ new Set([
+        ...normalizeList(parsed.peringatan_data),
+        ...missingIndicators.filter((m) => m.trim().length > 0)
+      ])
+    ),
+    model_used: usedModel,
+    generated_at: (/* @__PURE__ */ new Date()).toISOString()
+  };
 }
 async function scanReceiptToDraft(imageBase64, mimeType, accounts) {
   const ai = getAIClient();
@@ -1381,11 +1969,128 @@ async function attachLiveVoiceSession(clientWs, sessionToken) {
   });
 }
 
+// server/persistentRateLimiter.ts
+import crypto3 from "node:crypto";
+import fs4 from "node:fs";
+import path4 from "node:path";
+var DATA_DIR2 = path4.resolve(process.cwd(), "data");
+function storageKey(namespace, key) {
+  return crypto3.createHash("sha256").update(`${namespace}\0${key}`, "utf8").digest("hex");
+}
+function readStore(rateLimitFile) {
+  let raw;
+  try {
+    raw = fs4.readFileSync(rateLimitFile, "utf8");
+  } catch (error) {
+    if (error.code === "ENOENT") return {};
+    throw new Error("Penyimpanan pembatas percobaan tidak dapat dibaca. Login ditahan demi keamanan.");
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("Penyimpanan pembatas percobaan rusak. Login ditahan demi keamanan.");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Struktur pembatas percobaan tidak valid. Login ditahan demi keamanan.");
+  }
+  const store = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    if (!/^[0-9a-f]{64}$/.test(key) || !value || typeof value !== "object" || !Number.isSafeInteger(value.count) || value.count < 1 || !Number.isFinite(value.windowStart)) {
+      throw new Error("Data pembatas percobaan tidak valid. Login ditahan demi keamanan.");
+    }
+    store[key] = value;
+  }
+  return store;
+}
+function writeStore(rateLimitFile, store) {
+  fs4.mkdirSync(path4.dirname(rateLimitFile), { recursive: true, mode: 448 });
+  const tmp = `${rateLimitFile}.${process.pid}.${crypto3.randomUUID()}.tmp`;
+  try {
+    fs4.writeFileSync(tmp, JSON.stringify(store), { encoding: "utf8", mode: 384, flag: "wx" });
+    fs4.renameSync(tmp, rateLimitFile);
+  } catch (error) {
+    fs4.rmSync(tmp, { force: true });
+    throw error;
+  }
+}
+function evaluate(entry, maxAttempts, windowMs, nowMs) {
+  if (!entry || nowMs - entry.windowStart >= windowMs) {
+    return { allowed: true, remainingAttempts: maxAttempts, retryAfterSeconds: 0 };
+  }
+  if (entry.count < maxAttempts) {
+    return { allowed: true, remainingAttempts: maxAttempts - entry.count, retryAfterSeconds: 0 };
+  }
+  const retryAfterSeconds = Math.max(1, Math.ceil((entry.windowStart + windowMs - nowMs) / 1e3));
+  const waitMinutes = Math.max(1, Math.ceil(retryAfterSeconds / 60));
+  return {
+    allowed: false,
+    remainingAttempts: 0,
+    retryAfterSeconds,
+    message: `Terlalu banyak percobaan gagal. Demi keamanan brankas, silakan tunggu sekitar ${waitMinutes} menit sebelum mencoba lagi.`
+  };
+}
+function createPersistentLoginRateLimiter(namespace, maxAttempts = 5, windowMs = 15 * 60 * 1e3, storageDir = DATA_DIR2) {
+  const rateLimitFile = path4.join(storageDir, "ego-rate-limits.json");
+  const rateLimitLock = path4.join(storageDir, "ego-rate-limits.lock");
+  if (!/^[a-z-]{1,24}$/.test(namespace)) throw new Error("Namespace rate limit tidak valid.");
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || !Number.isFinite(windowMs) || windowMs <= 0) {
+    throw new Error("Konfigurasi rate limit tidak valid.");
+  }
+  return {
+    check(key, nowMs = Date.now()) {
+      const store = readStore(rateLimitFile);
+      return evaluate(store[storageKey(namespace, key)], maxAttempts, windowMs, nowMs);
+    },
+    attempt(key, nowMs = Date.now()) {
+      return withFileLock(rateLimitLock, () => {
+        const store = readStore(rateLimitFile);
+        for (const [hash2, entry] of Object.entries(store)) {
+          if (nowMs - entry.windowStart >= windowMs) delete store[hash2];
+        }
+        const hash = storageKey(namespace, key);
+        const existing = store[hash];
+        if (existing && existing.count >= maxAttempts) {
+          return evaluate(existing, maxAttempts, windowMs, nowMs);
+        }
+        const next = existing ? { count: existing.count + 1, windowStart: existing.windowStart } : { count: 1, windowStart: nowMs };
+        store[hash] = next;
+        writeStore(rateLimitFile, store);
+        return {
+          allowed: true,
+          remainingAttempts: Math.max(0, maxAttempts - next.count),
+          retryAfterSeconds: 0
+        };
+      });
+    },
+    recordFailure(key, nowMs = Date.now()) {
+      return withFileLock(rateLimitLock, () => {
+        const store = readStore(rateLimitFile);
+        for (const [hash2, entry] of Object.entries(store)) {
+          if (nowMs - entry.windowStart >= windowMs) delete store[hash2];
+        }
+        const hash = storageKey(namespace, key);
+        const existing = store[hash];
+        store[hash] = existing ? { count: existing.count + 1, windowStart: existing.windowStart } : { count: 1, windowStart: nowMs };
+        writeStore(rateLimitFile, store);
+        return evaluate(store[hash], maxAttempts, windowMs, nowMs);
+      });
+    },
+    reset(key) {
+      withFileLock(rateLimitLock, () => {
+        const store = readStore(rateLimitFile);
+        delete store[storageKey(namespace, key)];
+        writeStore(rateLimitFile, store);
+      });
+    }
+  };
+}
+
 // server.ts
 var PORT = process.env.NODE_ENV === "production" ? Number(process.env.PORT) || 3e3 : 3e3;
-var loginRateLimiter = createLoginRateLimiter(5, 15 * 60 * 1e3);
-var passwordRateLimiter = createLoginRateLimiter(5, 15 * 60 * 1e3);
-var pinRateLimiter = createLoginRateLimiter(5, 15 * 60 * 1e3);
+var loginRateLimiter = createPersistentLoginRateLimiter("login", 5, 15 * 60 * 1e3);
+var passwordRateLimiter = createPersistentLoginRateLimiter("password", 5, 15 * 60 * 1e3);
+var pinRateLimiter = createPersistentLoginRateLimiter("pin", 5, 15 * 60 * 1e3);
 function extractToken(req) {
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith("Bearer ")) {
@@ -1474,9 +2179,49 @@ async function startServer() {
       timestamp: (/* @__PURE__ */ new Date()).toISOString()
     });
   });
-  app.get("/api/auth/status", (req, res) => {
-    const db = loadVault();
+  app.get("/api/auth/status", async (req, res) => {
     const token = extractToken(req);
+    if (isServerSupabaseConfigured()) {
+      const client = token ? createAuthedSupabaseClient(token) : null;
+      if (!client || !token) {
+        res.json({
+          hasOwner: null,
+          authenticated: false,
+          hasPin: false,
+          owner: null,
+          mode: "supabase"
+        });
+        return;
+      }
+      try {
+        const { data, error } = await client.auth.getUser(token);
+        const user = !error ? data.user : null;
+        res.json({
+          // Whether an Owner exists globally cannot be determined safely
+          // from the public client without a dedicated server-side RPC.
+          hasOwner: user ? true : null,
+          authenticated: Boolean(user),
+          hasPin: Boolean(user?.user_metadata?.ego_pin_hash),
+          owner: user ? {
+            id: user.id,
+            email: user.email ?? null,
+            full_name: typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "Owner Utama",
+            created_at: user.created_at
+          } : null,
+          mode: "supabase"
+        });
+      } catch {
+        res.json({
+          hasOwner: null,
+          authenticated: false,
+          hasPin: false,
+          owner: null,
+          mode: "supabase"
+        });
+      }
+      return;
+    }
+    const db = loadVault();
     const sessionOwnerId = validateSessionToken(token);
     const authenticated = Boolean(sessionOwnerId && db.owner && db.owner.id === sessionOwnerId);
     res.json({
@@ -1488,7 +2233,8 @@ async function startServer() {
         email: db.owner.email,
         full_name: db.owner.full_name,
         created_at: db.owner.created_at
-      } : null
+      } : null,
+      mode: "local"
     });
   });
   app.post("/api/auth/register", (req, res) => {
@@ -1510,7 +2256,7 @@ async function startServer() {
         res.status(400).json({ error: "Kata sandi wajib 6\u2013128 karakter." });
         return;
       }
-      const ownerId = crypto3.randomUUID();
+      const ownerId = crypto4.randomUUID();
       db.owner = {
         id: ownerId,
         email,
@@ -1540,7 +2286,7 @@ async function startServer() {
   });
   app.post("/api/auth/login", (req, res) => {
     const clientKey = req.ip || "local-owner";
-    const rateCheck = loginRateLimiter.check(clientKey);
+    const rateCheck = loginRateLimiter.attempt(clientKey);
     if (!rateCheck.allowed) {
       res.status(429).json({
         error: rateCheck.message,
@@ -1558,11 +2304,10 @@ async function startServer() {
     const email = String(req.body?.email ?? "").trim().toLowerCase();
     const password = String(req.body?.password ?? "");
     if (email !== db.owner.email || !verifyPassword(password, db.owner.password_hash)) {
-      const failure = loginRateLimiter.recordFailure(clientKey);
-      res.status(failure.allowed ? 401 : 429).json({
-        error: failure.allowed ? `Email atau kata sandi Owner tidak sesuai. Sisa percobaan: ${failure.remainingAttempts}.` : failure.message,
-        remainingAttempts: failure.remainingAttempts,
-        retryAfterSeconds: failure.retryAfterSeconds
+      res.status(401).json({
+        error: `Email atau kata sandi Owner tidak sesuai. Sisa percobaan: ${rateCheck.remainingAttempts}.`,
+        remainingAttempts: rateCheck.remainingAttempts,
+        retryAfterSeconds: 0
       });
       return;
     }
@@ -1618,7 +2363,7 @@ async function startServer() {
     try {
       const ownerId = req.ownerId;
       const clientKey = `${ownerId}:${req.ip || "local-owner"}`;
-      const rateCheck = passwordRateLimiter.check(clientKey);
+      const rateCheck = passwordRateLimiter.attempt(clientKey);
       if (!rateCheck.allowed) {
         res.status(429).json({
           error: rateCheck.message,
@@ -1637,11 +2382,10 @@ async function startServer() {
         return;
       }
       if (!verifyPassword(String(req.body?.current_password ?? ""), db.owner.password_hash)) {
-        const failure = passwordRateLimiter.recordFailure(clientKey);
-        res.status(failure.allowed ? 401 : 429).json({
-          error: failure.allowed ? `Kata sandi saat ini tidak sesuai. Sisa percobaan: ${failure.remainingAttempts}.` : failure.message,
-          remainingAttempts: failure.remainingAttempts,
-          retryAfterSeconds: failure.retryAfterSeconds
+        res.status(401).json({
+          error: `Kata sandi saat ini tidak sesuai. Sisa percobaan: ${rateCheck.remainingAttempts}.`,
+          remainingAttempts: rateCheck.remainingAttempts,
+          retryAfterSeconds: 0
         });
         return;
       }
@@ -1668,7 +2412,7 @@ async function startServer() {
     try {
       const ownerId = req.ownerId;
       const clientKey = `${ownerId}:${req.ip || "local-owner"}`;
-      const rateCheck = passwordRateLimiter.check(clientKey);
+      const rateCheck = passwordRateLimiter.attempt(clientKey);
       if (!rateCheck.allowed) {
         res.status(429).json({
           error: rateCheck.message,
@@ -1695,11 +2439,10 @@ async function startServer() {
         return;
       }
       if (!verifyPassword(currentPassword, db.owner.password_hash)) {
-        const failure = passwordRateLimiter.recordFailure(clientKey);
-        res.status(failure.allowed ? 401 : 429).json({
-          error: failure.allowed ? `Kata sandi Owner tidak sesuai. Sisa percobaan: ${failure.remainingAttempts}.` : failure.message,
-          remainingAttempts: failure.remainingAttempts,
-          retryAfterSeconds: failure.retryAfterSeconds
+        res.status(401).json({
+          error: `Kata sandi Owner tidak sesuai. Sisa percobaan: ${rateCheck.remainingAttempts}.`,
+          remainingAttempts: rateCheck.remainingAttempts,
+          retryAfterSeconds: 0
         });
         return;
       }
@@ -1720,7 +2463,7 @@ async function startServer() {
     try {
       const ownerId = req.ownerId;
       const clientKey = `${ownerId}:${req.ip || "local-owner"}`;
-      const rateCheck = passwordRateLimiter.check(clientKey);
+      const rateCheck = passwordRateLimiter.attempt(clientKey);
       if (!rateCheck.allowed) {
         res.status(429).json({
           error: rateCheck.message,
@@ -1740,11 +2483,10 @@ async function startServer() {
         return;
       }
       if (!verifyPassword(currentPassword, db.owner.password_hash)) {
-        const failure = passwordRateLimiter.recordFailure(clientKey);
-        res.status(failure.allowed ? 401 : 429).json({
-          error: failure.allowed ? `Kata sandi saat ini tidak sesuai. Sisa percobaan: ${failure.remainingAttempts}.` : failure.message,
-          remainingAttempts: failure.remainingAttempts,
-          retryAfterSeconds: failure.retryAfterSeconds
+        res.status(401).json({
+          error: `Kata sandi saat ini tidak sesuai. Sisa percobaan: ${rateCheck.remainingAttempts}.`,
+          remainingAttempts: rateCheck.remainingAttempts,
+          retryAfterSeconds: 0
         });
         return;
       }
@@ -1764,7 +2506,7 @@ async function startServer() {
     try {
       const ownerId = req.ownerId;
       const clientKey = `${ownerId}:${req.ip || "local-owner"}`;
-      const rateCheck = passwordRateLimiter.check(clientKey);
+      const rateCheck = passwordRateLimiter.attempt(clientKey);
       if (!rateCheck.allowed) {
         res.status(429).json({
           error: rateCheck.message,
@@ -1781,11 +2523,10 @@ async function startServer() {
         return;
       }
       if (!verifyPassword(currentPassword, db.owner.password_hash)) {
-        const failure = passwordRateLimiter.recordFailure(clientKey);
-        res.status(failure.allowed ? 401 : 429).json({
-          error: failure.allowed ? `Kata sandi Owner tidak sesuai. Sisa percobaan: ${failure.remainingAttempts}.` : failure.message,
-          remainingAttempts: failure.remainingAttempts,
-          retryAfterSeconds: failure.retryAfterSeconds
+        res.status(401).json({
+          error: `Kata sandi Owner tidak sesuai. Sisa percobaan: ${rateCheck.remainingAttempts}.`,
+          remainingAttempts: rateCheck.remainingAttempts,
+          retryAfterSeconds: 0
         });
         return;
       }
@@ -1804,7 +2545,7 @@ async function startServer() {
     try {
       const ownerId = req.ownerId;
       const clientKey = `${ownerId}:${req.ip || "local-owner"}`;
-      const rateCheck = pinRateLimiter.check(clientKey);
+      const rateCheck = pinRateLimiter.attempt(clientKey);
       if (!rateCheck.allowed) {
         res.status(429).json({
           error: rateCheck.message,
@@ -1820,11 +2561,10 @@ async function startServer() {
         return;
       }
       if (!verifyPassword(pin, db.owner.pin_hash)) {
-        const failure = pinRateLimiter.recordFailure(clientKey);
-        res.status(failure.allowed ? 401 : 429).json({
-          error: failure.allowed ? `PIN 6 digit tidak sesuai. Sisa percobaan: ${failure.remainingAttempts}.` : failure.message,
-          remainingAttempts: failure.remainingAttempts,
-          retryAfterSeconds: failure.retryAfterSeconds
+        res.status(401).json({
+          error: `PIN 6 digit tidak sesuai. Sisa percobaan: ${rateCheck.remainingAttempts}.`,
+          remainingAttempts: rateCheck.remainingAttempts,
+          retryAfterSeconds: 0
         });
         return;
       }
@@ -1840,7 +2580,7 @@ async function startServer() {
     try {
       const ownerId = req.ownerId;
       const clientKey = `${ownerId}:${req.ip || "local-owner"}`;
-      const rateCheck = passwordRateLimiter.check(clientKey);
+      const rateCheck = passwordRateLimiter.attempt(clientKey);
       if (!rateCheck.allowed) {
         res.status(429).json({
           error: rateCheck.message,
@@ -1855,11 +2595,10 @@ async function startServer() {
         return;
       }
       if (!verifyPassword(currentPassword, db.owner.password_hash)) {
-        const failure = passwordRateLimiter.recordFailure(clientKey);
-        res.status(failure.allowed ? 401 : 429).json({
-          error: failure.allowed ? `Kata sandi Owner tidak sesuai. Sisa percobaan: ${failure.remainingAttempts}.` : failure.message,
-          remainingAttempts: failure.remainingAttempts,
-          retryAfterSeconds: failure.retryAfterSeconds
+        res.status(401).json({
+          error: `Kata sandi Owner tidak sesuai. Sisa percobaan: ${rateCheck.remainingAttempts}.`,
+          remainingAttempts: rateCheck.remainingAttempts,
+          retryAfterSeconds: 0
         });
         return;
       }
@@ -1883,7 +2622,8 @@ async function startServer() {
         (a, b) => b.transaction_date === a.transaction_date ? b.created_at.localeCompare(a.created_at) : b.transaction_date.localeCompare(a.transaction_date)
       ),
       assets: [...db.assets].sort((a, b) => b.created_at.localeCompare(a.created_at)),
-      debts: [...db.debts].sort((a, b) => b.created_at.localeCompare(a.created_at)),
+      debts: [...db.debts].map(normalizeDebt).sort((a, b) => b.created_at.localeCompare(a.created_at)),
+      debt_payment_logs: [...db.debt_payment_logs ?? []].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 200),
       owner_commands: [...db.owner_commands].sort(
         (a, b) => b.created_at.localeCompare(a.created_at)
       ),
@@ -1893,6 +2633,19 @@ async function startServer() {
       savings_goals: [...db.savings_goals ?? []].sort(
         (a, b) => b.created_at.localeCompare(a.created_at)
       ),
+      financial_reminders: [...db.financial_reminders ?? []].sort(
+        (a, b) => a.due_date.localeCompare(b.due_date)
+      ),
+      financial_reminder_logs: [...db.financial_reminder_logs ?? []].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 120),
+      remindersTableReady: true,
+      category_budgets: [...db.category_budgets ?? []].sort(
+        (a, b) => a.period_month === b.period_month ? a.category.localeCompare(b.category, "id") : b.period_month.localeCompare(a.period_month)
+      ),
+      budget_alert_logs: [...db.budget_alert_logs ?? []].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 150),
+      budgetsTableReady: true,
+      whatif_scenarios: [...db.whatif_scenarios ?? []].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 60),
+      financial_health_scores: [...db.financial_health_scores ?? []].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 60),
+      ecosystemTablesReady: true,
       preferences: db.preferences
     });
   });
@@ -1911,7 +2664,7 @@ async function startServer() {
       });
       const db = loadVault();
       const newAccount = {
-        id: crypto3.randomUUID(),
+        id: crypto4.randomUUID(),
         owner_id: ownerId,
         account_name: accountName,
         account_type: accountType,
@@ -1957,7 +2710,10 @@ async function startServer() {
       const category = req.body?.category ? String(req.body.category).trim() : null;
       const description = req.body?.description ? String(req.body.description).trim() : null;
       const ownerConfirmed = req.body?.owner_confirmed === true;
-      const status = ownerConfirmed ? "posted" : "pending";
+      if (!ownerConfirmed) {
+        throw new Error("Persetujuan eksplisit Owner wajib dicentang sebelum transaksi dicatat.");
+      }
+      const status = "posted";
       validateTransactionInvariants(
         {
           owner_id: ownerId,
@@ -1970,8 +2726,12 @@ async function startServer() {
         },
         db.accounts
       );
+      const requestId = req.body?.id;
+      if (!isValidTransactionRequestId(requestId)) {
+        throw new Error("ID permintaan transaksi wajib berupa UUID yang valid.");
+      }
       const newTx = {
-        id: crypto3.randomUUID(),
+        id: requestId,
         owner_id: ownerId,
         transaction_type: txType,
         source_account_id: txType === "income" ? null : sourceId,
@@ -1984,6 +2744,20 @@ async function startServer() {
         owner_confirmed: ownerConfirmed,
         created_at: (/* @__PURE__ */ new Date()).toISOString()
       };
+      const existing = db.transactions.find((tx) => tx.id === requestId);
+      if (existing) {
+        if (existing.owner_id !== ownerId) {
+          throw new Error("ID transaksi tidak dapat digunakan.");
+        }
+        const isSameRequest = isSameConfirmedTransactionRequest(existing, newTx);
+        if (!isSameRequest) {
+          throw new Error(
+            "ID transaksi sudah digunakan untuk data berbeda. Transaksi tidak diulang."
+          );
+        }
+        res.status(200).json(existing);
+        return;
+      }
       db.transactions.unshift(newTx);
       saveVault(db);
       res.status(201).json(newTx);
@@ -2028,7 +2802,7 @@ async function startServer() {
       });
       const db = loadVault();
       const asset = {
-        id: crypto3.randomUUID(),
+        id: crypto4.randomUUID(),
         owner_id: ownerId,
         asset_name: assetName,
         asset_type: assetType,
@@ -2074,93 +2848,218 @@ async function startServer() {
     res.json(asset);
   });
   app.post("/api/debts", requireOwner, (req, res) => {
-    try {
-      const ownerId = req.ownerId;
-      const ownerConfirmed = req.body?.owner_confirmed === true;
-      const creditor = String(req.body?.creditor ?? "").trim();
-      const originalAmount = Number(req.body?.original_amount ?? 0);
-      const outstandingBalance = req.body?.outstanding_balance !== void 0 ? Number(req.body.outstanding_balance) : originalAmount;
-      const dueDate = req.body?.due_date ? String(req.body.due_date).slice(0, 10) : null;
-      const description = req.body?.description ? String(req.body.description).trim() : null;
-      validateDebtInput({
-        creditor,
-        original_amount: originalAmount,
-        outstanding_balance: outstandingBalance,
-        owner_confirmed: ownerConfirmed
-      });
-      const db = loadVault();
-      const debt = {
-        id: crypto3.randomUUID(),
-        owner_id: ownerId,
-        creditor,
-        original_amount: roundCurrency(originalAmount),
-        outstanding_balance: roundCurrency(outstandingBalance),
-        due_date: dueDate,
-        status: outstandingBalance === 0 ? "paid" : "active",
-        description,
-        created_at: (/* @__PURE__ */ new Date()).toISOString()
-      };
-      db.debts.unshift(debt);
-      saveVault(db);
-      res.status(201).json(debt);
-    } catch (err) {
-      res.status(400).json({
-        error: err instanceof Error ? err.message : "Gagal mencatat utang."
-      });
-    }
+    withVaultMutationLock(() => {
+      try {
+        const ownerId = req.ownerId;
+        const ownerConfirmed = req.body?.owner_confirmed === true;
+        const creditor = String(req.body?.creditor ?? "").trim();
+        const debtType = String(req.body?.debt_type ?? "lainnya");
+        const originalAmount = Number(req.body?.original_amount ?? 0);
+        const outstandingBalance = req.body?.outstanding_balance !== void 0 ? Number(req.body.outstanding_balance) : originalAmount;
+        const interestRateAnnual = req.body?.interest_rate_annual !== void 0 ? Number(req.body.interest_rate_annual) : 0;
+        const monthlyFee = req.body?.monthly_fee !== void 0 ? Number(req.body.monthly_fee) : 0;
+        const installmentAmount = req.body?.installment_amount !== void 0 ? Number(req.body.installment_amount) : 0;
+        const paymentFrequency = String(
+          req.body?.payment_frequency ?? "monthly"
+        );
+        const dueDate = req.body?.due_date ? String(req.body.due_date).slice(0, 10) : null;
+        const description = req.body?.description ? String(req.body.description).trim() : null;
+        validateDebtInput({
+          creditor,
+          debt_type: debtType,
+          original_amount: originalAmount,
+          outstanding_balance: outstandingBalance,
+          interest_rate_annual: interestRateAnnual,
+          monthly_fee: monthlyFee,
+          installment_amount: installmentAmount,
+          payment_frequency: paymentFrequency,
+          owner_confirmed: ownerConfirmed
+        });
+        const db = loadVault();
+        const debt = {
+          id: crypto4.randomUUID(),
+          owner_id: ownerId,
+          creditor,
+          debt_type: debtType,
+          original_amount: roundCurrency(originalAmount),
+          outstanding_balance: roundCurrency(outstandingBalance),
+          interest_rate_annual: Math.max(0, Number(interestRateAnnual) || 0),
+          monthly_fee: roundCurrency(monthlyFee),
+          installment_amount: roundCurrency(installmentAmount),
+          payment_frequency: paymentFrequency,
+          due_date: dueDate,
+          status: outstandingBalance === 0 ? "paid" : "active",
+          description,
+          created_at: (/* @__PURE__ */ new Date()).toISOString()
+        };
+        db.debts.unshift(debt);
+        saveVault(db);
+        res.status(201).json(debt);
+      } catch (err) {
+        res.status(400).json({
+          error: err instanceof Error ? err.message : "Gagal mencatat utang."
+        });
+      }
+    });
+  });
+  app.patch("/api/debts/:id", requireOwner, (req, res) => {
+    withVaultMutationLock(() => {
+      try {
+        const ownerId = req.ownerId;
+        const ownerConfirmed = req.body?.owner_confirmed === true;
+        const db = loadVault();
+        const idx = db.debts.findIndex(
+          (d) => d.id === req.params.id && d.owner_id === ownerId
+        );
+        if (idx === -1) {
+          res.status(404).json({ error: "Data utang tidak ditemukan." });
+          return;
+        }
+        const current = normalizeDebt(db.debts[idx]);
+        const creditor = req.body?.creditor !== void 0 ? String(req.body.creditor).trim() : current.creditor;
+        const debtType = req.body?.debt_type !== void 0 ? String(req.body.debt_type) : current.debt_type;
+        const interestRateAnnual = req.body?.interest_rate_annual !== void 0 ? Number(req.body.interest_rate_annual) : current.interest_rate_annual;
+        const monthlyFee = req.body?.monthly_fee !== void 0 ? Number(req.body.monthly_fee) : current.monthly_fee;
+        const installmentAmount = req.body?.installment_amount !== void 0 ? Number(req.body.installment_amount) : current.installment_amount;
+        const paymentFrequency = req.body?.payment_frequency !== void 0 ? String(req.body.payment_frequency) : current.payment_frequency;
+        const dueDate = req.body?.due_date !== void 0 ? req.body.due_date ? String(req.body.due_date).slice(0, 10) : null : current.due_date;
+        const description = req.body?.description !== void 0 ? req.body.description ? String(req.body.description).trim() : null : current.description;
+        validateDebtInput({
+          creditor,
+          debt_type: debtType,
+          original_amount: current.original_amount,
+          outstanding_balance: current.outstanding_balance,
+          interest_rate_annual: interestRateAnnual,
+          monthly_fee: monthlyFee,
+          installment_amount: installmentAmount,
+          payment_frequency: paymentFrequency,
+          owner_confirmed: ownerConfirmed
+        });
+        const updated = {
+          ...current,
+          creditor,
+          debt_type: debtType,
+          interest_rate_annual: Math.max(0, Number(interestRateAnnual) || 0),
+          monthly_fee: roundCurrency(monthlyFee),
+          installment_amount: roundCurrency(installmentAmount),
+          payment_frequency: paymentFrequency,
+          due_date: dueDate,
+          description
+        };
+        db.debts[idx] = updated;
+        saveVault(db);
+        res.json(updated);
+      } catch (err) {
+        res.status(400).json({
+          error: err instanceof Error ? err.message : "Gagal memperbarui data utang."
+        });
+      }
+    });
   });
   app.post("/api/debts/:id/pay", requireOwner, (req, res) => {
-    try {
-      const ownerId = req.ownerId;
-      const db = loadVault();
-      const debt = db.debts.find((d) => d.id === req.params.id && d.owner_id === ownerId);
-      if (!debt) {
-        res.status(404).json({ error: "Data utang tidak ditemukan." });
-        return;
-      }
-      const paymentAmount = Number(req.body?.amount ?? 0);
-      const sourceAccountId = String(req.body?.source_account_id ?? "");
-      const ownerConfirmed = req.body?.owner_confirmed === true;
-      validateDebtPayment(debt, paymentAmount, sourceAccountId, ownerConfirmed);
-      validateTransactionInvariants(
-        {
+    withVaultMutationLock(() => {
+      try {
+        const ownerId = req.ownerId;
+        const db = loadVault();
+        db.debt_payment_logs ??= [];
+        const requestId = req.body?.request_id;
+        if (!isValidTransactionRequestId(requestId)) {
+          res.status(400).json({ error: "ID permintaan pembayaran wajib berupa UUID yang valid." });
+          return;
+        }
+        const debt = db.debts.find((d) => d.id === req.params.id && d.owner_id === ownerId);
+        if (!debt) {
+          res.status(404).json({ error: "Data utang tidak ditemukan." });
+          return;
+        }
+        const paymentAmount = roundCurrency(Number(req.body?.amount ?? 0));
+        const sourceAccountId = String(req.body?.source_account_id ?? "");
+        const ownerConfirmed = req.body?.owner_confirmed === true;
+        const notes = req.body?.notes ? String(req.body.notes).trim() : null;
+        if (!ownerConfirmed) {
+          throw new Error("Persetujuan eksplisit Owner wajib dicentang.");
+        }
+        if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+          throw new Error("Nominal pembayaran harus lebih dari Rp 0.");
+        }
+        const requestIdentity = {
+          request_id: requestId,
+          debt_id: req.params.id,
+          amount: paymentAmount,
+          source_account_id: sourceAccountId,
+          notes
+        };
+        const existingLog = db.debt_payment_logs.find(
+          (item) => item.owner_id === ownerId && item.request_id === requestId
+        );
+        if (existingLog) {
+          const existingTx = db.transactions.find(
+            (item) => item.id === existingLog.transaction_id && item.owner_id === ownerId
+          );
+          if (!isSameDebtPaymentRequest(existingLog, existingTx, requestIdentity)) {
+            res.status(409).json({
+              error: "ID pembayaran sudah digunakan untuk rincian berbeda. Pembayaran tidak diulang."
+            });
+            return;
+          }
+          res.json({ debt: normalizeDebt(debt), transaction: existingTx, log: existingLog, replayed: true });
+          return;
+        }
+        validateDebtPayment(debt, paymentAmount, sourceAccountId, ownerConfirmed);
+        validateTransactionInvariants(
+          {
+            owner_id: ownerId,
+            transaction_type: "expense",
+            source_account_id: sourceAccountId,
+            destination_account_id: null,
+            amount: paymentAmount,
+            status: "posted",
+            owner_confirmed: ownerConfirmed
+          },
+          db.accounts
+        );
+        const newBalance = roundCurrency(debt.outstanding_balance - paymentAmount);
+        const remaining = Math.max(0, newBalance);
+        const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+        const tx = {
+          id: crypto4.randomUUID(),
           owner_id: ownerId,
           transaction_type: "expense",
           source_account_id: sourceAccountId,
           destination_account_id: null,
           amount: paymentAmount,
+          transaction_date: todayISO(),
+          category: "Utang & Cicilan",
+          description: `Pembayaran utang ke ${debt.creditor}`,
           status: "posted",
-          owner_confirmed: ownerConfirmed
-        },
-        db.accounts
-      );
-      const newBalance = roundCurrency(debt.outstanding_balance - paymentAmount);
-      debt.outstanding_balance = Math.max(0, newBalance);
-      if (debt.outstanding_balance === 0) {
-        debt.status = "paid";
+          owner_confirmed: true,
+          created_at: nowIso
+        };
+        const log = {
+          id: crypto4.randomUUID(),
+          owner_id: ownerId,
+          debt_id: debt.id,
+          transaction_id: tx.id,
+          request_id: requestId,
+          amount: paymentAmount,
+          principal_paid: paymentAmount,
+          interest_paid: 0,
+          remaining_after: remaining,
+          notes,
+          created_at: nowIso
+        };
+        debt.outstanding_balance = remaining;
+        debt.status = remaining === 0 ? "paid" : "active";
+        db.transactions.unshift(tx);
+        db.debt_payment_logs.unshift(log);
+        saveVault(db);
+        res.json({ debt: normalizeDebt(debt), transaction: tx, log, replayed: false });
+      } catch (err) {
+        res.status(400).json({
+          error: err instanceof Error ? err.message : "Gagal memproses pembayaran utang."
+        });
       }
-      const tx = {
-        id: crypto3.randomUUID(),
-        owner_id: ownerId,
-        transaction_type: "expense",
-        source_account_id: sourceAccountId,
-        destination_account_id: null,
-        amount: roundCurrency(paymentAmount),
-        transaction_date: todayISO(),
-        category: "Utang & Cicilan",
-        description: `Pembayaran utang ke ${debt.creditor}`,
-        status: "posted",
-        owner_confirmed: true,
-        created_at: (/* @__PURE__ */ new Date()).toISOString()
-      };
-      db.transactions.unshift(tx);
-      saveVault(db);
-      res.json({ debt, transaction: tx });
-    } catch (err) {
-      res.status(400).json({
-        error: err instanceof Error ? err.message : "Gagal memproses pembayaran utang."
-      });
-    }
+    });
   });
   app.post("/api/commands", requireOwner, (req, res) => {
     const ownerId = req.ownerId;
@@ -2185,7 +3084,7 @@ async function startServer() {
       warnings: Array.isArray(rawDraft.warnings) ? rawDraft.warnings.map((w) => String(w)) : []
     } : parseNaturalCommand(commandText, db.accounts);
     const cmd = {
-      id: crypto3.randomUUID(),
+      id: crypto4.randomUUID(),
       owner_id: ownerId,
       command_text: commandText,
       status: "pending",
@@ -2207,14 +3106,14 @@ async function startServer() {
         res.status(404).json({ error: "Perintah tidak ditemukan." });
         return;
       }
-      if (cmd.status !== "pending") {
-        res.status(400).json({ error: "Perintah ini sudah diproses sebelumnya." });
-        return;
-      }
       if (req.body?.owner_confirmed !== true) {
         res.status(400).json({
           error: "Prinsip Brankas Mutlak: Persetujuan eksplisit Owner wajib dicentang sebelum mengeksekusi draf."
         });
+        return;
+      }
+      if (cmd.status !== "pending" && cmd.status !== "processed") {
+        res.status(400).json({ error: "Perintah ini sudah diproses sebelumnya." });
         return;
       }
       const override = req.body?.draft ?? cmd.parsed_draft;
@@ -2242,7 +3141,7 @@ async function startServer() {
         db.accounts
       );
       const tx = {
-        id: crypto3.randomUUID(),
+        id: cmd.id,
         owner_id: ownerId,
         transaction_type: txType,
         source_account_id: txType === "income" ? null : sourceId,
@@ -2255,6 +3154,23 @@ async function startServer() {
         owner_confirmed: true,
         created_at: (/* @__PURE__ */ new Date()).toISOString()
       };
+      const existingTx = db.transactions.find((item) => item.id === cmd.id);
+      if (existingTx && !isSameConfirmedTransactionRequest(existingTx, tx)) {
+        res.status(409).json({
+          error: "ID transaksi sudah digunakan untuk data berbeda. Transaksi tidak diulang."
+        });
+        return;
+      }
+      if (cmd.status === "processed") {
+        if (!existingTx) {
+          res.status(409).json({
+            error: "Perintah sudah diproses, tetapi transaksi tidak ditemukan untuk diverifikasi."
+          });
+          return;
+        }
+        res.json({ command: cmd, transaction: existingTx });
+        return;
+      }
       cmd.status = "processed";
       cmd.parsed_draft = {
         ...cmd.parsed_draft ?? override,
@@ -2266,9 +3182,11 @@ async function startServer() {
         description,
         transaction_date: tx.transaction_date
       };
-      db.transactions.unshift(tx);
+      if (!existingTx) {
+        db.transactions.unshift(tx);
+      }
       saveVault(db);
-      res.json({ command: cmd, transaction: tx });
+      res.json({ command: cmd, transaction: existingTx ?? tx });
     } catch (err) {
       res.status(400).json({
         error: err instanceof Error ? err.message : "Gagal menyetujui perintah."
@@ -2381,6 +3299,37 @@ async function startServer() {
       });
     }
   });
+  app.post("/api/ai/advisor", requireOwner, async (req, res) => {
+    try {
+      const question = String(req.body?.question ?? "").trim();
+      const contextBrief = String(req.body?.contextBrief ?? "").trim();
+      const missingIndicators = Array.isArray(req.body?.missingIndicators) ? req.body.missingIndicators.map((x) => String(x)) : [];
+      if (!question || question.length > 600) {
+        res.status(400).json({
+          error: "Pertanyaan konsultasi wajib diisi (maks 600 karakter)."
+        });
+        return;
+      }
+      if (!contextBrief) {
+        res.status(400).json({
+          error: "Konteks finansial terverifikasi belum tersedia untuk dianalisis."
+        });
+        return;
+      }
+      const result = await runFinancialAdvisor(
+        question,
+        contextBrief,
+        missingIndicators
+      );
+      res.json(result);
+    } catch (err) {
+      const classified = classifyGeminiError(err);
+      res.status(classified.statusCode).json({
+        error: classified.message,
+        code: classified.code
+      });
+    }
+  });
   app.post("/api/recurring", requireOwner, (req, res) => {
     try {
       const ownerId = req.ownerId;
@@ -2403,7 +3352,7 @@ async function startServer() {
       });
       const db = loadVault();
       const bill = {
-        id: crypto3.randomUUID(),
+        id: crypto4.randomUUID(),
         owner_id: ownerId,
         title,
         transaction_type: txType,
@@ -2474,7 +3423,7 @@ async function startServer() {
       warnings
     };
     const cmd = {
-      id: crypto3.randomUUID(),
+      id: crypto4.randomUUID(),
       owner_id: ownerId,
       command_text: `[Tagihan Rutin] ${bill.title} \xB7 Rp ${bill.amount.toLocaleString("id-ID")} (Jatuh tempo ${bill.next_due_date})`,
       status: "pending",
@@ -2521,7 +3470,7 @@ async function startServer() {
       });
       const db = loadVault();
       const goal = {
-        id: crypto3.randomUUID(),
+        id: crypto4.randomUUID(),
         owner_id: ownerId,
         title,
         goal_type: goalType,
@@ -2589,10 +3538,753 @@ async function startServer() {
     saveVault(db);
     res.json({ ok: true });
   });
+  app.post("/api/reminders", requireOwner, (req, res) => {
+    try {
+      const ownerId = req.ownerId;
+      const title = String(req.body?.title ?? "").trim();
+      const reminderType = String(req.body?.reminder_type ?? "tagihan_bulanan");
+      const transactionType = String(req.body?.transaction_type ?? "expense");
+      const amount = Number(req.body?.amount ?? 0);
+      const dueDate = String(req.body?.due_date ?? todayISO()).slice(0, 10);
+      const reminderTime = String(req.body?.reminder_time ?? "08:00").slice(0, 5);
+      const frequency = String(req.body?.frequency ?? "monthly");
+      const rawOffsets = Array.isArray(req.body?.remind_offsets) ? req.body.remind_offsets.map((n) => Number(n)) : [7, 3, 1, 0];
+      const customDaysBefore = req.body?.custom_days_before !== void 0 && req.body?.custom_days_before !== null && req.body?.custom_days_before !== "" ? Number(req.body.custom_days_before) : null;
+      const ownerConfirmed = req.body?.owner_confirmed === true;
+      validateFinancialReminderInput({
+        title,
+        reminder_type: reminderType,
+        transaction_type: transactionType,
+        amount,
+        due_date: dueDate,
+        reminder_time: reminderTime,
+        frequency,
+        remind_offsets: rawOffsets,
+        custom_days_before: customDaysBefore,
+        owner_confirmed: ownerConfirmed
+      });
+      const db = loadVault();
+      db.financial_reminders ??= [];
+      db.financial_reminder_logs ??= [];
+      const dedupeKey = req.body?.dedupe_key ? String(req.body.dedupe_key).trim() : null;
+      if (dedupeKey && db.financial_reminders.some(
+        (r) => r.owner_id === ownerId && r.dedupe_key === dedupeKey
+      )) {
+        res.status(409).json({
+          error: "Pengingat untuk jadwal atau sumber yang sama sudah terdaftar."
+        });
+        return;
+      }
+      const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+      const reminder = {
+        id: crypto4.randomUUID(),
+        owner_id: ownerId,
+        title,
+        reminder_type: reminderType,
+        transaction_type: transactionType,
+        amount: roundCurrency(amount),
+        due_date: dueDate,
+        reminder_time: reminderTime,
+        frequency,
+        remind_offsets: normalizeReminderOffsets(rawOffsets, null),
+        custom_days_before: customDaysBefore,
+        is_active: true,
+        is_read: false,
+        read_at: null,
+        last_notified_key: null,
+        last_notified_at: null,
+        linked_account_id: req.body?.linked_account_id ? String(req.body.linked_account_id) : null,
+        linked_goal_id: req.body?.linked_goal_id ? String(req.body.linked_goal_id) : null,
+        linked_debt_id: req.body?.linked_debt_id ? String(req.body.linked_debt_id) : null,
+        linked_bill_id: req.body?.linked_bill_id ? String(req.body.linked_bill_id) : null,
+        dedupe_key: dedupeKey,
+        notes: req.body?.notes ? String(req.body.notes).trim() : null,
+        created_at: nowIso,
+        updated_at: nowIso
+      };
+      db.financial_reminders.push(reminder);
+      saveVault(db);
+      res.status(201).json(reminder);
+    } catch (err) {
+      res.status(400).json({
+        error: err instanceof Error ? err.message : "Gagal menyimpan pengingat keuangan."
+      });
+    }
+  });
+  app.patch("/api/reminders/:id", requireOwner, (req, res) => {
+    try {
+      const ownerId = req.ownerId;
+      const db = loadVault();
+      db.financial_reminders ??= [];
+      db.financial_reminder_logs ??= [];
+      const reminder = db.financial_reminders.find(
+        (r) => r.id === req.params.id && r.owner_id === ownerId
+      );
+      if (!reminder) {
+        res.status(404).json({ error: "Pengingat tidak ditemukan." });
+        return;
+      }
+      const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+      const logsToAdd = [];
+      if (req.body?.title !== void 0 || req.body?.due_date !== void 0 || req.body?.reminder_time !== void 0 || req.body?.amount !== void 0 || req.body?.remind_offsets !== void 0 || req.body?.frequency !== void 0 || req.body?.reminder_type !== void 0) {
+        const nextTitle = req.body?.title !== void 0 ? String(req.body.title).trim() : reminder.title;
+        const nextType = req.body?.reminder_type ?? reminder.reminder_type;
+        const nextTxType = req.body?.transaction_type ?? reminder.transaction_type;
+        const nextAmount = req.body?.amount !== void 0 ? Number(req.body.amount) : reminder.amount;
+        const nextDue = req.body?.due_date !== void 0 ? String(req.body.due_date).slice(0, 10) : reminder.due_date;
+        const nextTime = req.body?.reminder_time !== void 0 ? String(req.body.reminder_time).slice(0, 5) : reminder.reminder_time;
+        const nextFreq = req.body?.frequency ?? reminder.frequency;
+        const nextOffsets = Array.isArray(req.body?.remind_offsets) ? req.body.remind_offsets.map((n) => Number(n)) : reminder.remind_offsets;
+        const nextCustom = req.body?.custom_days_before !== void 0 ? req.body.custom_days_before === null || req.body.custom_days_before === "" ? null : Number(req.body.custom_days_before) : reminder.custom_days_before;
+        validateFinancialReminderInput({
+          title: nextTitle,
+          reminder_type: nextType,
+          transaction_type: nextTxType,
+          amount: nextAmount,
+          due_date: nextDue,
+          reminder_time: nextTime,
+          frequency: nextFreq,
+          remind_offsets: nextOffsets,
+          custom_days_before: nextCustom,
+          owner_confirmed: true
+        });
+        const dueChanged = nextDue !== reminder.due_date;
+        reminder.title = nextTitle;
+        reminder.reminder_type = nextType;
+        reminder.transaction_type = nextTxType;
+        reminder.amount = roundCurrency(nextAmount);
+        reminder.due_date = nextDue;
+        reminder.reminder_time = nextTime;
+        reminder.frequency = nextFreq;
+        reminder.remind_offsets = normalizeReminderOffsets(nextOffsets, null);
+        reminder.custom_days_before = nextCustom;
+        if (req.body?.linked_account_id !== void 0) {
+          reminder.linked_account_id = req.body.linked_account_id ? String(req.body.linked_account_id) : null;
+        }
+        if (req.body?.notes !== void 0) {
+          reminder.notes = req.body.notes ? String(req.body.notes).trim() : null;
+        }
+        if (dueChanged) {
+          reminder.last_notified_key = null;
+          reminder.is_read = false;
+          reminder.read_at = null;
+          logsToAdd.push({
+            id: crypto4.randomUUID(),
+            owner_id: ownerId,
+            reminder_id: reminder.id,
+            reminder_title: reminder.title,
+            event_type: "rescheduled",
+            trigger_offset: null,
+            scheduled_for: reminder.due_date,
+            notes: `Dijadwalkan ulang ke ${reminder.due_date}`,
+            created_at: nowIso
+          });
+        }
+      }
+      if (typeof req.body?.is_active === "boolean" && req.body.is_active !== reminder.is_active) {
+        reminder.is_active = req.body.is_active;
+        logsToAdd.push({
+          id: crypto4.randomUUID(),
+          owner_id: ownerId,
+          reminder_id: reminder.id,
+          reminder_title: reminder.title,
+          event_type: reminder.is_active ? "resumed" : "paused",
+          trigger_offset: null,
+          scheduled_for: reminder.due_date,
+          notes: reminder.is_active ? "Pengingat diaktifkan kembali" : "Pengingat dinonaktifkan",
+          created_at: nowIso
+        });
+      }
+      if (typeof req.body?.is_read === "boolean" && req.body.is_read !== reminder.is_read) {
+        reminder.is_read = req.body.is_read;
+        reminder.read_at = reminder.is_read ? nowIso : null;
+        if (reminder.is_read) {
+          logsToAdd.push({
+            id: crypto4.randomUUID(),
+            owner_id: ownerId,
+            reminder_id: reminder.id,
+            reminder_title: reminder.title,
+            event_type: "read",
+            trigger_offset: null,
+            scheduled_for: reminder.due_date,
+            notes: "Ditandai sudah dibaca oleh Owner",
+            created_at: nowIso
+          });
+        }
+      }
+      reminder.updated_at = nowIso;
+      if (logsToAdd.length > 0) {
+        db.financial_reminder_logs.unshift(...logsToAdd);
+      }
+      saveVault(db);
+      res.json(reminder);
+    } catch (err) {
+      res.status(400).json({
+        error: err instanceof Error ? err.message : "Gagal memperbarui pengingat."
+      });
+    }
+  });
+  app.post("/api/reminders/mark-all-read", requireOwner, (req, res) => {
+    const ownerId = req.ownerId;
+    const db = loadVault();
+    db.financial_reminders ??= [];
+    db.financial_reminder_logs ??= [];
+    const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+    let updated = 0;
+    for (const r of db.financial_reminders) {
+      if (r.owner_id === ownerId && r.is_active && !r.is_read) {
+        r.is_read = true;
+        r.read_at = nowIso;
+        r.updated_at = nowIso;
+        updated += 1;
+      }
+    }
+    if (updated > 0) {
+      db.financial_reminder_logs.unshift({
+        id: crypto4.randomUUID(),
+        owner_id: ownerId,
+        reminder_id: null,
+        reminder_title: `${updated} pengingat aktif`,
+        event_type: "read",
+        trigger_offset: null,
+        scheduled_for: todayISO(),
+        notes: "Semua pengingat aktif ditandai sudah dibaca",
+        created_at: nowIso
+      });
+      saveVault(db);
+    }
+    res.json({ ok: true, updated });
+  });
+  app.post("/api/reminders/:id/log-trigger", requireOwner, (req, res) => {
+    const ownerId = req.ownerId;
+    const notificationKey = String(req.body?.notification_key ?? "").trim();
+    const triggerOffset = typeof req.body?.trigger_offset === "number" ? req.body.trigger_offset : null;
+    if (!notificationKey) {
+      res.status(400).json({ error: "notification_key wajib diisi." });
+      return;
+    }
+    const db = loadVault();
+    db.financial_reminders ??= [];
+    db.financial_reminder_logs ??= [];
+    const reminder = db.financial_reminders.find(
+      (r) => r.id === req.params.id && r.owner_id === ownerId
+    );
+    if (!reminder) {
+      res.status(404).json({ error: "Pengingat tidak ditemukan." });
+      return;
+    }
+    if (reminder.last_notified_key === notificationKey) {
+      res.json({ reminder, deduped: true });
+      return;
+    }
+    const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+    reminder.last_notified_key = notificationKey;
+    reminder.last_notified_at = nowIso;
+    reminder.updated_at = nowIso;
+    db.financial_reminder_logs.unshift({
+      id: crypto4.randomUUID(),
+      owner_id: ownerId,
+      reminder_id: reminder.id,
+      reminder_title: reminder.title,
+      event_type: "triggered",
+      trigger_offset: triggerOffset,
+      scheduled_for: reminder.due_date,
+      notes: triggerOffset === -1 ? `Pengingat keterlambatan ditampilkan (${reminder.due_date})` : `Pengingat H-${triggerOffset ?? 0} ditampilkan pada ${reminder.reminder_time}`,
+      created_at: nowIso
+    });
+    saveVault(db);
+    res.json({ reminder, deduped: false });
+  });
+  app.post("/api/reminders/:id/queue-draft", requireOwner, (req, res) => {
+    const ownerId = req.ownerId;
+    if (req.body?.owner_confirmed !== true) {
+      res.status(400).json({
+        error: "Persetujuan eksplisit Owner wajib dicentang sebelum mengirim draf ke antrean transaksi."
+      });
+      return;
+    }
+    const db = loadVault();
+    db.financial_reminders ??= [];
+    db.financial_reminder_logs ??= [];
+    const reminder = db.financial_reminders.find(
+      (r) => r.id === req.params.id && r.owner_id === ownerId
+    );
+    if (!reminder) {
+      res.status(404).json({ error: "Pengingat tidak ditemukan." });
+      return;
+    }
+    const validAccountId = reminder.linked_account_id && db.accounts.some((a) => a.id === reminder.linked_account_id && a.owner_id === ownerId) ? reminder.linked_account_id : null;
+    const warnings = [];
+    if (reminder.transaction_type === "transfer") {
+      warnings.push("Pilih akun sumber dan akun tujuan transfer sebelum menyetujui.");
+    } else if (!validAccountId) {
+      warnings.push(
+        reminder.transaction_type === "income" ? "Pilih akun tujuan pemasukan sebelum menyetujui." : "Pilih akun sumber dana sebelum menyetujui."
+      );
+    }
+    const draft = {
+      transaction_type: reminder.transaction_type,
+      amount: reminder.amount > 0 ? reminder.amount : null,
+      category: reminder.reminder_type === "cicilan_utang" ? "Utang & Cicilan" : reminder.reminder_type === "tanggal_gajian" || reminder.reminder_type === "pemasukan_rutin" ? "Gaji & Pendapatan" : reminder.reminder_type === "setoran_tabungan" || reminder.reminder_type === "target_keuangan" ? "Transfer Internal" : "Utilitas & Tagihan",
+      description: `${reminder.title} (Pengingat ${reminder.due_date})`,
+      source_account_id: reminder.transaction_type === "expense" ? validAccountId : null,
+      destination_account_id: reminder.transaction_type === "income" || reminder.transaction_type === "transfer" ? validAccountId : null,
+      source_hint: null,
+      destination_hint: null,
+      transaction_date: todayISO(),
+      confidence: validAccountId && reminder.amount > 0 ? "high" : "medium",
+      warnings
+    };
+    const cmd = {
+      id: crypto4.randomUUID(),
+      owner_id: ownerId,
+      command_text: `[Pengingat] ${reminder.title} \xB7 Rp ${reminder.amount.toLocaleString("id-ID")} (Jatuh tempo ${reminder.due_date})`,
+      status: "pending",
+      parsed_draft: draft,
+      created_at: (/* @__PURE__ */ new Date()).toISOString()
+    };
+    db.owner_commands.unshift(cmd);
+    const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+    reminder.is_read = true;
+    reminder.read_at = nowIso;
+    if (reminder.frequency !== "once" && req.body?.advance_cycle !== false) {
+      reminder.due_date = advanceReminderDueDate(reminder.due_date, reminder.frequency);
+      reminder.last_notified_key = null;
+    }
+    reminder.updated_at = nowIso;
+    db.financial_reminder_logs.unshift({
+      id: crypto4.randomUUID(),
+      owner_id: ownerId,
+      reminder_id: reminder.id,
+      reminder_title: reminder.title,
+      event_type: "draft_queued",
+      trigger_offset: null,
+      scheduled_for: reminder.due_date,
+      notes: "Draf dikirim ke Owner Control; saldo menunggu konfirmasi Owner.",
+      created_at: nowIso
+    });
+    saveVault(db);
+    res.status(201).json({ command: cmd, reminder });
+  });
+  app.post("/api/reminders/sync-sources", requireOwner, (req, res) => {
+    const ownerId = req.ownerId;
+    const db = loadVault();
+    db.financial_reminders ??= [];
+    const payloads = buildSourceSyncReminders(
+      db.recurring_bills ?? [],
+      db.debts ?? [],
+      db.financial_reminders,
+      ownerId
+    );
+    const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+    const created = payloads.map((p) => ({
+      ...p,
+      id: crypto4.randomUUID(),
+      created_at: nowIso,
+      updated_at: nowIso
+    }));
+    if (created.length > 0) {
+      db.financial_reminders.push(...created);
+      saveVault(db);
+    }
+    res.json({ createdCount: created.length, created });
+  });
+  app.delete("/api/reminders/:id", requireOwner, (req, res) => {
+    const ownerId = req.ownerId;
+    const db = loadVault();
+    db.financial_reminders ??= [];
+    const before = db.financial_reminders.length;
+    db.financial_reminders = db.financial_reminders.filter(
+      (r) => !(r.id === req.params.id && r.owner_id === ownerId)
+    );
+    if (db.financial_reminders.length === before) {
+      res.status(404).json({ error: "Pengingat tidak ditemukan." });
+      return;
+    }
+    saveVault(db);
+    res.json({ ok: true });
+  });
+  app.post("/api/budgets", requireOwner, (req, res) => {
+    try {
+      const ownerId = req.ownerId;
+      const category = String(req.body?.category ?? "").trim();
+      const periodMonth = String(req.body?.period_month ?? todayISO().slice(0, 7)).trim();
+      const limitAmount = roundCurrency(Number(req.body?.limit_amount ?? 0));
+      const notes = req.body?.notes ? String(req.body.notes).trim().slice(0, 240) : null;
+      const isActive = typeof req.body?.is_active === "boolean" ? req.body.is_active : true;
+      const ownerConfirmed = req.body?.owner_confirmed === true;
+      validateCategoryBudgetInput({
+        category,
+        period_month: periodMonth,
+        limit_amount: limitAmount,
+        owner_confirmed: ownerConfirmed
+      });
+      const db = loadVault();
+      db.category_budgets ??= [];
+      db.budget_alert_logs ??= [];
+      const catKey = normalizeBudgetCategoryKey(category);
+      const duplicate = db.category_budgets.some(
+        (b) => b.owner_id === ownerId && b.period_month === periodMonth && normalizeBudgetCategoryKey(b.category) === catKey
+      );
+      if (duplicate) {
+        res.status(409).json({
+          error: `Anggaran kategori "${category}" untuk periode ${periodMonth} sudah tersedia.`
+        });
+        return;
+      }
+      const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+      const created = {
+        id: crypto4.randomUUID(),
+        owner_id: ownerId,
+        category,
+        period_month: periodMonth,
+        limit_amount: limitAmount,
+        is_active: isActive,
+        last_alert_threshold: null,
+        last_alert_period: null,
+        notes,
+        created_at: nowIso,
+        updated_at: nowIso
+      };
+      db.category_budgets.push(created);
+      const { byCategoryKey } = computeConfirmedExpensesByCategoryForMonth(
+        db.transactions,
+        periodMonth
+      );
+      const spent = byCategoryKey.get(catKey)?.total ?? 0;
+      const cls = classifyBudgetThreshold(spent, limitAmount);
+      db.budget_alert_logs.unshift({
+        id: crypto4.randomUUID(),
+        owner_id: ownerId,
+        budget_id: created.id,
+        category: created.category,
+        period_month: created.period_month,
+        threshold_level: 0,
+        spent_amount: spent,
+        limit_amount: limitAmount,
+        usage_pct: cls.usagePct,
+        event_type: "created",
+        notes: `Anggaran dibuat sebesar Rp ${limitAmount.toLocaleString("id-ID")}`,
+        created_at: nowIso
+      });
+      saveVault(db);
+      res.status(201).json(created);
+    } catch (err) {
+      res.status(400).json({
+        error: err instanceof Error ? err.message : "Gagal membuat anggaran kategori."
+      });
+    }
+  });
+  app.patch("/api/budgets/:id", requireOwner, (req, res) => {
+    try {
+      const ownerId = req.ownerId;
+      const db = loadVault();
+      db.category_budgets ??= [];
+      db.budget_alert_logs ??= [];
+      const budget = db.category_budgets.find(
+        (b) => b.id === req.params.id && b.owner_id === ownerId
+      );
+      if (!budget) {
+        res.status(404).json({ error: "Anggaran kategori tidak ditemukan." });
+        return;
+      }
+      const hasEditField = req.body?.category !== void 0 || req.body?.period_month !== void 0 || req.body?.limit_amount !== void 0 || req.body?.notes !== void 0;
+      const nextCategory = req.body?.category !== void 0 ? String(req.body.category ?? "").trim() : budget.category;
+      const nextPeriod = req.body?.period_month !== void 0 ? String(req.body.period_month ?? "").trim() : budget.period_month;
+      const nextLimit = req.body?.limit_amount !== void 0 ? roundCurrency(Number(req.body.limit_amount ?? 0)) : budget.limit_amount;
+      const nextNotes = req.body?.notes !== void 0 ? req.body.notes ? String(req.body.notes).trim().slice(0, 240) : null : budget.notes;
+      if (hasEditField) {
+        validateCategoryBudgetInput({
+          category: nextCategory,
+          period_month: nextPeriod,
+          limit_amount: nextLimit,
+          owner_confirmed: req.body?.owner_confirmed === true
+        });
+        const catKey = normalizeBudgetCategoryKey(nextCategory);
+        const duplicate = db.category_budgets.some(
+          (b) => b.id !== budget.id && b.owner_id === ownerId && b.period_month === nextPeriod && normalizeBudgetCategoryKey(b.category) === catKey
+        );
+        if (duplicate) {
+          res.status(409).json({
+            error: `Anggaran kategori "${nextCategory}" untuk periode ${nextPeriod} sudah tersedia.`
+          });
+          return;
+        }
+      }
+      const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+      const { byCategoryKey } = computeConfirmedExpensesByCategoryForMonth(
+        db.transactions,
+        nextPeriod
+      );
+      const spent = byCategoryKey.get(normalizeBudgetCategoryKey(nextCategory))?.total ?? 0;
+      const cls = classifyBudgetThreshold(spent, nextLimit);
+      if (hasEditField) {
+        const periodChanged = nextPeriod !== budget.period_month;
+        budget.category = nextCategory;
+        budget.period_month = nextPeriod;
+        budget.limit_amount = nextLimit;
+        budget.notes = nextNotes;
+        if (periodChanged) {
+          budget.last_alert_threshold = null;
+          budget.last_alert_period = null;
+        }
+        db.budget_alert_logs.unshift({
+          id: crypto4.randomUUID(),
+          owner_id: ownerId,
+          budget_id: budget.id,
+          category: budget.category,
+          period_month: budget.period_month,
+          threshold_level: 0,
+          spent_amount: spent,
+          limit_amount: budget.limit_amount,
+          usage_pct: cls.usagePct,
+          event_type: "updated",
+          notes: `Batas anggaran diperbarui menjadi Rp ${budget.limit_amount.toLocaleString("id-ID")}`,
+          created_at: nowIso
+        });
+      }
+      if (typeof req.body?.is_active === "boolean" && req.body.is_active !== budget.is_active) {
+        budget.is_active = req.body.is_active;
+        db.budget_alert_logs.unshift({
+          id: crypto4.randomUUID(),
+          owner_id: ownerId,
+          budget_id: budget.id,
+          category: budget.category,
+          period_month: budget.period_month,
+          threshold_level: 0,
+          spent_amount: spent,
+          limit_amount: budget.limit_amount,
+          usage_pct: cls.usagePct,
+          event_type: budget.is_active ? "resumed" : "paused",
+          notes: budget.is_active ? "Pemantauan anggaran diaktifkan kembali" : "Pemantauan anggaran dinonaktifkan sementara",
+          created_at: nowIso
+        });
+      }
+      budget.updated_at = nowIso;
+      saveVault(db);
+      res.json(budget);
+    } catch (err) {
+      res.status(400).json({
+        error: err instanceof Error ? err.message : "Gagal memperbarui anggaran."
+      });
+    }
+  });
+  app.post("/api/budgets/:id/log-alert", requireOwner, (req, res) => {
+    const ownerId = req.ownerId;
+    const periodMonth = String(req.body?.period_month ?? "").trim();
+    const thresholdLevel = Number(req.body?.threshold_level ?? 0);
+    const spentAmount = Math.max(0, roundCurrency(Number(req.body?.spent_amount ?? 0)));
+    const usagePct = Math.max(0, Number(req.body?.usage_pct ?? 0));
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(periodMonth)) {
+      res.status(400).json({ error: "Format period_month tidak valid." });
+      return;
+    }
+    if (![50, 75, 90, 100, 101].includes(thresholdLevel)) {
+      res.status(400).json({ error: "Ambang peringatan anggaran tidak valid." });
+      return;
+    }
+    const db = loadVault();
+    db.category_budgets ??= [];
+    db.budget_alert_logs ??= [];
+    const budget = db.category_budgets.find(
+      (b) => b.id === req.params.id && b.owner_id === ownerId
+    );
+    if (!budget) {
+      res.status(404).json({ error: "Anggaran kategori tidak ditemukan." });
+      return;
+    }
+    if (isThresholdAlreadyNotified(
+      budget,
+      periodMonth,
+      thresholdLevel,
+      db.budget_alert_logs
+    )) {
+      res.json({ budget, deduped: true });
+      return;
+    }
+    const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+    budget.last_alert_threshold = thresholdLevel;
+    budget.last_alert_period = periodMonth;
+    budget.updated_at = nowIso;
+    const logEntry = {
+      id: crypto4.randomUUID(),
+      owner_id: ownerId,
+      budget_id: budget.id,
+      category: budget.category,
+      period_month: periodMonth,
+      threshold_level: thresholdLevel,
+      spent_amount: spentAmount,
+      limit_amount: budget.limit_amount,
+      usage_pct: Math.round(usagePct * 10) / 10,
+      event_type: "threshold_crossed",
+      notes: `${budgetThresholdLabel(thresholdLevel)} (${usagePct.toFixed(1)}%)`,
+      created_at: nowIso
+    };
+    db.budget_alert_logs.unshift(logEntry);
+    saveVault(db);
+    res.json({ budget, log: logEntry, deduped: false });
+  });
+  app.post("/api/budgets/copy-month", requireOwner, (req, res) => {
+    const ownerId = req.ownerId;
+    if (req.body?.owner_confirmed !== true) {
+      res.status(400).json({
+        error: "Konfirmasi Owner diperlukan untuk menyalin anggaran bulan sebelumnya."
+      });
+      return;
+    }
+    const fromMonth = String(req.body?.from_month ?? "").trim();
+    const toMonth = String(req.body?.to_month ?? "").trim();
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(fromMonth) || !/^\d{4}-(0[1-9]|1[0-2])$/.test(toMonth) || fromMonth === toMonth) {
+      res.status(400).json({ error: "Periode asal dan tujuan tidak valid." });
+      return;
+    }
+    const db = loadVault();
+    db.category_budgets ??= [];
+    db.budget_alert_logs ??= [];
+    const existingKeys = new Set(
+      db.category_budgets.filter((b) => b.owner_id === ownerId && b.period_month === toMonth).map((b) => normalizeBudgetCategoryKey(b.category))
+    );
+    const sources = db.category_budgets.filter(
+      (b) => b.owner_id === ownerId && b.period_month === fromMonth && b.is_active && !existingKeys.has(normalizeBudgetCategoryKey(b.category))
+    );
+    const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+    const created = [];
+    for (const src of sources) {
+      const next = {
+        id: crypto4.randomUUID(),
+        owner_id: ownerId,
+        category: src.category,
+        period_month: toMonth,
+        limit_amount: src.limit_amount,
+        is_active: true,
+        last_alert_threshold: null,
+        last_alert_period: null,
+        notes: src.notes,
+        created_at: nowIso,
+        updated_at: nowIso
+      };
+      created.push(next);
+      db.category_budgets.push(next);
+      db.budget_alert_logs.unshift({
+        id: crypto4.randomUUID(),
+        owner_id: ownerId,
+        budget_id: next.id,
+        category: next.category,
+        period_month: toMonth,
+        threshold_level: 0,
+        spent_amount: 0,
+        limit_amount: next.limit_amount,
+        usage_pct: 0,
+        event_type: "created",
+        notes: `Disalin dari periode ${fromMonth}`,
+        created_at: nowIso
+      });
+    }
+    if (created.length > 0) {
+      saveVault(db);
+    }
+    res.json({ copiedCount: created.length, created });
+  });
+  app.delete("/api/budgets/:id", requireOwner, (req, res) => {
+    const ownerId = req.ownerId;
+    const db = loadVault();
+    db.category_budgets ??= [];
+    const before = db.category_budgets.length;
+    db.category_budgets = db.category_budgets.filter(
+      (b) => !(b.id === req.params.id && b.owner_id === ownerId)
+    );
+    if (db.category_budgets.length === before) {
+      res.status(404).json({ error: "Anggaran kategori tidak ditemukan." });
+      return;
+    }
+    saveVault(db);
+    res.json({ ok: true });
+  });
+  app.post("/api/whatif-scenarios", requireOwner, (req, res) => {
+    try {
+      const ownerId = req.ownerId;
+      const params = req.body?.params;
+      const resultSummary = req.body?.result_summary;
+      if (!params || !resultSummary) {
+        res.status(400).json({ error: "Payload simulasi What-If tidak lengkap." });
+        return;
+      }
+      validateWhatIfScenarioInput({
+        title: String(params.title ?? ""),
+        scenario_type: String(params.scenario_type ?? ""),
+        amount: Number(params.amount ?? 0),
+        tenor_months: Number(params.tenor_months ?? 1),
+        annual_interest_pct: Number(params.annual_interest_pct ?? 0)
+      });
+      const db = loadVault();
+      db.whatif_scenarios ??= [];
+      const record = {
+        id: crypto4.randomUUID(),
+        owner_id: ownerId,
+        title: params.title.trim(),
+        scenario_type: params.scenario_type,
+        params,
+        result_summary: resultSummary,
+        risk_level: resultSummary.riskLevel,
+        created_at: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      db.whatif_scenarios.unshift(record);
+      saveVault(db);
+      res.status(201).json(record);
+    } catch (err) {
+      res.status(400).json({
+        error: err instanceof Error ? err.message : "Gagal menyimpan skenario What-If."
+      });
+    }
+  });
+  app.delete("/api/whatif-scenarios/:id", requireOwner, (req, res) => {
+    const ownerId = req.ownerId;
+    const db = loadVault();
+    db.whatif_scenarios ??= [];
+    const before = db.whatif_scenarios.length;
+    db.whatif_scenarios = db.whatif_scenarios.filter(
+      (s) => !(s.id === req.params.id && s.owner_id === ownerId)
+    );
+    if (db.whatif_scenarios.length === before) {
+      res.status(404).json({ error: "Skenario What-If tidak ditemukan." });
+      return;
+    }
+    saveVault(db);
+    res.json({ ok: true });
+  });
+  app.post("/api/health-scores", requireOwner, (req, res) => {
+    try {
+      const ownerId = req.ownerId;
+      const totalScore = req.body?.total_score === null || req.body?.total_score === void 0 ? null : Number(req.body.total_score);
+      const grade = String(req.body?.grade ?? "Belum Cukup Data");
+      const periodMonth = String(req.body?.period_month ?? todayISO().slice(0, 7)).slice(0, 7);
+      const availableWeightRaw = Number(req.body?.available_weight ?? 0);
+      const snapshot = {
+        id: crypto4.randomUUID(),
+        owner_id: ownerId,
+        period_month: /^\d{4}-(0[1-9]|1[0-2])$/.test(periodMonth) ? periodMonth : todayISO().slice(0, 7),
+        total_score: totalScore !== null && Number.isFinite(totalScore) ? Math.max(0, Math.min(100, Math.round(totalScore))) : null,
+        grade,
+        available_weight: Number.isFinite(availableWeightRaw) ? Math.max(0, Math.min(100, Math.round(availableWeightRaw))) : 0,
+        is_data_incomplete: req.body?.is_data_incomplete === true,
+        components: Array.isArray(req.body?.components) ? req.body.components : [],
+        created_at: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      const db = loadVault();
+      db.financial_health_scores ??= [];
+      db.financial_health_scores.unshift(snapshot);
+      saveVault(db);
+      res.status(201).json(snapshot);
+    } catch (err) {
+      res.status(400).json({
+        error: err instanceof Error ? err.message : "Gagal menyimpan snapshot Health Score."
+      });
+    }
+  });
   const httpServer = http.createServer(app);
   const wss = new WebSocketServer({ noServer: true });
-  const distDir = path3.resolve(process.cwd(), "dist");
-  const isProd = process.env.NODE_ENV === "production" && fs3.existsSync(distDir);
+  const distDir = path5.resolve(process.cwd(), "dist");
+  const isProd = process.env.NODE_ENV === "production" && fs5.existsSync(distDir);
   httpServer.on("upgrade", (req, socket, head) => {
     try {
       const host = req.headers.host || `127.0.0.1:${PORT}`;
@@ -2634,7 +4326,7 @@ async function startServer() {
   } else {
     app.use(express.static(distDir));
     app.get("*", (_req, res) => {
-      res.sendFile(path3.join(distDir, "index.html"));
+      res.sendFile(path5.join(distDir, "index.html"));
     });
   }
   const shutdown = () => {

@@ -8,12 +8,14 @@ import {
   Loader2,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
   Target,
   Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/ego/app-shell";
+import { EgoCountUp, EgoStaggerSection } from "../../components/ego/ego-motion";
 import { GoalSimulatorPanel } from "../../components/ego/goal-simulator-panel";
 import { MoneyInput } from "../../components/ego/money-input";
 import { formatDateID, formatIDR, todayISO } from "../../lib/finance";
@@ -112,18 +114,18 @@ function riskBadgeStyle(risk: WhatIfRiskLevel): {
 } {
   if (risk === "aman") {
     return {
-      cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+      cls: "bg-[#14B8A6]/15 text-[#0D9488] dark:text-[#2DD4BF]",
       label: "Aman Dijalankan",
     };
   }
   if (risk === "waspada") {
     return {
-      cls: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+      cls: "bg-[#D4AF37]/15 text-[#9A7411] dark:text-[#E6C768]",
       label: "Waspada / Perlu Margin",
     };
   }
   return {
-    cls: "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+    cls: "bg-[#EF4444]/15 text-[#DC2626] dark:text-[#F87171]",
     label: "Berisiko Tinggi",
   };
 }
@@ -298,7 +300,7 @@ export function SimulasiPage() {
       action={
         <Link
           to="/analitik"
-          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-1.5 text-xs font-semibold text-[#06132F] hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#091634] dark:text-white whitespace-nowrap"
+          className="inline-flex min-h-[38px] items-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-[#101827] transition-colors hover:border-[#D4AF37]/45 hover:bg-slate-50 dark:border-[#1E293B] dark:bg-[#101827] dark:text-white dark:hover:bg-[#162032]"
         >
           <span>Lihat Analitik &amp; Skor</span>
         </Link>
@@ -310,17 +312,17 @@ export function SimulasiPage() {
           <div
             role="tablist"
             aria-label="Pilih mode simulasi"
-            className="inline-flex items-center gap-1 rounded-2xl border border-[#DCE4F0] bg-white p-1.5 dark:border-[#1B3163] dark:bg-[#091634]"
+            className="inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 dark:border-[#1E293B] dark:bg-[#101827]"
           >
             <button
               type="button"
               role="tab"
               aria-selected={activeTab === "whatif"}
               onClick={() => setActiveTab("whatif")}
-              className={`inline-flex min-h-[38px] items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all whitespace-nowrap ${
+              className={`ego-pressable inline-flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
                 activeTab === "whatif"
-                  ? "bg-[#087BFF] text-white shadow-xs"
-                  : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+                  ? "bg-[#101827] text-white shadow-xs dark:bg-[#D4AF37] dark:text-[#101827]"
+                  : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
               }`}
             >
               <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />
@@ -331,10 +333,10 @@ export function SimulasiPage() {
               role="tab"
               aria-selected={activeTab === "goal"}
               onClick={() => setActiveTab("goal")}
-              className={`inline-flex min-h-[38px] items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all whitespace-nowrap ${
+              className={`ego-pressable inline-flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
                 activeTab === "goal"
-                  ? "bg-[#087BFF] text-white shadow-xs"
-                  : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+                  ? "bg-[#101827] text-white shadow-xs dark:bg-[#D4AF37] dark:text-[#101827]"
+                  : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
               }`}
             >
               <Target className="h-3.5 w-3.5" aria-hidden="true" />
@@ -342,16 +344,16 @@ export function SimulasiPage() {
             </button>
           </div>
 
-          <div className="inline-flex items-center gap-2 rounded-xl border border-[#087BFF]/25 bg-[#087BFF]/8 px-3 py-2 text-[11px] font-semibold text-[#087BFF] dark:border-[#19D8FF]/25 dark:bg-[#19D8FF]/10 dark:text-[#19D8FF]">
-            <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <div className="inline-flex items-center gap-2 rounded-xl border border-[#FF4DDE]/40 bg-[#101827] px-3.5 py-2 text-[11px] font-semibold text-[#FF9EEA] shadow-xs">
+            <ShieldCheck className="h-4 w-4 shrink-0 text-[#FF4DDE]" aria-hidden="true" />
             <span>
-              Mode Simulasi Terisolasi: Tidak pernah memotong saldo atau membuat transaksi otomatis.
+              Sandbox Terisolasi: Tidak mempengaruhi saldo atau transaksi aktual.
             </span>
           </div>
         </div>
 
         {isLoading ? (
-          <div className="h-64 animate-pulse rounded-2xl bg-white dark:bg-[#091634]" />
+          <div className="h-64 animate-pulse rounded-3xl border border-slate-200 bg-white dark:border-[#1E293B] dark:bg-[#101827]" />
         ) : activeTab === "goal" ? (
           <GoalSimulatorPanel
             goals={savingsGoals}
@@ -362,10 +364,11 @@ export function SimulasiPage() {
             onSelectGoalId={setSelectedGoalId}
           />
         ) : (
-          <>
+          <div className="space-y-6">
+            <EgoStaggerSection index={0} className="space-y-5">
             {/* Quick Presets */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500 dark:text-[#C7D0E0]/70">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 Skenario Cepat:
               </span>
               {QUICK_PRESETS.map((preset) => (
@@ -373,7 +376,7 @@ export function SimulasiPage() {
                   key={preset.label}
                   type="button"
                   onClick={() => applyPreset(preset)}
-                  className="min-h-[34px] rounded-xl border border-[#DCE4F0] bg-white px-3 py-1.5 text-xs font-medium text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:text-[#087BFF] dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0] dark:hover:border-[#19D8FF]/40 dark:hover:text-[#19D8FF]"
+                  className="ego-pressable min-h-[36px] rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-[#101827] transition-colors hover:border-[#D4AF37]/50 hover:text-[#9A7411] dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-200 dark:hover:border-[#D4AF37]/50 dark:hover:text-[#E6C768]"
                 >
                   {preset.label}
                 </button>
@@ -382,12 +385,12 @@ export function SimulasiPage() {
 
             <div className="grid gap-6 lg:grid-cols-12">
               {/* Form Builder */}
-              <section className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6 lg:col-span-5">
+              <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6 lg:col-span-5">
                 <div className="flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#D4AF37]/15 text-[#9A7411] dark:text-[#E6C768]">
                     <Calculator className="h-4 w-4" aria-hidden="true" />
                   </div>
-                  <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                  <h2 className="text-base font-bold text-[#101827] dark:text-white">
                     Parameter Skenario
                   </h2>
                 </div>
@@ -396,7 +399,7 @@ export function SimulasiPage() {
                   <div className="space-y-1.5">
                     <label
                       htmlFor="whatif-type"
-                      className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                      className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                     >
                       Jenis Keputusan
                     </label>
@@ -408,7 +411,7 @@ export function SimulasiPage() {
                         setScenarioType(next);
                         setTitle(whatIfScenarioTypeLabel(next));
                       }}
-                      className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                     >
                       {SCENARIO_TYPES.map((t) => (
                         <option key={t} value={t}>
@@ -421,7 +424,7 @@ export function SimulasiPage() {
                   <div className="space-y-1.5">
                     <label
                       htmlFor="whatif-title"
-                      className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                      className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                     >
                       Nama Skenario
                     </label>
@@ -432,7 +435,7 @@ export function SimulasiPage() {
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="Contoh: Beli motor baru / Naik gaji"
-                      className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                     />
                   </div>
 
@@ -454,7 +457,7 @@ export function SimulasiPage() {
                       <div className="space-y-1.5">
                         <label
                           htmlFor="whatif-tenor"
-                          className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                          className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                         >
                           Tenor (Bulan)
                         </label>
@@ -469,13 +472,13 @@ export function SimulasiPage() {
                               Math.max(1, Number.parseInt(e.target.value || "1", 10) || 1)
                             )
                           }
-                          className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 font-mono text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                         />
                       </div>
                       <div className="space-y-1.5">
                         <label
                           htmlFor="whatif-rate"
-                          className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                          className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                         >
                           Bunga (%/Tahun)
                         </label>
@@ -491,12 +494,12 @@ export function SimulasiPage() {
                               Math.max(0, Number.parseFloat(e.target.value || "0") || 0)
                             )
                           }
-                          className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 font-mono text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                         />
                       </div>
-                      <div className="col-span-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2 text-xs dark:border-[#1B3163] dark:bg-[#06132F]">
+                      <div className="col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-700 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200">
                         Estimasi cicilan bulanan:{" "}
-                        <strong className="font-mono text-[#087BFF] dark:text-[#19D8FF]">
+                        <strong className="font-mono text-[#9A7411] dark:text-[#E6C768]">
                           {formatIDR(amortizedPreview)}/bln
                         </strong>
                       </div>
@@ -522,7 +525,7 @@ export function SimulasiPage() {
                     <div className="space-y-1.5">
                       <label
                         htmlFor="whatif-debt-target"
-                        className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                        className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                       >
                         Target Utang Spesifik
                       </label>
@@ -530,7 +533,7 @@ export function SimulasiPage() {
                         id="whatif-debt-target"
                         value={targetDebtId}
                         onChange={(e) => setTargetDebtId(e.target.value)}
-                        className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                       >
                         <option value="">Otomatis pilih utang aktif pertama</option>
                         {activeDebts.map((d) => (
@@ -546,7 +549,7 @@ export function SimulasiPage() {
                     <div className="space-y-1.5">
                       <label
                         htmlFor="whatif-goal-target"
-                        className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                        className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
                       >
                         Uji Dampak pada Target Finansial
                       </label>
@@ -554,7 +557,7 @@ export function SimulasiPage() {
                         id="whatif-goal-target"
                         value={targetGoalId}
                         onChange={(e) => setTargetGoalId(e.target.value)}
-                        className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
                       >
                         <option value="">Target aktif pertama</option>
                         {activeGoals.map((g) => (
@@ -570,7 +573,7 @@ export function SimulasiPage() {
                     type="button"
                     onClick={handleSaveScenario}
                     disabled={saveScenario.isPending || !title.trim()}
-                    className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#087BFF]/20 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-sm font-semibold text-[#101827] shadow-sm shadow-[#D4AF37]/20 transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {saveScenario.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -583,9 +586,9 @@ export function SimulasiPage() {
               </section>
 
               {/* Simulation Output Panel */}
-              <section className="space-y-4 rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6 lg:col-span-7">
+              <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6 lg:col-span-7">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                  <h2 className="text-base font-bold text-[#101827] dark:text-white">
                     Hasil Analisis Dampak Keuangan
                   </h2>
                   <span
@@ -602,87 +605,104 @@ export function SimulasiPage() {
                   </span>
                 </div>
 
-                <p className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-4 py-3 text-xs leading-relaxed text-[#06132F] dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]">
+                <p className="rounded-2xl border border-[#D4AF37]/30 bg-[#101827] px-4 py-3 text-xs leading-relaxed text-slate-200">
                   {simResult.verdict}
                 </p>
 
                 {/* Before vs After KPIs */}
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F]">
-                    <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Saldo Likuid (Saat Ini → Setelah Eksekusi)
                     </p>
-                    <p className="mt-1 font-mono text-sm font-bold tabular-nums text-[#06132F] dark:text-white">
+                    <p className="mt-1 font-mono text-sm font-bold tabular-nums text-[#101827] dark:text-white">
                       {formatIDR(simResult.beforeBalance, true)} →{" "}
                       <span
                         className={
                           simResult.afterImmediateBalance < 0
-                            ? "text-rose-600 dark:text-rose-400"
-                            : "text-[#087BFF] dark:text-[#19D8FF]"
+                            ? "text-[#DC2626] dark:text-[#F87171]"
+                            : "text-[#9A7411] dark:text-[#E6C768]"
                         }
                       >
-                        {formatIDR(simResult.afterImmediateBalance, true)}
+                        <EgoCountUp
+                          value={simResult.afterImmediateBalance}
+                          formatter={(v) => formatIDR(v, true)}
+                        />
                       </span>
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F]">
-                    <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Proyeksi Saldo 30 Hari / 90 Hari
                     </p>
-                    <p className="mt-1 font-mono text-sm font-bold tabular-nums text-[#06132F] dark:text-white">
+                    <p className="mt-1 font-mono text-sm font-bold tabular-nums text-[#101827] dark:text-white">
                       <span
                         className={
                           simResult.after30dBalance < 0
-                            ? "text-rose-600 dark:text-rose-400"
-                            : "text-[#087BFF] dark:text-[#19D8FF]"
+                            ? "text-[#DC2626] dark:text-[#F87171]"
+                            : "text-[#9A7411] dark:text-[#E6C768]"
                         }
                       >
-                        {formatIDR(simResult.after30dBalance, true)}
+                        <EgoCountUp
+                          value={simResult.after30dBalance}
+                          formatter={(v) => formatIDR(v, true)}
+                        />
                       </span>{" "}
                       /{" "}
                       <span
                         className={
                           simResult.after90dBalance < 0
-                            ? "text-rose-600 dark:text-rose-400"
-                            : "text-[#087BFF] dark:text-[#19D8FF]"
+                            ? "text-[#DC2626] dark:text-[#F87171]"
+                            : "text-[#9A7411] dark:text-[#E6C768]"
                         }
                       >
-                        {formatIDR(simResult.after90dBalance, true)}
+                        <EgoCountUp
+                          value={simResult.after90dBalance}
+                          formatter={(v) => formatIDR(v, true)}
+                        />
                       </span>
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F]">
-                    <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Arus Kas Bulanan (Sebelum → Sesudah)
                     </p>
-                    <p className="mt-1 font-mono text-sm font-bold tabular-nums text-[#06132F] dark:text-white">
+                    <p className="mt-1 font-mono text-sm font-bold tabular-nums text-[#101827] dark:text-white">
                       {formatIDR(simResult.monthlyCashflowBefore, true)} →{" "}
                       <span
                         className={
                           simResult.monthlyCashflowAfter < 0
-                            ? "text-rose-600 dark:text-rose-400"
-                            : "text-emerald-600 dark:text-emerald-400"
+                            ? "text-[#DC2626] dark:text-[#F87171]"
+                            : "text-[#0D9488] dark:text-[#2DD4BF]"
                         }
                       >
-                        {formatIDR(simResult.monthlyCashflowAfter, true)}
+                        <EgoCountUp
+                          value={simResult.monthlyCashflowAfter}
+                          formatter={(v) => formatIDR(v, true)}
+                        />
                       </span>
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F]">
-                    <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Total Utang &amp; Ketahanan Dana Darurat
                     </p>
-                    <p className="mt-1 font-mono text-sm font-bold tabular-nums text-[#06132F] dark:text-white">
-                      Utang {formatIDR(simResult.debtAfter, true)} ·{" "}
+                    <p className="mt-1 font-mono text-sm font-bold tabular-nums text-[#101827] dark:text-white">
+                      Utang{" "}
+                      <EgoCountUp
+                        value={simResult.debtAfter}
+                        formatter={(v) => formatIDR(v, true)}
+                      />{" "}
+                      ·{" "}
                       {simResult.emergencyMonthsAfter !== null
                         ? `${simResult.emergencyMonthsAfter} bln`
                         : "—"}
                     </p>
                     {simResult.goalEtaImpactMonths !== null ? (
-                      <p className="mt-0.5 text-[11px] text-[#087BFF] dark:text-[#19D8FF]">
+                      <p className="mt-0.5 text-[11px] font-medium text-[#9A7411] dark:text-[#E6C768]">
                         Dampak ETA Target:{" "}
                         {simResult.goalEtaImpactMonths > 0
                           ? `Mundur +${simResult.goalEtaImpactMonths} bulan`
@@ -696,7 +716,7 @@ export function SimulasiPage() {
 
                 {/* Conservative vs Normal vs Optimistic Comparison */}
                 <div>
-                  <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/70">
+                  <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Perbandingan 3 Skenario (Konservatif / Normal / Optimistis)
                   </h3>
                   <div className="grid gap-2.5 sm:grid-cols-3">
@@ -708,10 +728,10 @@ export function SimulasiPage() {
                       return (
                         <div
                           key={key}
-                          className="rounded-xl border border-[#DCE4F0] bg-white p-3 dark:border-[#1B3163] dark:bg-[#06132F]"
+                          className="rounded-2xl border border-slate-200 bg-white p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]"
                         >
                           <div className="flex items-center justify-between gap-1">
-                            <p className="text-xs font-bold text-[#06132F] dark:text-white">
+                            <p className="text-xs font-bold text-[#101827] dark:text-white">
                               {v.label}
                             </p>
                             <span
@@ -720,15 +740,15 @@ export function SimulasiPage() {
                               {v.riskLevel}
                             </span>
                           </div>
-                          <p className="mt-2 text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+                          <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
                             Saldo 90 Hari
                           </p>
-                          <p className="font-mono text-sm font-bold tabular-nums text-[#087BFF] dark:text-[#19D8FF]">
+                          <p className="font-mono text-sm font-bold tabular-nums text-[#9A7411] dark:text-[#E6C768]">
                             {formatIDR(v.projectedBalance90d, true)}
                           </p>
-                          <p className="mt-1 text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+                          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                             Surplus/bln:{" "}
-                            <span className="font-mono font-semibold text-[#06132F] dark:text-white">
+                            <span className="font-mono font-semibold text-[#101827] dark:text-white">
                               {formatIDR(v.monthlyCashflowAfter, true)}
                             </span>
                           </p>
@@ -740,21 +760,22 @@ export function SimulasiPage() {
 
                 {/* Budget Notes + Recommendations */}
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 text-xs dark:border-[#1B3163] dark:bg-[#06132F]">
-                    <p className="font-bold text-[#06132F] dark:text-white">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 text-xs dark:border-[#1E293B] dark:bg-[#0B111E]">
+                    <p className="font-bold text-[#101827] dark:text-white">
                       Dampak Anggaran &amp; Kas
                     </p>
-                    <ul className="mt-2 space-y-1 text-slate-600 dark:text-[#C7D0E0]/85">
+                    <ul className="mt-2 space-y-1 text-slate-600 dark:text-slate-300">
                       {simResult.budgetImpactNotes.map((n) => (
                         <li key={n}>• {n}</li>
                       ))}
                     </ul>
                   </div>
-                  <div className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 text-xs dark:border-[#1B3163] dark:bg-[#06132F]">
-                    <p className="font-bold text-[#06132F] dark:text-white">
-                      Rekomendasi Keputusan
+                  <div className="rounded-2xl border border-[#FF4DDE]/25 bg-[#FF4DDE]/5 p-3.5 text-xs dark:border-[#FF4DDE]/30 dark:bg-[#162032]">
+                    <p className="flex items-center gap-1.5 font-bold text-[#A21CAF] dark:text-[#FF9EEA]">
+                      <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span>Rekomendasi Keputusan</span>
                     </p>
-                    <ul className="mt-2 space-y-1 text-slate-600 dark:text-[#C7D0E0]/85">
+                    <ul className="mt-2 space-y-1 text-slate-700 dark:text-slate-200">
                       {simResult.recommendations.map((r) => (
                         <li key={r}>• {r}</li>
                       ))}
@@ -763,22 +784,24 @@ export function SimulasiPage() {
                 </div>
               </section>
             </div>
+            </EgoStaggerSection>
 
             {/* Saved Scenarios List */}
-            <section className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
+            <EgoStaggerSection index={1}>
+            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
               <div className="mb-4 flex items-center justify-between gap-2">
                 <div>
-                  <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                  <h2 className="text-base font-bold text-[#101827] dark:text-white">
                     Skenario Simulasi Tersimpan ({savedScenarios.length})
                   </h2>
-                  <p className="text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
                     Arsip skenario What-If terpisah dari transaksi &amp; saldo akun nyata.
                   </p>
                 </div>
               </div>
 
               {savedScenarios.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-[#DCE4F0] bg-[#F4F7FB] p-5 text-center text-xs text-slate-600 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]/75">
+                <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-xs text-slate-600 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-400">
                   Belum ada skenario What-If yang disimpan. Klik &ldquo;Simpan Skenario Simulasi&rdquo; untuk menyimpan perbandingan keputusan Anda.
                 </p>
               ) : (
@@ -788,11 +811,11 @@ export function SimulasiPage() {
                     return (
                       <div
                         key={rec.id}
-                        className="flex flex-col justify-between rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] p-4 dark:border-[#1B3163] dark:bg-[#06132F]"
+                        className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-[#1E293B] dark:bg-[#0B111E]"
                       >
                         <div>
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-bold text-[#06132F] dark:text-white">
+                            <p className="text-sm font-bold text-[#101827] dark:text-white">
                               {rec.title}
                             </p>
                             <span
@@ -801,20 +824,20 @@ export function SimulasiPage() {
                               {rec.risk_level}
                             </span>
                           </div>
-                          <p className="mt-1 text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+                          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                             {whatIfScenarioTypeLabel(rec.scenario_type)} ·{" "}
                             {formatDateID(rec.created_at, dateFormat)}
                           </p>
-                          <p className="mt-2 font-mono text-xs font-semibold text-[#087BFF] dark:text-[#19D8FF]">
-                            Saldo 30h: {formatIDR(rec.result_summary.after30dBalance, true)}
+                          <p className="mt-2 font-mono text-xs font-semibold text-[#9A7411] dark:text-[#E6C768]">
+                            Saldo 30h: {formatIDR(rec.result_summary?.after30dBalance ?? 0, true)}
                           </p>
                         </div>
 
-                        <div className="mt-3 flex items-center justify-between gap-2 border-t border-[#DCE4F0] pt-3 dark:border-[#1B3163]">
+                        <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-200 pt-3 dark:border-[#1E293B]">
                           <button
                             type="button"
                             onClick={() => loadSavedScenario(rec)}
-                            className="text-xs font-semibold text-[#087BFF] hover:underline dark:text-[#19D8FF]"
+                            className="text-xs font-semibold text-[#9A7411] hover:underline dark:text-[#E6C768]"
                           >
                             Muat ke Simulator
                           </button>
@@ -822,7 +845,7 @@ export function SimulasiPage() {
                             type="button"
                             aria-label={`Hapus skenario ${rec.title}`}
                             onClick={() => handleDeleteScenario(rec.id)}
-                            className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/15 dark:hover:text-rose-400"
+                            className="rounded-lg p-1.5 text-slate-400 hover:bg-[#EF4444]/10 hover:text-[#DC2626] dark:hover:text-[#F87171]"
                           >
                             <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                           </button>
@@ -833,7 +856,8 @@ export function SimulasiPage() {
                 </div>
               )}
             </section>
-          </>
+            </EgoStaggerSection>
+          </div>
         )}
       </div>
     </AppShell>

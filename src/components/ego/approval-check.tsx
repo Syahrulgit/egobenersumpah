@@ -18,8 +18,8 @@ export function ApprovalCheck({
       htmlFor={id}
       className={`flex min-h-[44px] cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition-colors select-none ${
         checked
-          ? "border-[#087BFF]/45 bg-[#087BFF]/8 text-[#06132F] dark:border-[#19D8FF]/45 dark:bg-[#087BFF]/15 dark:text-white"
-          : "border-[#DCE4F0] bg-[#F4F7FB] text-slate-700 hover:border-[#087BFF]/30 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:border-[#087BFF]/40"
+          ? "border-[#D4AF37]/65 bg-[#D4AF37]/10 text-[#101827] dark:border-[#D4AF37]/55 dark:bg-[#D4AF37]/14 dark:text-white"
+          : "border-slate-200 bg-slate-50 text-slate-700 hover:border-[#D4AF37]/40 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300 dark:hover:border-[#D4AF37]/45"
       } ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
     >
       <input
@@ -28,17 +28,17 @@ export function ApprovalCheck({
         checked={checked}
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 bg-white text-[#087BFF] accent-[#087BFF] focus:ring-2 focus:ring-[#087BFF]/30 dark:border-[#233E7A] dark:bg-[#091634] dark:accent-[#19D8FF]"
+        className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 bg-white text-[#D4AF37] accent-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/30 dark:border-[#334155] dark:bg-[#101827] dark:accent-[#D4AF37]"
       />
       <span className="flex flex-col gap-0.5 text-sm leading-snug">
-        <span className="inline-flex items-center gap-1.5 font-semibold text-[#06132F] dark:text-white">
+        <span className="inline-flex items-center gap-1.5 font-semibold text-[#101827] dark:text-white">
           <ShieldCheck
-            className="h-4 w-4 shrink-0 text-[#087BFF] dark:text-[#19D8FF]"
+            className="h-4 w-4 shrink-0 text-[#B8901F] dark:text-[#D4AF37]"
             aria-hidden="true"
           />
           Saya, Owner, menyetujui tindakan ini secara sadar &amp; eksplisit.
         </span>
-        <span className="text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+        <span className="text-xs text-slate-500 dark:text-slate-400">
           Demi keamanan brankas Anda, saldo tidak akan berubah sebelum kotak ini dicentang.
         </span>
       </span>

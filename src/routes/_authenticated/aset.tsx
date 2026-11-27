@@ -7,11 +7,17 @@ import {
   Search,
   TrendingUp,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/ego/app-shell";
 import { ApprovalCheck } from "../../components/ego/approval-check";
 import { AssetTypeIcon } from "../../components/ego/category-icon";
+import { EgoCompanion } from "../../components/ego/ego-brand";
+import {
+  EgoAnimatedBar,
+  EgoCountUp,
+  EgoStaggerSection,
+} from "../../components/ego/ego-motion";
 import { ModalSheet } from "../../components/ego/modal-sheet";
 import { MoneyInput } from "../../components/ego/money-input";
 import { useTransactionSheet } from "../../components/ego/transaction-input-sheet";
@@ -58,6 +64,26 @@ export function AsetPage() {
   const assets = vault?.assets ?? [];
   const totalAssetValue = assets.reduce((sum, a) => sum + a.current_value, 0);
   const visibleAssets = showAllAssets ? assets : assets.slice(0, 3);
+  const categoryBreakdown = useMemo(() => {
+    const map = new Map<AssetType, { total: number; count: number }>();
+    for (const a of assets) {
+      const prev = map.get(a.asset_type) ?? { total: 0, count: 0 };
+      map.set(a.asset_type, {
+        total: prev.total + a.current_value,
+        count: prev.count + 1,
+      });
+    }
+    return Array.from(map.entries())
+      .map(([type, info]) => ({
+        type,
+        label: assetTypeLabel(type),
+        total: info.total,
+        count: info.count,
+        pct: totalAssetValue > 0 ? Math.round((info.total / totalAssetValue) * 100) : 0,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 4);
+  }, [assets, totalAssetValue]);
 
   async function handleCreateAsset(e: React.FormEvent) {
     e.preventDefault();
@@ -139,7 +165,7 @@ export function AsetPage() {
         <button
           type="button"
           onClick={() => setCreateModalOpen(true)}
-          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#087BFF]/20 hover:brightness-110 whitespace-nowrap"
+          className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-3.5 py-2 text-xs font-semibold text-[#101827] shadow-sm shadow-[#D4AF37]/20 hover:brightness-105 whitespace-nowrap"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Tambah Aset</span>
@@ -147,56 +173,111 @@ export function AsetPage() {
       }
     >
       <div className="space-y-6">
-        {/* Portfolio Hero Card */}
-        <section className="ego-card-hero flex flex-col justify-between gap-4 rounded-3xl border border-[#1B3163] p-5 text-white shadow-lg shadow-[#06132F]/15 sm:flex-row sm:items-center sm:p-6">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#C7D0E0]/80">
-              Total Nilai Portofolio Aset
-            </p>
-            <p className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-white sm:text-3xl">
-              {formatIDR(totalAssetValue)}
-            </p>
-            <p className="mt-1 text-xs text-[#C7D0E0]/80">
-              {assets.length} instrumen / kepemilikan tercatat
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                openTransactionSheet({
-                  type: "expense",
-                  category: "Investasi & Aset",
-                })
-              }
-              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-[#19D8FF]/35 bg-[#19D8FF]/15 px-4 py-2 text-xs font-semibold text-[#19D8FF] transition-colors hover:bg-[#19D8FF]/25"
-            >
-              <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>Catat Pembelian Aset</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setCreateModalOpen(true)}
-              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0666DB]"
-            >
-              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>Tambah Aset Baru</span>
-            </button>
-          </div>
-        </section>
+        {/* Portfolio Hero + Allocation Strip */}
+        <EgoStaggerSection index={0} className="space-y-4">
+          <section className="ego-card-hero ego-card-hero--living flex flex-col justify-between gap-4 rounded-3xl border border-[#D4AF37]/30 p-5 text-white shadow-lg shadow-[#101827]/20 sm:flex-row sm:items-center sm:p-6">
+            <div className="relative z-10 flex items-center gap-4">
+              <div className="hidden shrink-0 sm:block">
+                <EgoCompanion
+                  size="lg"
+                  mode={
+                    searchMutation.isPending
+                      ? "thinking"
+                      : createAsset.isPending || updateAsset.isPending
+                        ? "processing"
+                        : "idle"
+                  }
+                />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#E6C768]/90">
+                  Total Nilai Portofolio Aset
+                </p>
+                <p className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-white sm:text-3xl">
+                  <EgoCountUp
+                    value={totalAssetValue}
+                    formatter={(v) => formatIDR(v)}
+                  />
+                </p>
+                <p className="mt-1 text-xs text-slate-300">
+                  {assets.length} instrumen / kepemilikan tercatat
+                </p>
+              </div>
+            </div>
+            <div className="relative z-10 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  openTransactionSheet({
+                    type: "expense",
+                    category: "Investasi & Aset",
+                  })
+                }
+                className="ego-pressable inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37]/12 px-4 py-2 text-xs font-semibold text-[#E6C768] transition-colors hover:bg-[#D4AF37]/22"
+              >
+                <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Catat Pembelian Aset</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreateModalOpen(true)}
+                className="ego-pressable inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2 text-xs font-semibold text-[#101827] hover:brightness-105"
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Tambah Aset Baru</span>
+              </button>
+            </div>
+          </section>
 
+          {categoryBreakdown.length > 0 ? (
+            <section
+              aria-label="Alokasi kategori aset"
+              className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+            >
+              {categoryBreakdown.map((item) => (
+                <div
+                  key={item.type}
+                  className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[#101827] dark:text-white">
+                      {item.label}
+                    </span>
+                    <span className="font-mono text-[11px] font-bold text-[#9A7411] dark:text-[#E6C768]">
+                      {item.pct}%
+                    </span>
+                  </div>
+                  <p className="mt-1 font-mono text-sm font-bold tabular-nums text-[#101827] dark:text-white">
+                    {formatIDR(item.total, true)}
+                  </p>
+                  <div className="mt-2">
+                    <EgoAnimatedBar
+                      percentage={item.pct}
+                      heightClassName="h-1.5"
+                    />
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    {item.count} instrumen tercatat
+                  </p>
+                </div>
+              ))}
+            </section>
+          ) : null}
+        </EgoStaggerSection>
+
+        <EgoStaggerSection index={1}>
         <div className="grid gap-6 lg:grid-cols-12">
           {/* Asset List */}
           <section className="space-y-4 lg:col-span-8">
-            <div className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
               <div className="flex items-center justify-between gap-2">
-                <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                <h2 className="text-base font-bold text-[#101827] dark:text-white">
                   Daftar Aset Terdaftar ({assets.length})
                 </h2>
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(true)}
-                  className="inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-[#087BFF]/10 px-2.5 py-1 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                  className="ego-pressable inline-flex min-h-[38px] items-center gap-1 rounded-lg bg-[#D4AF37]/15 px-3 py-1 text-xs font-semibold text-[#9A7411] hover:bg-[#D4AF37]/25 dark:bg-[#D4AF37]/20 dark:text-[#E6C768]"
                 >
                   <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Baru</span>
@@ -208,25 +289,25 @@ export function AsetPage() {
                   {[1, 2, 3].map((k) => (
                     <div
                       key={k}
-                      className="h-20 animate-pulse rounded-2xl bg-[#F4F7FB] dark:bg-[#06132F]"
+                      className="h-20 animate-pulse rounded-2xl bg-slate-100 dark:bg-[#0B111E]"
                     />
                   ))}
                 </div>
               ) : assets.length === 0 ? (
-                <div className="mt-6 rounded-2xl border border-dashed border-[#DCE4F0] bg-[#F4F7FB] p-8 text-center dark:border-[#1B3163] dark:bg-[#06132F]/60">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+                <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-[#1E293B] dark:bg-[#0B111E]/70">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D4AF37]/15 text-[#9A7411] dark:bg-[#D4AF37]/15 dark:text-[#E6C768]">
                     <Briefcase className="h-6 w-6" aria-hidden="true" />
                   </div>
-                  <p className="mt-3 text-sm font-bold text-[#06132F] dark:text-white">
+                  <p className="mt-3 text-sm font-bold text-[#101827] dark:text-white">
                     Portofolio aset masih kosong
                   </p>
-                  <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+                  <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                     Catat kepemilikan emas, properti, kendaraan, atau instrumen investasi Anda agar kekayaan bersih terhitung utuh.
                   </p>
                   <button
                     type="button"
                     onClick={() => setCreateModalOpen(true)}
-                    className="mt-4 inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0666DB]"
+                    className="mt-4 inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2 text-xs font-semibold text-[#101827] hover:brightness-105"
                   >
                     <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                     <span>Catat Aset Pertama</span>
@@ -242,21 +323,21 @@ export function AsetPage() {
                     return (
                       <div
                         key={asset.id}
-                        className="flex flex-col justify-between gap-4 rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB]/70 p-4 transition-colors hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F]/80 dark:hover:border-[#19D8FF]/40"
+                        className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50/75 p-4 transition-colors hover:border-[#D4AF37]/45 dark:border-[#1E293B] dark:bg-[#0B111E]/85 dark:hover:border-[#D4AF37]/45"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#D4AF37]/12 text-[#9A7411] dark:bg-[#D4AF37]/15 dark:text-[#E6C768]">
                               <AssetTypeIcon
                                 type={asset.asset_type}
                                 className="h-4 w-4"
                               />
                             </span>
                             <div className="min-w-0">
-                              <h3 className="truncate text-sm font-bold text-[#06132F] dark:text-white">
+                              <h3 className="truncate text-sm font-bold text-[#101827] dark:text-white">
                                 {asset.asset_name}
                               </h3>
-                              <p className="mt-0.5 text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+                              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                                 {assetTypeLabel(asset.asset_type)}
                                 {asset.quantity !== null
                                   ? ` · ${asset.quantity} ${asset.unit ?? "unit"}`
@@ -265,34 +346,40 @@ export function AsetPage() {
                             </div>
                           </div>
 
-                          <span className="shrink-0 rounded-full bg-[#087BFF]/10 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+                          <span className="shrink-0 rounded-md bg-[#D4AF37]/15 px-2 py-0.5 font-mono text-[11px] font-bold text-[#9A7411] dark:bg-[#D4AF37]/20 dark:text-[#E6C768]">
                             {sharePct}%
                           </span>
                         </div>
 
                         {asset.notes ? (
-                          <p className="truncate text-xs text-slate-500 dark:text-[#C7D0E0]/70">
+                          <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                             {asset.notes}
                           </p>
                         ) : null}
 
-                        <div className="flex items-end justify-between gap-2 border-t border-[#DCE4F0]/80 pt-3 dark:border-[#1B3163]">
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/65">
-                              Nilai Taksiran
-                            </p>
-                            <p className="font-mono text-base font-bold tabular-nums text-[#06132F] dark:text-white">
-                              {formatIDR(asset.current_value)}
-                            </p>
+                        <div className="space-y-2.5 border-t border-slate-200 pt-3 dark:border-[#1E293B]">
+                          <EgoAnimatedBar
+                            percentage={sharePct}
+                            heightClassName="h-1.5"
+                          />
+                          <div className="flex items-end justify-between gap-2">
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Nilai Taksiran
+                              </p>
+                              <p className="font-mono text-base font-bold tabular-nums text-[#101827] dark:text-white">
+                                {formatIDR(asset.current_value)}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => startEdit(asset)}
+                              className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#101827] transition-colors hover:border-[#D4AF37]/50 hover:text-[#9A7411] whitespace-nowrap dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-200 dark:hover:border-[#D4AF37]/50 dark:hover:text-[#E6C768]"
+                            >
+                              <Pencil className="h-3 w-3" aria-hidden="true" />
+                              <span>Perbarui</span>
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => startEdit(asset)}
-                            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:text-[#087BFF] whitespace-nowrap dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0] dark:hover:border-[#19D8FF]/40 dark:hover:text-[#19D8FF]"
-                          >
-                            <Pencil className="h-3 w-3" aria-hidden="true" />
-                            <span>Perbarui</span>
-                          </button>
                         </div>
                       </div>
                     );
@@ -300,8 +387,8 @@ export function AsetPage() {
                 </div>
               )}
               {assets.length > 0 ? (
-                <div className="mt-4 flex flex-col items-center gap-2 border-t border-[#DCE4F0]/80 pt-4 dark:border-[#1B3163]">
-                  <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+                <div className="mt-4 flex flex-col items-center gap-2 border-t border-slate-200 pt-4 dark:border-[#1E293B]">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     {showAllAssets
                       ? `${assets.length} aset ditampilkan`
                       : `${visibleAssets.length} dari ${assets.length} aset ditampilkan`}
@@ -310,7 +397,7 @@ export function AsetPage() {
                     <button
                       type="button"
                       onClick={() => setShowAllAssets((current) => !current)}
-                      className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-[#087BFF]/25 bg-[#087BFF]/8 px-4 py-2 text-xs font-semibold text-[#087BFF] transition-colors hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/25 dark:bg-[#19D8FF]/10 dark:text-[#19D8FF]"
+                      className="ego-pressable inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-4 py-2 text-xs font-semibold text-[#9A7411] transition-colors hover:bg-[#D4AF37]/18 dark:border-[#D4AF37]/30 dark:bg-[#D4AF37]/15 dark:text-[#E6C768]"
                     >
                       {showAllAssets
                         ? "Tampilkan Lebih Sedikit"
@@ -324,11 +411,11 @@ export function AsetPage() {
 
           {/* Market Search Reference */}
           <section className="lg:col-span-4">
-            <div className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
-              <h2 className="text-sm font-bold text-[#06132F] dark:text-white">
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
+              <h2 className="text-sm font-bold text-[#101827] dark:text-white">
                 Referensi Nilai Pasar (Google Search)
               </h2>
-              <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+              <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                 Cek harga emas, kurs, atau nilai pasar terkini sebelum memperbarui taksiran aset Anda.
               </p>
               <form onSubmit={handleMarketLookup} className="mt-3 flex gap-2">
@@ -337,12 +424,12 @@ export function AsetPage() {
                   aria-label="Kueri harga pasar"
                   value={marketQuery}
                   onChange={(e) => setMarketQuery(e.target.value)}
-                  className="min-w-0 flex-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2 text-xs text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                  className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
                 />
                 <button
                   type="submit"
                   disabled={searchMutation.isPending}
-                  className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl bg-[#087BFF] px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#0666DB] disabled:opacity-50 whitespace-nowrap"
+                  className="ego-pressable inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-3.5 py-2 text-xs font-semibold text-[#101827] transition-all hover:brightness-105 disabled:opacity-50 whitespace-nowrap"
                 >
                   {searchMutation.isPending ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -354,7 +441,7 @@ export function AsetPage() {
               </form>
 
               {searchMutation.isError ? (
-                <div className="mt-3 space-y-2.5 rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                <div className="mt-3 space-y-2.5 rounded-xl border border-[#D4AF37]/35 bg-[#D4AF37]/10 p-3.5 text-xs text-[#101827] dark:border-[#D4AF37]/30 dark:bg-[#D4AF37]/12 dark:text-amber-200">
                   <p className="leading-relaxed">
                     {searchMutation.error instanceof Error
                       ? searchMutation.error.message
@@ -365,7 +452,7 @@ export function AsetPage() {
                       href={`https://www.google.com/search?q=${encodeURIComponent(marketQuery.trim())}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#06132F] hover:bg-slate-50 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#101827] hover:bg-slate-50 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
                     >
                       <span>Cari Langsung di Google</span>
                       <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
@@ -373,13 +460,13 @@ export function AsetPage() {
                   ) : null}
                 </div>
               ) : searchMutation.data ? (
-                <div className="mt-3 space-y-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 text-xs leading-relaxed text-slate-700 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]">
+                <div className="mt-3 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-xs leading-relaxed text-slate-700 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300">
                   <p className="whitespace-pre-line">
                     {searchMutation.data.answer}
                   </p>
                   {searchMutation.data.sources.length > 0 ? (
-                    <div className="border-t border-[#DCE4F0] pt-2 dark:border-[#1B3163]">
-                      <p className="mb-1 text-[11px] font-medium text-slate-500 dark:text-[#C7D0E0]/70">
+                    <div className="border-t border-slate-200 pt-2 dark:border-[#1E293B]">
+                      <p className="mb-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
                         Sumber:
                       </p>
                       <ul className="space-y-1">
@@ -389,7 +476,7 @@ export function AsetPage() {
                               href={src.uri}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-[#087BFF] hover:underline dark:text-[#19D8FF]"
+                              className="inline-flex items-center gap-1 text-[#9A7411] hover:underline dark:text-[#E6C768]"
                             >
                               <span className="max-w-56 truncate">{src.title}</span>
                               <ExternalLink className="h-3 w-3 shrink-0" />
@@ -404,6 +491,7 @@ export function AsetPage() {
             </div>
           </section>
         </div>
+        </EgoStaggerSection>
       </div>
 
       {/* Modal Tambah Aset Baru */}
@@ -417,9 +505,9 @@ export function AsetPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="asset-name"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
-              Nama Aset <span className="text-rose-600 dark:text-rose-400">*</span>
+              Nama Aset <span className="text-[#EF4444]">*</span>
             </label>
             <input
               id="asset-name"
@@ -428,14 +516,14 @@ export function AsetPage() {
               value={assetName}
               onChange={(e) => setAssetName(e.target.value)}
               placeholder="Contoh: Emas Antam / Reksadana"
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-[#C7D0E0]/45 dark:focus:border-[#19D8FF]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500"
             />
           </div>
 
           <div className="space-y-1.5">
             <label
               htmlFor="asset-type"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
               Kategori Aset
             </label>
@@ -443,7 +531,7 @@ export function AsetPage() {
               id="asset-type"
               value={assetType}
               onChange={(e) => setAssetType(e.target.value as AssetType)}
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
             >
               <option value="emas">Emas</option>
               <option value="investasi">Investasi</option>
@@ -458,7 +546,7 @@ export function AsetPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="asset-qty"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 Kuantitas
               </label>
@@ -470,13 +558,13 @@ export function AsetPage() {
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 placeholder="1"
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 font-mono text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-[#C7D0E0]/45 dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500"
               />
             </div>
             <div className="space-y-1.5">
               <label
                 htmlFor="asset-unit"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 Satuan
               </label>
@@ -486,7 +574,7 @@ export function AsetPage() {
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
                 placeholder="gram / unit"
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-[#C7D0E0]/45 dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500"
               />
             </div>
           </div>
@@ -502,7 +590,7 @@ export function AsetPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="asset-notes"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
               Catatan
             </label>
@@ -512,7 +600,7 @@ export function AsetPage() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Lokasi simpan / nomor seri"
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-[#C7D0E0]/45 dark:focus:border-[#19D8FF]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500"
             />
           </div>
 
@@ -525,7 +613,7 @@ export function AsetPage() {
           <button
             type="submit"
             disabled={!ownerConfirmed || createAsset.isPending}
-            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#087BFF]/20 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none dark:disabled:from-[#102452] dark:disabled:to-[#102452] dark:disabled:text-[#C7D0E0]/45"
+            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-sm font-semibold text-[#101827] shadow-sm transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none dark:disabled:from-[#162032] dark:disabled:to-[#162032] dark:disabled:text-slate-500"
           >
             {createAsset.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -558,7 +646,7 @@ export function AsetPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="edit-asset-notes"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 Catatan Pembaruan
               </label>
@@ -567,7 +655,7 @@ export function AsetPage() {
                 type="text"
                 value={editNotes}
                 onChange={(e) => setEditNotes(e.target.value)}
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               />
             </div>
             <ApprovalCheck
@@ -579,14 +667,14 @@ export function AsetPage() {
               <button
                 type="button"
                 onClick={() => setEditingAsset(null)}
-                className="min-h-[44px] flex-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-4 py-2.5 text-xs font-semibold text-[#06132F] hover:bg-slate-200 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
+                className="min-h-[44px] flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-[#101827] hover:bg-slate-200 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200"
               >
                 Batal
               </button>
               <button
                 type="submit"
                 disabled={!editConfirmed || updateAsset.isPending}
-                className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-xs font-semibold text-white hover:brightness-110 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 dark:disabled:from-[#102452] dark:disabled:to-[#102452] dark:disabled:text-[#C7D0E0]/45"
+                className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-xs font-semibold text-[#101827] hover:brightness-105 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 dark:disabled:from-[#162032] dark:disabled:to-[#162032] dark:disabled:text-slate-500"
               >
                 {updateAsset.isPending ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />

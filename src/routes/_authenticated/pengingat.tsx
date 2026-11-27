@@ -28,6 +28,10 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/ego/app-shell";
 import { ApprovalCheck } from "../../components/ego/approval-check";
+import {
+  EgoCountUp,
+  EgoStaggerSection,
+} from "../../components/ego/ego-motion";
 import { ModalSheet } from "../../components/ego/modal-sheet";
 import { MoneyInput } from "../../components/ego/money-input";
 import { formatDateID, formatIDR, todayISO } from "../../lib/finance";
@@ -382,7 +386,7 @@ export function PengingatPage() {
         <button
           type="button"
           onClick={openCreateModal}
-          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#087BFF]/20 hover:brightness-110 whitespace-nowrap"
+          className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-3.5 py-2 text-xs font-semibold text-[#101827] shadow-sm shadow-[#D4AF37]/20 transition-all hover:brightness-105"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Buat Pengingat</span>
@@ -403,30 +407,36 @@ export function PengingatPage() {
         ) : null}
 
         {/* Top KPI Strip */}
+        <EgoStaggerSection index={0}>
         <section className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="ego-card-hero rounded-3xl border border-[#1B3163] p-5 text-white shadow-lg shadow-[#06132F]/15">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#C7D0E0]/80">
-                Pengingat Hari Ini
+          <div className="ego-card-hero ego-card-hero--living rounded-3xl border border-[#D4AF37]/30 p-5 text-white shadow-lg shadow-[#101827]/15">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#E6C768]">
+                  Pengingat Hari Ini
+                </p>
+                <BellRing className="h-4 w-4 text-[#E6C768]" aria-hidden="true" />
+              </div>
+              <p className="mt-2 font-mono text-2xl font-bold tabular-nums text-white">
+                <EgoCountUp
+                  value={todayItems.length}
+                  formatter={(v) => `${Math.round(v)} Jadwal`}
+                />
               </p>
-              <BellRing className="h-4 w-4 text-[#19D8FF]" aria-hidden="true" />
+              <p className="mt-1.5 text-xs text-slate-300">
+                {unreadCount} pengingat belum dibaca
+              </p>
             </div>
-            <p className="mt-2 font-mono text-2xl font-bold tabular-nums text-white">
-              {todayItems.length} Jadwal
-            </p>
-            <p className="mt-1.5 text-xs text-[#C7D0E0]/80">
-              {unreadCount} pengingat belum dibaca
-            </p>
           </div>
 
-          <div className="rounded-3xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/70">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Terlambat &amp; Segera
               </p>
               <AlertTriangle
                 className={`h-4 w-4 ${
-                  overdueItems.length > 0 ? "text-rose-500" : "text-amber-500"
+                  overdueItems.length > 0 ? "text-[#EF4444]" : "text-[#D4AF37]"
                 }`}
                 aria-hidden="true"
               />
@@ -434,28 +444,34 @@ export function PengingatPage() {
             <p
               className={`mt-2 font-mono text-2xl font-bold tabular-nums ${
                 overdueItems.length > 0
-                  ? "text-rose-600 dark:text-rose-400"
-                  : "text-[#06132F] dark:text-white"
+                  ? "text-[#DC2626] dark:text-[#F87171]"
+                  : "text-[#101827] dark:text-white"
               }`}
             >
-              {overdueItems.length} Terlambat
+              <EgoCountUp
+                value={overdueItems.length}
+                formatter={(v) => `${Math.round(v)} Terlambat`}
+              />
             </p>
-            <p className="mt-1.5 text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
               {dueSoonItems.length} jatuh tempo ≤ 7 hari ke depan
             </p>
           </div>
 
-          <div className="rounded-3xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/70">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Jadwal Pembayaran
               </p>
-              <CalendarClock className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
+              <CalendarClock className="h-4 w-4 text-[#9A7411] dark:text-[#E6C768]" aria-hidden="true" />
             </div>
-            <p className="mt-2 font-mono text-2xl font-bold tabular-nums text-[#06132F] dark:text-white">
-              {paymentItems.filter((p) => p.reminder.is_active).length} Aktif
+            <p className="mt-2 font-mono text-2xl font-bold tabular-nums text-[#101827] dark:text-white">
+              <EgoCountUp
+                value={paymentItems.filter((p) => p.reminder.is_active).length}
+                formatter={(v) => `${Math.round(v)} Aktif`}
+              />
             </p>
-            <p className="mt-1.5 font-mono text-xs tabular-nums text-slate-500 dark:text-[#C7D0E0]/75">
+            <p className="mt-1.5 font-mono text-xs tabular-nums text-slate-500 dark:text-slate-400">
               Total{" "}
               {formatIDR(
                 paymentItems
@@ -466,17 +482,20 @@ export function PengingatPage() {
             </p>
           </div>
 
-          <div className="rounded-3xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/70">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Setoran Tabungan &amp; Gaji
               </p>
-              <PiggyBank className="h-4 w-4 text-emerald-500" aria-hidden="true" />
+              <PiggyBank className="h-4 w-4 text-[#0D9488] dark:text-[#2DD4BF]" aria-hidden="true" />
             </div>
-            <p className="mt-2 font-mono text-2xl font-bold tabular-nums text-[#06132F] dark:text-white">
-              {savingsItems.filter((s) => s.reminder.is_active).length} Jadwal
+            <p className="mt-2 font-mono text-2xl font-bold tabular-nums text-[#101827] dark:text-white">
+              <EgoCountUp
+                value={savingsItems.filter((s) => s.reminder.is_active).length}
+                formatter={(v) => `${Math.round(v)} Jadwal`}
+              />
             </p>
-            <p className="mt-1.5 font-mono text-xs tabular-nums text-slate-500 dark:text-[#C7D0E0]/75">
+            <p className="mt-1.5 font-mono text-xs tabular-nums text-slate-500 dark:text-slate-400">
               Total{" "}
               {formatIDR(
                 savingsItems
@@ -487,13 +506,15 @@ export function PengingatPage() {
             </p>
           </div>
         </section>
+        </EgoStaggerSection>
 
+        <EgoStaggerSection index={1} className="space-y-6">
         {/* Tabs & Sync Actions */}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div
             role="tablist"
             aria-label="Bagian Pusat Pengingat"
-            className="flex flex-wrap items-center gap-1 rounded-2xl border border-[#DCE4F0] bg-white p-1.5 dark:border-[#1B3163] dark:bg-[#091634]"
+            className="flex flex-wrap items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 dark:border-[#1E293B] dark:bg-[#101827]"
           >
             {(
               [
@@ -512,10 +533,10 @@ export function PengingatPage() {
                   role="tab"
                   aria-selected={active}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`inline-flex min-h-[38px] items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                  className={`ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
                     active
-                      ? "bg-[#087BFF] text-white shadow-xs"
-                      : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+                      ? "bg-[#101827] text-white shadow-xs dark:bg-[#D4AF37] dark:text-[#101827]"
+                      : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" aria-hidden="true" />
@@ -531,7 +552,7 @@ export function PengingatPage() {
                 type="button"
                 onClick={handleSyncSources}
                 disabled={syncSources.isPending}
-                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[#087BFF]/35 bg-[#087BFF]/10 px-3.5 py-2 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/35 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#D4AF37]/35 bg-[#D4AF37]/15 px-3.5 py-2 text-xs font-semibold text-[#9A7411] hover:bg-[#D4AF37]/25 dark:text-[#E6C768]"
               >
                 <RefreshCw
                   className={`h-3.5 w-3.5 ${syncSources.isPending ? "animate-spin" : ""}`}
@@ -546,7 +567,7 @@ export function PengingatPage() {
                 type="button"
                 onClick={() => markAllRead.mutate()}
                 disabled={markAllRead.isPending}
-                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-3.5 py-2 text-xs font-semibold text-[#06132F] hover:bg-slate-100 dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45]"
+                className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-[#101827] hover:bg-slate-50 dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-200 dark:hover:bg-[#162032]"
               >
                 <CheckCheck className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Tandai Semua Dibaca</span>
@@ -557,40 +578,40 @@ export function PengingatPage() {
 
         {/* Main Content Tab */}
         {activeTab === "riwayat" ? (
-          <section className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none">
             <div className="mb-4 flex items-center justify-between gap-2">
               <div>
-                <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                <h2 className="text-base font-bold text-[#101827] dark:text-white">
                   Riwayat Pengingat ({logs.length})
                 </h2>
-                <p className="text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
                   Catatan waktu pemicu notifikasi, pembacaan, dan pengajuan draf oleh Owner.
                 </p>
               </div>
             </div>
 
             {logs.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#DCE4F0] bg-[#F4F7FB] p-8 text-center dark:border-[#1B3163] dark:bg-[#06132F]/60">
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center dark:border-[#1E293B] dark:bg-[#0B111E]/70">
                 <History className="mx-auto h-8 w-8 text-slate-400" aria-hidden="true" />
-                <p className="mt-2 text-sm font-bold text-[#06132F] dark:text-white">
+                <p className="mt-2 text-sm font-bold text-[#101827] dark:text-white">
                   Belum ada riwayat pemicu pengingat
                 </p>
-                <p className="mt-1 text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   Riwayat tercatat otomatis ketika pengingat jatuh tempo muncul, ditandai dibaca, dijeda, atau dikirim sebagai draf.
                 </p>
               </div>
             ) : (
-              <ul className="divide-y divide-[#DCE4F0]/80 dark:divide-[#1B3163]">
+              <ul className="divide-y divide-slate-200/80 dark:divide-[#1E293B]">
                 {logs.map((log) => (
                   <li
                     key={log.id}
                     className="flex flex-col justify-between gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[#06132F] dark:text-white">
+                      <p className="text-sm font-semibold text-[#101827] dark:text-white">
                         {log.reminder_title}
                       </p>
-                      <p className="mt-0.5 text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+                      <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
                         {log.notes || log.event_type}
                         {log.scheduled_for
                           ? ` · Jadwal ${formatDateID(log.scheduled_for, dateFormat)}`
@@ -598,7 +619,7 @@ export function PengingatPage() {
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <span className="rounded-full bg-[#F4F7FB] px-2.5 py-0.5 text-[11px] font-semibold text-[#087BFF] dark:bg-[#06132F] dark:text-[#19D8FF]">
+                      <span className="rounded-full bg-[#D4AF37]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#9A7411] dark:text-[#E6C768]">
                         {log.event_type === "triggered"
                           ? "Notifikasi Muncul"
                           : log.event_type === "read"
@@ -611,7 +632,7 @@ export function PengingatPage() {
                                   ? "Diaktifkan"
                                   : "Dijadwalkan Ulang"}
                       </span>
-                      <span className="font-mono text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+                      <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
                         {formatDateID(log.created_at, dateFormat)}
                       </span>
                     </div>
@@ -624,10 +645,10 @@ export function PengingatPage() {
           <div className="space-y-5">
             {/* Today & Overdue Highlight Sections on main tab */}
             {activeTab === "ringkasan" && overdueItems.length > 0 ? (
-              <section className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4 dark:border-rose-500/35 dark:bg-rose-500/10">
+              <section className="rounded-3xl border border-[#EF4444]/30 bg-[#EF4444]/8 p-4 dark:bg-[#EF4444]/10">
                 <div className="mb-2.5 flex items-center justify-between gap-2">
-                  <h2 className="flex items-center gap-2 text-sm font-bold text-rose-900 dark:text-rose-200">
-                    <AlertTriangle className="h-4 w-4 text-rose-600 dark:text-rose-400" aria-hidden="true" />
+                  <h2 className="flex items-center gap-2 text-sm font-bold text-[#991B1B] dark:text-[#FCA5A5]">
+                    <AlertTriangle className="h-4 w-4 text-[#DC2626] dark:text-[#F87171]" aria-hidden="true" />
                     <span>Tagihan / Kewajiban Terlambat ({overdueItems.length})</span>
                   </h2>
                 </div>
@@ -635,13 +656,13 @@ export function PengingatPage() {
                   {overdueItems.slice(0, 4).map(({ reminder, statusText }) => (
                     <div
                       key={reminder.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-rose-200/80 bg-white px-3.5 py-2.5 dark:border-rose-500/25 dark:bg-[#091634]"
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-[#EF4444]/25 bg-white px-3.5 py-2.5 dark:bg-[#101827]"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-bold text-[#06132F] dark:text-white">
+                        <p className="truncate text-xs font-bold text-[#101827] dark:text-white">
                           {reminder.title}
                         </p>
-                        <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                        <p className="text-[11px] font-semibold text-[#DC2626] dark:text-[#F87171]">
                           {statusText} · {formatDateID(reminder.due_date, dateFormat)}
                         </p>
                       </div>
@@ -652,7 +673,7 @@ export function PengingatPage() {
                           setDraftConfirmed(false);
                           setDraftAdvanceCycle(true);
                         }}
-                        className="shrink-0 rounded-lg bg-rose-600 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-rose-700"
+                        className="shrink-0 rounded-lg bg-[#EF4444] px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#DC2626]"
                       >
                         Ajukan Bayar
                       </button>
@@ -663,7 +684,7 @@ export function PengingatPage() {
             ) : null}
 
             {/* Filters Bar */}
-            <section className="rounded-2xl border border-[#DCE4F0] bg-white p-4 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
+            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none">
               <div className="grid gap-3 md:grid-cols-12">
                 <div className="relative md:col-span-5">
                   <Search
@@ -676,7 +697,7 @@ export function PengingatPage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Cari nama pengingat atau catatan..."
                     aria-label="Cari pengingat keuangan"
-                    className="min-h-[42px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] py-2 pr-3.5 pl-10 text-xs text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-[#C7D0E0]/45"
+                    className="min-h-[42px] w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pr-3.5 pl-10 text-xs text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500"
                   />
                 </div>
 
@@ -687,7 +708,7 @@ export function PengingatPage() {
                     onChange={(e) =>
                       setCategoryFilter(e.target.value as ReminderCategory | "all")
                     }
-                    className="min-h-[42px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2 text-xs font-medium text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                    className="min-h-[42px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-medium text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
                   >
                     <option value="all">Semua Kategori (7 Jenis)</option>
                     {REMINDER_CATEGORIES.map((c) => (
@@ -703,7 +724,7 @@ export function PengingatPage() {
                     aria-label="Filter status pengingat"
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value as ReminderStatusFilter)}
-                    className="min-h-[42px] w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2 text-xs font-medium text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                    className="min-h-[42px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-medium text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
                   >
                     <option value="all">Semua Status</option>
                     <option value="due_today">Hari Ini</option>
@@ -718,10 +739,10 @@ export function PengingatPage() {
             </section>
 
             {/* Reminder List */}
-            <section className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none">
+            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                  <h2 className="text-base font-bold text-[#101827] dark:text-white">
                     {activeTab === "pembayaran"
                       ? "Jadwal Pembayaran & Kewajiban"
                       : activeTab === "tabungan"
@@ -729,32 +750,32 @@ export function PengingatPage() {
                         : "Daftar Pengingat Keuangan"}{" "}
                     ({filteredItems.length})
                   </h2>
-                  <p className="text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
                     EGO tidak pernah memotong saldo secara otomatis. Gunakan tombol Ajukan Draf untuk mengirim perintah yang menunggu konfirmasi Anda.
                   </p>
                 </div>
               </div>
 
               {isLoading ? (
-                <div className="h-44 animate-pulse rounded-2xl bg-[#F4F7FB] dark:bg-[#06132F]" />
+                <div className="h-44 animate-pulse rounded-2xl bg-slate-50 dark:bg-[#0B111E]" />
               ) : filteredItems.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[#DCE4F0] bg-[#F4F7FB] p-8 text-center dark:border-[#1B3163] dark:bg-[#06132F]/60">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center dark:border-[#1E293B] dark:bg-[#0B111E]/70">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D4AF37]/15 text-[#9A7411] dark:text-[#E6C768]">
                     <Bell className="h-6 w-6" aria-hidden="true" />
                   </div>
-                  <p className="mt-3 text-sm font-bold text-[#06132F] dark:text-white">
+                  <p className="mt-3 text-sm font-bold text-[#101827] dark:text-white">
                     {reminders.length === 0
                       ? "Belum ada pengingat keuangan terdaftar"
                       : "Tidak ada pengingat yang sesuai dengan filter"}
                   </p>
-                  <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+                  <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-600 dark:text-slate-300">
                     Buat pengingat tagihan bulanan, cicilan, gaji, atau setoran tabungan dengan jadwal H-7, H-3, H-1, hingga tanggal jatuh tempo.
                   </p>
                   <div className="mt-4 flex flex-wrap justify-center gap-2">
                     <button
                       type="button"
                       onClick={openCreateModal}
-                      className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0666DB]"
+                      className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2 text-xs font-semibold text-[#101827]"
                     >
                       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                       <span>Buat Pengingat Pertama</span>
@@ -763,7 +784,7 @@ export function PengingatPage() {
                       <button
                         type="button"
                         onClick={handleSyncSources}
-                        className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-white px-4 py-2 text-xs font-semibold text-[#06132F] hover:bg-slate-100 dark:border-[#1B3163] dark:bg-[#091634] dark:text-white"
+                        className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-[#101827] hover:bg-slate-50 dark:border-[#1E293B] dark:bg-[#101827] dark:text-white"
                       >
                         <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
                         <span>Impor dari Tagihan &amp; Utang ({pendingSyncCount})</span>
@@ -772,20 +793,20 @@ export function PengingatPage() {
                   </div>
                 </div>
               ) : (
-                <div className="divide-y divide-[#DCE4F0]/80 dark:divide-[#1B3163]">
+                <div className="divide-y divide-slate-200/80 dark:divide-[#1E293B]">
                   {visibleItems.map(({ reminder: r, status, allOffsets, statusText }) => {
                     const meta = reminderCategoryMeta(r.reminder_type);
                     const acc = r.linked_account_id ? accountMap.get(r.linked_account_id) : undefined;
                     const statusBadgeCls =
                       status === "inactive"
-                        ? "bg-slate-200 text-slate-600 dark:bg-[#132652] dark:text-[#C7D0E0]/60"
+                        ? "bg-slate-200 text-slate-600 dark:bg-[#162032] dark:text-slate-400"
                         : status === "overdue"
-                          ? "bg-rose-500/15 text-rose-700 dark:text-rose-300"
+                          ? "bg-[#EF4444]/15 text-[#DC2626] dark:text-[#F87171]"
                           : status === "due_today"
                             ? "bg-amber-500/15 text-amber-800 dark:text-amber-300"
                             : status === "due_soon"
-                              ? "bg-[#087BFF]/15 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
-                              : "bg-slate-100 text-slate-600 dark:bg-[#0D1E45] dark:text-[#C7D0E0]";
+                              ? "bg-[#D4AF37]/15 text-[#9A7411] dark:text-[#E6C768]"
+                              : "bg-slate-100 text-slate-600 dark:bg-[#162032] dark:text-slate-300";
 
                     return (
                       <div
@@ -797,33 +818,33 @@ export function PengingatPage() {
                             {r.is_active && !r.is_read ? (
                               <span
                                 title="Belum dibaca"
-                                className="inline-block h-2 w-2 rounded-full bg-[#087BFF] dark:bg-[#19D8FF]"
+                                className="inline-block h-2 w-2 rounded-full bg-[#D4AF37]"
                               />
                             ) : null}
                             <h3
                               className={`text-sm font-bold ${
                                 r.is_active
-                                  ? "text-[#06132F] dark:text-white"
-                                  : "text-slate-400 line-through dark:text-[#C7D0E0]/45"
+                                  ? "text-[#101827] dark:text-white"
+                                  : "text-slate-400 line-through dark:text-slate-500"
                               }`}
                             >
                               {r.title}
                             </h3>
-                            <span className="rounded-full bg-[#F4F7FB] px-2.5 py-0.5 text-[11px] font-semibold text-slate-700 dark:bg-[#06132F] dark:text-[#C7D0E0]">
+                            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700 dark:bg-[#162032] dark:text-slate-200">
                               {meta.label}
                             </span>
                             <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${statusBadgeCls}`}>
                               {statusText}
                             </span>
                             {r.is_active && r.is_read ? (
-                              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                              <span className="rounded-full bg-[#14B8A6]/12 px-2 py-0.5 text-[10px] font-semibold text-[#0D9488] dark:text-[#2DD4BF]">
                                 Dibaca
                               </span>
                             ) : null}
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-[#C7D0E0]/75">
-                            <span className="font-mono font-semibold text-[#06132F] dark:text-white">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                            <span className="font-mono font-semibold text-[#101827] dark:text-white">
                               {formatDateID(r.due_date, dateFormat)} · {r.reminder_time || "08:00"}
                             </span>
                             <span>{reminderFrequencyLabel(r.frequency)}</span>
@@ -835,7 +856,7 @@ export function PengingatPage() {
                           </div>
 
                           {r.notes ? (
-                            <p className="text-xs text-slate-500 dark:text-[#C7D0E0]/65">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
                               {r.notes}
                             </p>
                           ) : null}
@@ -845,10 +866,10 @@ export function PengingatPage() {
                           <span
                             className={`mr-1 font-mono text-sm font-bold tabular-nums ${
                               r.transaction_type === "income"
-                                ? "text-[#087BFF] dark:text-[#19D8FF]"
+                                ? "text-[#0D9488] dark:text-[#2DD4BF]"
                                 : r.transaction_type === "transfer"
-                                  ? "text-emerald-600 dark:text-emerald-400"
-                                  : "text-rose-600 dark:text-rose-400"
+                                  ? "text-[#9A7411] dark:text-[#E6C768]"
+                                  : "text-[#DC2626] dark:text-[#F87171]"
                             }`}
                           >
                             {r.transaction_type === "income"
@@ -867,7 +888,7 @@ export function PengingatPage() {
                                 setDraftConfirmed(false);
                                 setDraftAdvanceCycle(true);
                               }}
-                              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl bg-[#087BFF]/10 px-3 py-1.5 text-xs font-semibold text-[#087BFF] hover:bg-[#087BFF]/15 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                              className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#D4AF37]/15 px-3 py-1.5 text-xs font-semibold text-[#9A7411] hover:bg-[#D4AF37]/25 dark:text-[#E6C768]"
                             >
                               <Send className="h-3 w-3" aria-hidden="true" />
                               <span>Ajukan Draf</span>
@@ -879,7 +900,7 @@ export function PengingatPage() {
                             onClick={() => markRead.mutate({ reminder: r, is_read: !r.is_read })}
                             disabled={markRead.isPending}
                             title={r.is_read ? "Tandai belum dibaca" : "Tandai sudah dibaca"}
-                            className="inline-flex min-h-[36px] items-center gap-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-2.5 py-1.5 text-xs font-medium text-[#06132F] hover:bg-slate-200 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45]"
+                            className="ego-pressable inline-flex min-h-[40px] items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-[#101827] hover:bg-slate-200 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200 dark:hover:bg-[#162032]"
                           >
                             <Check className="h-3.5 w-3.5" aria-hidden="true" />
                             <span>{r.is_read ? "Dibaca" : "Tandai Baca"}</span>
@@ -889,7 +910,7 @@ export function PengingatPage() {
                             type="button"
                             onClick={() => openEditModal(r)}
                             aria-label={`Ubah pengingat ${r.title}`}
-                            className="inline-flex min-h-[36px] items-center gap-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-2.5 py-1.5 text-xs font-medium text-[#06132F] hover:bg-slate-200 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45]"
+                            className="ego-pressable inline-flex min-h-[40px] items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-[#101827] hover:bg-slate-200 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200 dark:hover:bg-[#162032]"
                           >
                             <Edit3 className="h-3.5 w-3.5" aria-hidden="true" />
                           </button>
@@ -899,7 +920,7 @@ export function PengingatPage() {
                             onClick={() => handleDownloadIcs(r)}
                             title="Unduh pengingat ke aplikasi Kalender (.ics)"
                             aria-label={`Ekspor kalender ${r.title}`}
-                            className="inline-flex min-h-[36px] items-center gap-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-2.5 py-1.5 text-xs font-medium text-[#06132F] hover:bg-slate-200 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45]"
+                            className="ego-pressable inline-flex min-h-[40px] items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-[#101827] hover:bg-slate-200 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200 dark:hover:bg-[#162032]"
                           >
                             <CalendarPlus className="h-3.5 w-3.5" aria-hidden="true" />
                           </button>
@@ -915,7 +936,7 @@ export function PengingatPage() {
                               })
                             }
                             aria-label={r.is_active ? `Nonaktifkan ${r.title}` : `Aktifkan ${r.title}`}
-                            className="inline-flex min-h-[36px] items-center gap-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-2.5 py-1.5 text-xs font-medium text-[#06132F] hover:bg-slate-200 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45]"
+                            className="ego-pressable inline-flex min-h-[40px] items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-[#101827] hover:bg-slate-200 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200 dark:hover:bg-[#162032]"
                           >
                             {r.is_active ? (
                               <Pause className="h-3.5 w-3.5" aria-hidden="true" />
@@ -929,7 +950,7 @@ export function PengingatPage() {
                             onClick={() => deleteReminder.mutate(r.id)}
                             disabled={deleteReminder.isPending}
                             aria-label={`Hapus pengingat ${r.title}`}
-                            className="inline-flex min-h-[36px] items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-500/10 dark:text-rose-400"
+                            className="ego-pressable inline-flex min-h-[40px] items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium text-[#DC2626] hover:bg-[#EF4444]/10 dark:text-[#F87171]"
                           >
                             <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                           </button>
@@ -940,8 +961,8 @@ export function PengingatPage() {
                 </div>
               )}
               {filteredItems.length > 0 ? (
-                <div className="mt-4 flex flex-col items-center gap-2 border-t border-[#DCE4F0]/80 pt-4 dark:border-[#1B3163]">
-                  <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+                <div className="mt-4 flex flex-col items-center gap-2 border-t border-slate-200/80 pt-4 dark:border-[#1E293B]">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     {showAllReminders
                       ? `${filteredItems.length} pengingat ditampilkan`
                       : `${visibleItems.length} dari ${filteredItems.length} pengingat ditampilkan`}
@@ -950,7 +971,7 @@ export function PengingatPage() {
                     <button
                       type="button"
                       onClick={() => setShowAllReminders((current) => !current)}
-                      className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-[#087BFF]/25 bg-[#087BFF]/8 px-4 py-2 text-xs font-semibold text-[#087BFF] transition-colors hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/25 dark:bg-[#19D8FF]/10 dark:text-[#19D8FF]"
+                      className="ego-pressable inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-4 py-2 text-xs font-semibold text-[#9A7411] transition-colors hover:bg-[#D4AF37]/20 dark:text-[#E6C768]"
                     >
                       {showAllReminders
                         ? "Tampilkan Lebih Sedikit"
@@ -962,34 +983,35 @@ export function PengingatPage() {
             </section>
           </div>
         )}
+        </EgoStaggerSection>
 
         {/* PWA & iOS Notification Capabilities Card (Honest, Zero-Cost) */}
         <section
           aria-label="Sistem Notifikasi & Dukungan Perangkat"
-          className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none"
+          className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none"
         >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Smartphone className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
-                <h2 className="text-sm font-bold text-[#06132F] dark:text-white">
+                <Smartphone className="h-4 w-4 text-[#9A7411] dark:text-[#E6C768]" aria-hidden="true" />
+                <h2 className="text-sm font-bold text-[#101827] dark:text-white">
                   Status Sistem Notifikasi &amp; Dukungan PWA / iOS
                 </h2>
               </div>
-              <p className="text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/80">
+              <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">
                 {capabilities.statusSummary}
               </p>
 
               <div className="flex flex-wrap gap-2 pt-1 text-[11px]">
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 font-semibold text-emerald-700 dark:text-emerald-300">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#14B8A6]/15 px-2.5 py-1 font-semibold text-[#0D9488] dark:text-[#2DD4BF]">
                   <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
                   1. Notifikasi Dalam Aplikasi: Aktif
                 </span>
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold ${
                     capabilities.canBrowserNotify
-                      ? "bg-[#087BFF]/15 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
-                      : "bg-slate-200/80 text-slate-700 dark:bg-[#132652] dark:text-[#C7D0E0]"
+                      ? "bg-[#D4AF37]/15 text-[#9A7411] dark:text-[#E6C768]"
+                      : "bg-slate-200/80 text-slate-700 dark:bg-[#162032] dark:text-slate-300"
                   }`}
                 >
                   {capabilities.canBrowserNotify ? (
@@ -1018,7 +1040,7 @@ export function PengingatPage() {
                 <button
                   type="button"
                   onClick={handleRequestBrowserPermission}
-                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#087BFF] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#0666DB]"
+                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-3.5 py-2 text-xs font-semibold text-[#101827] hover:brightness-105"
                 >
                   <BellRing className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Aktifkan Notifikasi Browser</span>
@@ -1028,7 +1050,7 @@ export function PengingatPage() {
               <button
                 type="button"
                 onClick={handleSendTestNotification}
-                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2 text-xs font-semibold text-[#06132F] hover:bg-slate-200 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45]"
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-[#101827] hover:bg-slate-200 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200 dark:hover:bg-[#162032]"
               >
                 <Bell className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Uji Notifikasi</span>
@@ -1036,8 +1058,8 @@ export function PengingatPage() {
             </div>
           </div>
 
-          <div className="mt-3 flex items-start gap-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-[11px] leading-relaxed text-slate-600 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]/80">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
+          <div className="mt-3 flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-[11px] leading-relaxed text-slate-600 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#9A7411] dark:text-[#E6C768]" aria-hidden="true" />
             <span>{capabilities.iosExplanation}</span>
           </div>
         </section>
@@ -1054,9 +1076,9 @@ export function PengingatPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="rem-title"
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
             >
-              Judul Pengingat <span className="text-rose-600">*</span>
+              Judul Pengingat <span className="text-[#DC2626]">*</span>
             </label>
             <input
               id="rem-title"
@@ -1065,7 +1087,7 @@ export function PengingatPage() {
               value={formTitle}
               onChange={(e) => setFormTitle(e.target.value)}
               placeholder="Contoh: Listrik PLN / Cicilan KPR / Setoran Dana Darurat"
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
             />
           </div>
 
@@ -1073,7 +1095,7 @@ export function PengingatPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="rem-category"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
               >
                 Jenis Pengingat
               </label>
@@ -1087,7 +1109,7 @@ export function PengingatPage() {
                     setFormTxType(reminderCategoryMeta(val).defaultTxType);
                   }
                 }}
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               >
                 {REMINDER_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -1100,7 +1122,7 @@ export function PengingatPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="rem-tx-type"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
               >
                 Arah Arus Kas
               </label>
@@ -1108,7 +1130,7 @@ export function PengingatPage() {
                 id="rem-tx-type"
                 value={formTxType}
                 onChange={(e) => setFormTxType(e.target.value as TransactionType)}
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               >
                 <option value="expense">Pengeluaran</option>
                 <option value="income">Pemasukan</option>
@@ -1128,7 +1150,7 @@ export function PengingatPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="rem-due-date"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
               >
                 Tanggal Jatuh Tempo
               </label>
@@ -1138,14 +1160,14 @@ export function PengingatPage() {
                 required
                 value={formDueDate}
                 onChange={(e) => setFormDueDate(e.target.value)}
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2.5 font-mono text-xs text-[#06132F] dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 font-mono text-xs text-[#101827] dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               />
             </div>
 
             <div className="space-y-1.5">
               <label
                 htmlFor="rem-time"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
               >
                 Waktu Pengingat
               </label>
@@ -1155,14 +1177,14 @@ export function PengingatPage() {
                 required
                 value={formTime}
                 onChange={(e) => setFormTime(e.target.value)}
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2.5 font-mono text-xs text-[#06132F] dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 font-mono text-xs text-[#101827] dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               />
             </div>
 
             <div className="space-y-1.5">
               <label
                 htmlFor="rem-freq"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
               >
                 Perulangan
               </label>
@@ -1170,7 +1192,7 @@ export function PengingatPage() {
                 id="rem-freq"
                 value={formFrequency}
                 onChange={(e) => setFormFrequency(e.target.value as ReminderFrequency)}
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2.5 text-xs text-[#06132F] dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-[#101827] dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               >
                 <option value="once">Sekali</option>
                 <option value="weekly">Mingguan</option>
@@ -1181,7 +1203,7 @@ export function PengingatPage() {
           </div>
 
           <div className="space-y-2">
-            <span className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]">
+            <span className="block text-xs font-semibold text-slate-700 dark:text-slate-200">
               Jadwal Peringatan Sebelum Jatuh Tempo
             </span>
             <div className="grid grid-cols-2 gap-2">
@@ -1192,15 +1214,15 @@ export function PengingatPage() {
                     key={opt.value}
                     className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium ${
                       checked
-                        ? "border-[#087BFF]/45 bg-[#087BFF]/10 text-[#087BFF] dark:border-[#19D8FF]/45 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
-                        : "border-[#DCE4F0] bg-[#F4F7FB] text-slate-600 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
+                        ? "border-[#D4AF37]/45 bg-[#D4AF37]/15 text-[#9A7411] dark:text-[#E6C768]"
+                        : "border-slate-200 bg-slate-50 text-slate-600 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300"
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleOffsetValue(opt.value)}
-                      className="h-3.5 w-3.5 rounded accent-[#087BFF]"
+                      className="h-3.5 w-3.5 rounded accent-[#D4AF37]"
                     />
                     <span>{opt.label}</span>
                   </label>
@@ -1211,7 +1233,7 @@ export function PengingatPage() {
             <div className="flex items-center gap-2 pt-1">
               <label
                 htmlFor="rem-custom-days"
-                className="text-xs font-medium text-slate-600 dark:text-[#C7D0E0]/80"
+                className="text-xs font-medium text-slate-600 dark:text-slate-300"
               >
                 Pengingat khusus Owner (H-n hari):
               </label>
@@ -1223,7 +1245,7 @@ export function PengingatPage() {
                 placeholder="Contoh: 5"
                 value={formCustomDays}
                 onChange={(e) => setFormCustomDays(e.target.value)}
-                className="w-24 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-1.5 font-mono text-xs text-[#06132F] dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                className="w-24 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 font-mono text-xs text-[#101827] dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               />
             </div>
           </div>
@@ -1232,7 +1254,7 @@ export function PengingatPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="rem-account"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
               >
                 Akun Terkait (Opsional)
               </label>
@@ -1240,7 +1262,7 @@ export function PengingatPage() {
                 id="rem-account"
                 value={formAccountId}
                 onChange={(e) => setFormAccountId(e.target.value)}
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-xs text-[#06132F] dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-[#101827] dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               >
                 <option value="">Tidak ditentukan</option>
                 {activeAccounts.map((acc) => (
@@ -1254,7 +1276,7 @@ export function PengingatPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="rem-notes"
-                className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
               >
                 Catatan (Opsional)
               </label>
@@ -1264,7 +1286,7 @@ export function PengingatPage() {
                 value={formNotes}
                 onChange={(e) => setFormNotes(e.target.value)}
                 placeholder="Nomor pelanggan / memo"
-                className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-xs text-[#06132F] dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-[#101827] dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
               />
             </div>
           </div>
@@ -1280,7 +1302,7 @@ export function PengingatPage() {
           <button
             type="submit"
             disabled={!formConfirmed || createReminder.isPending || updateReminder.isPending}
-            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#087BFF]/20 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-sm font-semibold text-[#101827] shadow-sm shadow-[#D4AF37]/20 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createReminder.isPending || updateReminder.isPending ? (
               <>
@@ -1303,23 +1325,23 @@ export function PengingatPage() {
       >
         {draftTarget ? (
           <form onSubmit={handleConfirmQueueDraft} className="space-y-4">
-            <div className="rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] p-4 text-xs dark:border-[#1B3163] dark:bg-[#06132F]">
-              <p className="font-bold text-[#06132F] dark:text-white">{draftTarget.title}</p>
-              <p className="mt-1 font-mono text-base font-bold text-[#087BFF] dark:text-[#19D8FF]">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs dark:border-[#1E293B] dark:bg-[#0B111E]">
+              <p className="font-bold text-[#101827] dark:text-white">{draftTarget.title}</p>
+              <p className="mt-1 font-mono text-base font-bold text-[#9A7411] dark:text-[#E6C768]">
                 {formatIDR(draftTarget.amount)}
               </p>
-              <p className="mt-1 text-slate-600 dark:text-[#C7D0E0]/75">
+              <p className="mt-1 text-slate-600 dark:text-slate-300">
                 Jatuh tempo: {formatDateID(draftTarget.due_date, dateFormat)}
               </p>
             </div>
 
             {draftTarget.frequency !== "once" ? (
-              <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-xs text-slate-700 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]">
+              <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-700 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200">
                 <input
                   type="checkbox"
                   checked={draftAdvanceCycle}
                   onChange={(e) => setDraftAdvanceCycle(e.target.checked)}
-                  className="h-4 w-4 rounded accent-[#087BFF]"
+                  className="h-4 w-4 rounded accent-[#D4AF37]"
                 />
                 <span>Majukan tanggal pengingat otomatis ke siklus berikutnya</span>
               </label>
@@ -1342,7 +1364,7 @@ export function PengingatPage() {
             <button
               type="submit"
               disabled={!draftConfirmed || queueDraft.isPending}
-              className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#087BFF]/20 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-sm font-semibold text-[#101827] shadow-sm shadow-[#D4AF37]/20 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {queueDraft.isPending ? (
                 <>

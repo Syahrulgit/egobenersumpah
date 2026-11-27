@@ -16,7 +16,14 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "../../components/ego/app-shell";
-import { EgoAnimatedMark } from "../../components/ego/ego-brand";
+import {
+  EgoAnimatedMark,
+  EgoCompanion,
+} from "../../components/ego/ego-brand";
+import {
+  EgoCountUp,
+  EgoStaggerSection,
+} from "../../components/ego/ego-motion";
 import { ApprovalCheck } from "../../components/ego/approval-check";
 import { LiveVoicePanel } from "../../components/ego/live-voice-panel";
 import { MoneyInput } from "../../components/ego/money-input";
@@ -96,10 +103,10 @@ function PendingDraftCard({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-[#087BFF]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+            <span className="rounded-full border border-[#FF4DDE]/25 bg-[#FF4DDE]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#A21CAF] dark:text-[#FF9EEA]">
               Usulan Draf
             </span>
-            <span className="text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               {formatDateID(cmd.created_at, dateFormat)} · Keyakinan{" "}
               {draft.confidence === "high"
                 ? "Tinggi"
@@ -108,7 +115,7 @@ function PendingDraftCard({
                   : "Rendah"}
             </span>
           </div>
-          <p className="mt-1.5 text-sm font-semibold text-[#06132F] dark:text-white">
+          <p className="mt-1.5 text-sm font-semibold text-[#101827] dark:text-white">
             &ldquo;{cmd.command_text}&rdquo;
           </p>
         </div>
@@ -125,7 +132,7 @@ function PendingDraftCard({
         <div className="space-y-1.5">
           <label
             htmlFor={`draft-type-${cmd.id}`}
-            className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+            className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
           >
             Jenis Mutasi
           </label>
@@ -138,7 +145,7 @@ function PendingDraftCard({
                 transaction_type: e.target.value as TransactionType,
               }))
             }
-            className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
           >
             <option value="expense">Pengeluaran</option>
             <option value="income">Pemasukan</option>
@@ -163,7 +170,7 @@ function PendingDraftCard({
           <div className="space-y-1.5">
             <label
               htmlFor={`draft-src-${cmd.id}`}
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
             >
               Akun Sumber
             </label>
@@ -176,7 +183,7 @@ function PendingDraftCard({
                   source_account_id: e.target.value || null,
                 }))
               }
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
             >
               <option value="">Pilih sumber...</option>
               {activeAccounts.map((acc) => (
@@ -192,7 +199,7 @@ function PendingDraftCard({
           <div className="space-y-1.5">
             <label
               htmlFor={`draft-dst-${cmd.id}`}
-              className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
             >
               Akun Tujuan
             </label>
@@ -205,7 +212,7 @@ function PendingDraftCard({
                   destination_account_id: e.target.value || null,
                 }))
               }
-              className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
             >
               <option value="">Pilih tujuan...</option>
               {activeAccounts.map((acc) => (
@@ -220,7 +227,7 @@ function PendingDraftCard({
         <div className="space-y-1.5">
           <label
             htmlFor={`draft-cat-${cmd.id}`}
-            className="block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]"
+            className="block text-xs font-semibold text-slate-700 dark:text-slate-200"
           >
             Kategori
           </label>
@@ -231,7 +238,7 @@ function PendingDraftCard({
             onChange={(e) =>
               setDraft((prev) => ({ ...prev, category: e.target.value }))
             }
-            className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-2.5 text-sm text-[#06132F] focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:focus:border-[#19D8FF]"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-[#101827] focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:focus:border-[#D4AF37]"
           />
         </div>
       </div>
@@ -248,7 +255,7 @@ function PendingDraftCard({
           type="button"
           onClick={() => onReject(cmd.id)}
           disabled={busy}
-          className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-4 py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:border-rose-500/40 dark:hover:bg-rose-500/10 dark:hover:text-rose-300"
+          className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-[#EF4444]/40 hover:bg-[#EF4444]/10 hover:text-[#DC2626] dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200 dark:hover:border-[#EF4444]/40 dark:hover:text-[#F87171]"
         >
           <X className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Tolak</span>
@@ -258,7 +265,7 @@ function PendingDraftCard({
           type="button"
           onClick={() => onApprove(cmd.id, draft)}
           disabled={!confirmed || busy}
-          className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-[#087BFF]/20 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none dark:disabled:from-[#102452] dark:disabled:to-[#102452] dark:disabled:text-[#C7D0E0]/45"
+          className="ego-pressable inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2 text-xs font-semibold text-[#101827] shadow-sm shadow-[#D4AF37]/20 transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none dark:disabled:from-[#162032] dark:disabled:to-[#162032] dark:disabled:text-slate-500"
         >
           <Check className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Setujui</span>
@@ -321,6 +328,28 @@ export function OwnerControlPage() {
 
   const pendingCommands = commands.filter((c) => c.status === "pending");
   const historyCommands = commands.filter((c) => c.status !== "pending");
+  const processedCount = historyCommands.filter(
+    (c) => c.status === "processed"
+  ).length;
+  const rejectedCount = historyCommands.filter(
+    (c) => c.status === "rejected"
+  ).length;
+
+  const roboMode =
+    advisorMutation.isPending || searchMutation.isPending
+      ? "thinking"
+      : queueCommand.isPending ||
+          approveCommand.isPending ||
+          rejectCommand.isPending
+        ? "processing"
+        : advisorMutation.isError ||
+            searchMutation.isError ||
+            queueCommand.isError ||
+            approveCommand.isError
+          ? "alert"
+          : advisorMutation.data || approveCommand.isSuccess
+            ? "happy"
+            : "idle";
 
   async function handleQueueCommand(e: React.FormEvent) {
     e.preventDefault();
@@ -354,7 +383,9 @@ export function OwnerControlPage() {
         draft,
         owner_confirmed: true,
       });
-      toast.success("Perintah disetujui dan transaksi resmi diposting.", { icon: <EgoAnimatedMark size="sm" mode="success" /> });
+      toast.success("Perintah disetujui dan transaksi resmi diposting.", {
+        icon: <EgoAnimatedMark size="sm" mode="success" />,
+      });
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Gagal menyetujui draf."
@@ -418,21 +449,22 @@ export function OwnerControlPage() {
   return (
     <AppShell
       title="Owner AI & Kendali"
-      subtitle="Asisten perintah suara, pemindai struk, riset pasar, dan antrean persetujuan mutlak Owner."
+      subtitle="Asisten Robo AI, perintah suara, pemindai struk, riset pasar, dan antrean persetujuan mutlak Owner."
       action={
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-[#087BFF]/30 bg-[#087BFF]/10 px-3 py-1 text-xs font-semibold text-[#087BFF] dark:border-[#19D8FF]/30 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-[#FF4DDE]/30 bg-[#FF4DDE]/10 px-3 py-1 text-xs font-semibold text-[#A21CAF] dark:text-[#FF9EEA]">
           <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
           <span>{pendingCommands.length} Antrean</span>
         </div>
       }
     >
       <div className="space-y-6">
-        {/* Segmented Filter */}
+        {/* Segmented Filter + Owner Control Summary */}
+        <EgoStaggerSection index={0} className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div
             role="tablist"
             aria-label="Pilih panel Owner AI atau Owner Control"
-            className="inline-flex items-center gap-1 rounded-2xl border border-[#DCE4F0] bg-white p-1.5 dark:border-[#1B3163] dark:bg-[#091634]"
+            className="inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 dark:border-[#1E293B] dark:bg-[#101827]"
           >
             {(
               [
@@ -450,10 +482,10 @@ export function OwnerControlPage() {
                 role="tab"
                 aria-selected={viewMode === tab.id}
                 onClick={() => setViewMode(tab.id)}
-                className={`inline-flex min-h-[38px] items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all whitespace-nowrap ${
+                className={`ego-pressable inline-flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
                   viewMode === tab.id
-                    ? "bg-[#087BFF] text-white shadow-xs"
-                    : "text-slate-600 hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:text-white"
+                    ? "bg-[#101827] text-white shadow-xs dark:bg-[#D4AF37] dark:text-[#101827]"
+                    : "text-slate-600 hover:text-[#101827] dark:text-slate-400 dark:hover:text-white"
                 }`}
               >
                 {tab.id === "ai" ? (
@@ -465,47 +497,93 @@ export function OwnerControlPage() {
               </button>
             ))}
           </div>
-
-          {viewMode === "ai" && pendingCommands.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => setViewMode("control")}
-              className="inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 dark:border-amber-500/35 dark:bg-amber-500/10 dark:text-amber-300"
-            >
-              <span>
-                {pendingCommands.length} draf menunggu persetujuan Owner
-              </span>
-            </button>
-          ) : null}
         </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-2xl border border-[#FF4DDE]/25 bg-white px-4 py-3 dark:bg-[#101827]">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#A21CAF] dark:text-[#FF9EEA]">
+              Menunggu Persetujuan
+            </p>
+            <p className="mt-1 font-mono text-lg font-bold tabular-nums text-[#101827] dark:text-white">
+              <EgoCountUp
+                value={pendingCommands.length}
+                formatter={(v) => `${Math.round(v)}`}
+              />
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-[#1E293B] dark:bg-[#101827]">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Disetujui Owner
+            </p>
+            <p className="mt-1 font-mono text-lg font-bold tabular-nums text-[#0D9488] dark:text-[#2DD4BF]">
+              <EgoCountUp
+                value={processedCount}
+                formatter={(v) => `${Math.round(v)}`}
+              />
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-[#1E293B] dark:bg-[#101827]">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Ditolak
+            </p>
+            <p className="mt-1 font-mono text-lg font-bold tabular-nums text-[#DC2626] dark:text-[#F87171]">
+              <EgoCountUp
+                value={rejectedCount}
+                formatter={(v) => `${Math.round(v)}`}
+              />
+            </p>
+          </div>
+        </div>
+        </EgoStaggerSection>
 
         {/* Owner AI Tools */}
         {showAiTools ? (
-          <>
-            {/* EGO AI Core — Konsultan Keuangan Cerdas */}
+          <EgoStaggerSection index={1} className="space-y-6">
+            {/* EGO AI Core + Robo AI Interactive Console */}
             <section
               aria-label="EGO AI Core Konsultan Keuangan"
-              className="rounded-3xl border border-[#1B3163]/20 bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6"
+              className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6"
             >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <EgoAnimatedMark size="md" mode={advisorMutation.isPending ? "processing" : advisorMutation.data ? "success" : "active"} />
-                  <div>
-                    <h2 className="text-base font-bold text-[#06132F] dark:text-white">
-                      EGO AI Core — Konsultan Keuangan Pribadi
-                    </h2>
-                    <p className="text-xs text-slate-600 dark:text-[#C7D0E0]/75">
-                      Menganalisis data aktual, proyeksi arus kas, strategi utang, anggaran, dan skor kesehatan tanpa memodifikasi saldo.
-                    </p>
+              {/* Midnight Navy + Neon Magenta Robo AI Console Strip */}
+              <div className="ego-card-hero ego-card-hero--living rounded-2xl border border-[#FF4DDE]/30 p-4 text-white sm:p-5">
+                <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3.5">
+                    <div className="shrink-0">
+                      <EgoCompanion size="lg" mode={roboMode} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#FF4DDE]/40 bg-[#FF4DDE]/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#FF9EEA]">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#FF4DDE]" />
+                          Robo AI Core Aktif
+                        </span>
+                        <EgoAnimatedMark
+                          size="sm"
+                          mode={
+                            advisorMutation.isPending
+                              ? "processing"
+                              : advisorMutation.data
+                                ? "success"
+                                : "active"
+                          }
+                        />
+                      </div>
+                      <h2 className="mt-1.5 text-base font-bold text-white sm:text-lg">
+                        EGO AI Core — Konsultan Keuangan Pribadi
+                      </h2>
+                      <p className="mt-0.5 text-xs text-slate-300">
+                        Menganalisis data aktual, proyeksi arus kas, strategi utang, anggaran, dan skor kesehatan tanpa memodifikasi saldo.
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#087BFF]/30 bg-[#087BFF]/10 px-3 py-1 font-mono text-[11px] font-semibold text-[#087BFF] dark:border-[#19D8FF]/30 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
-                  <span>
-                    Skor:{" "}
-                    {contextDigest.data_aktual.health_score !== null
-                      ? `${contextDigest.data_aktual.health_score}/100`
-                      : "—"}
-                  </span>
+                  <div className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-full border border-[#D4AF37]/40 bg-[#D4AF37]/15 px-3.5 py-1.5 font-mono text-xs font-semibold text-[#E6C768] sm:self-center">
+                    <span>
+                      Skor:{" "}
+                      {contextDigest.data_aktual.health_score !== null
+                        ? `${contextDigest.data_aktual.health_score}/100`
+                        : "—"}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -517,7 +595,7 @@ export function OwnerControlPage() {
                     type="button"
                     disabled={advisorMutation.isPending}
                     onClick={() => void submitAdvisorQuestion(q)}
-                    className="min-h-[34px] rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-1.5 text-left text-[11px] font-medium text-slate-700 transition-colors hover:border-[#087BFF]/45 hover:text-[#087BFF] disabled:opacity-50 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]/85 dark:hover:border-[#19D8FF]/45 dark:hover:text-[#19D8FF]"
+                    className="ego-pressable min-h-[36px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-left text-[11px] font-medium text-slate-700 transition-colors hover:border-[#FF4DDE]/45 hover:text-[#A21CAF] disabled:opacity-50 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300 dark:hover:border-[#FF4DDE]/45 dark:hover:text-[#FF9EEA]"
                   >
                     {q}
                   </button>
@@ -535,12 +613,12 @@ export function OwnerControlPage() {
                   value={advisorQuestion}
                   onChange={(e) => setAdvisorQuestion(e.target.value)}
                   placeholder="Tanyakan kondisi kas, kemampuan beli, strategi utang, atau evaluasi anggaran..."
-                  className="min-w-0 flex-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-4 py-2.5 text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#087BFF]/15 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-[#C7D0E0]/45 dark:focus:border-[#19D8FF]"
+                  className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#FF4DDE]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FF4DDE]/15 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500"
                 />
                 <button
                   type="submit"
                   disabled={advisorMutation.isPending || !advisorQuestion.trim()}
-                  className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#087BFF]/20 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap"
+                  className="ego-pressable inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-5 py-2.5 text-sm font-semibold text-[#101827] shadow-sm shadow-[#D4AF37]/20 transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {advisorMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -566,14 +644,14 @@ export function OwnerControlPage() {
               ) : null}
 
               {advisorMutation.data ? (
-                <div className="mt-5 space-y-4 rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] p-4 dark:border-[#1B3163] dark:bg-[#06132F] sm:p-5">
+                <div className="mt-5 space-y-4 rounded-2xl border border-[#FF4DDE]/25 bg-slate-50 p-4 dark:bg-[#0B111E] sm:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#087BFF]/12 px-2.5 py-0.5 text-[11px] font-bold text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FF4DDE]/12 px-2.5 py-0.5 text-[11px] font-bold text-[#A21CAF] dark:text-[#FF9EEA]">
                         <BrainCircuit className="h-3 w-3" aria-hidden="true" />
                         <span>Ringkasan Konsultasi EGO AI Core</span>
                       </span>
-                      <p className="mt-2 text-sm font-semibold leading-relaxed text-[#06132F] dark:text-white">
+                      <p className="mt-2 text-sm font-semibold leading-relaxed text-[#101827] dark:text-white">
                         {advisorMutation.data.ringkasan}
                       </p>
                     </div>
@@ -585,44 +663,44 @@ export function OwnerControlPage() {
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2">
-                    <div className="rounded-xl border border-[#DCE4F0] bg-white p-3.5 dark:border-[#1B3163] dark:bg-[#091634]">
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                    <div className="rounded-xl border border-slate-200 bg-white p-3.5 dark:border-[#1E293B] dark:bg-[#101827]">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#0D9488] dark:text-[#2DD4BF]">
                         1. Data Aktual Terverifikasi
                       </p>
-                      <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-slate-700 dark:text-[#C7D0E0]">
+                      <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-slate-700 dark:text-slate-200">
                         {advisorMutation.data.data_aktual.map((item) => (
                           <li key={item}>• {item}</li>
                         ))}
                       </ul>
                     </div>
 
-                    <div className="rounded-xl border border-[#DCE4F0] bg-white p-3.5 dark:border-[#1B3163] dark:bg-[#091634]">
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#087BFF] dark:text-[#19D8FF]">
+                    <div className="rounded-xl border border-slate-200 bg-white p-3.5 dark:border-[#1E293B] dark:bg-[#101827]">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#9A7411] dark:text-[#E6C768]">
                         2. Data Estimasi &amp; Forecast
                       </p>
-                      <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-slate-700 dark:text-[#C7D0E0]">
+                      <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-slate-700 dark:text-slate-200">
                         {advisorMutation.data.data_estimasi.map((item) => (
                           <li key={item}>• {item}</li>
                         ))}
                       </ul>
                     </div>
 
-                    <div className="rounded-xl border border-[#DCE4F0] bg-white p-3.5 dark:border-[#1B3163] dark:bg-[#091634]">
+                    <div className="rounded-xl border border-slate-200 bg-white p-3.5 dark:border-[#1E293B] dark:bg-[#101827]">
                       <p className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                         3. Hasil Simulasi Tersedia
                       </p>
-                      <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-slate-700 dark:text-[#C7D0E0]">
+                      <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-slate-700 dark:text-slate-200">
                         {advisorMutation.data.hasil_simulasi.map((item) => (
                           <li key={item}>• {item}</li>
                         ))}
                       </ul>
                     </div>
 
-                    <div className="rounded-xl border border-[#087BFF]/25 bg-white p-3.5 dark:border-[#19D8FF]/25 dark:bg-[#091634]">
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#06132F] dark:text-white">
+                    <div className="rounded-xl border border-[#FF4DDE]/25 bg-white p-3.5 dark:bg-[#101827]">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#A21CAF] dark:text-[#FF9EEA]">
                         4. Rekomendasi AI (Keputusan Tetap di Owner)
                       </p>
-                      <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-slate-700 dark:text-[#C7D0E0]">
+                      <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-slate-700 dark:text-slate-200">
                         {advisorMutation.data.rekomendasi_ai.map((item) => (
                           <li key={item}>• {item}</li>
                         ))}
@@ -640,7 +718,7 @@ export function OwnerControlPage() {
                     </div>
                   ) : null}
 
-                  <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     Model: <span className="font-mono">{advisorMutation.data.model_used}</span> · Rekomendasi di atas hanya bersifat analitis dan tidak mencatat transaksi otomatis.
                   </p>
                 </div>
@@ -649,16 +727,16 @@ export function OwnerControlPage() {
 
             <div className="grid gap-6 lg:grid-cols-12">
               {/* Natural Language Input */}
-              <section className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6 lg:col-span-7">
+              <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6 lg:col-span-7">
                 <div className="flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FF4DDE]/12 text-[#A21CAF] dark:text-[#FF9EEA]">
                     <Bot className="h-4 w-4" aria-hidden="true" />
                   </div>
-                  <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                  <h2 className="text-base font-bold text-[#101827] dark:text-white">
                     Perintah Bahasa Alami (Parser Lokal)
                   </h2>
                 </div>
-                <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+                <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
                   Ketik perintah keuangan dengan bahasa santai. EGO menyiapkan usulan draf ke Antrean Persetujuan tanpa memotong saldo secara otomatis.
                 </p>
 
@@ -673,7 +751,7 @@ export function OwnerControlPage() {
                     value={commandText}
                     onChange={(e) => setCommandText(e.target.value)}
                     placeholder='Contoh: "tadi bayar kopi 25rb pakai gopay" atau "terima gaji 15jt ke bca"'
-                    className="w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-sm text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#087BFF]/15 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-[#C7D0E0]/45 dark:focus:border-[#19D8FF] dark:focus:ring-[#19D8FF]/20"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/15 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500"
                   />
 
                   <div className="flex flex-wrap items-center gap-2">
@@ -682,7 +760,7 @@ export function OwnerControlPage() {
                         key={sample}
                         type="button"
                         onClick={() => setCommandText(sample)}
-                        className="min-h-[34px] rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 py-1.5 text-[11px] font-medium text-slate-600 transition-colors hover:border-[#087BFF]/40 hover:text-[#087BFF] dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]/80 dark:hover:border-[#19D8FF]/40 dark:hover:text-[#19D8FF]"
+                        className="min-h-[34px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-medium text-slate-600 transition-colors hover:border-[#D4AF37]/45 hover:text-[#9A7411] dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300 dark:hover:border-[#D4AF37]/45 dark:hover:text-[#E6C768]"
                       >
                         {sample}
                       </button>
@@ -690,11 +768,11 @@ export function OwnerControlPage() {
                   </div>
 
                   {liveDraftPreview ? (
-                    <div className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 dark:border-[#1B3163] dark:bg-[#06132F]">
-                      <p className="mb-1.5 text-[11px] font-semibold text-slate-500 dark:text-[#C7D0E0]/70">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-[#1E293B] dark:bg-[#0B111E]">
+                      <p className="mb-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                         Pratinjau Draf Terstruktur (JSON)
                       </p>
-                      <pre className="overflow-x-auto font-mono text-[11px] leading-relaxed text-[#087BFF] dark:text-[#19D8FF]">
+                      <pre className="overflow-x-auto font-mono text-[11px] leading-relaxed text-[#9A7411] dark:text-[#E6C768]">
                         {JSON.stringify(liveDraftPreview, null, 2)}
                       </pre>
                     </div>
@@ -704,7 +782,7 @@ export function OwnerControlPage() {
                     <button
                       type="submit"
                       disabled={queueCommand.isPending || !commandText.trim()}
-                      className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#087BFF]/20 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none dark:disabled:from-[#102452] dark:disabled:to-[#102452] dark:disabled:text-[#C7D0E0]/45"
+                      className="ego-pressable inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8901F] px-4 py-2.5 text-sm font-semibold text-[#101827] shadow-sm shadow-[#D4AF37]/20 transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none dark:disabled:from-[#162032] dark:disabled:to-[#162032] dark:disabled:text-slate-500"
                     >
                       {queueCommand.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -721,16 +799,16 @@ export function OwnerControlPage() {
               <div className="space-y-6 lg:col-span-5">
                 <LiveVoicePanel />
 
-                <section className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
+                <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#D4AF37]/15 text-[#9A7411] dark:text-[#E6C768]">
                       <Globe className="h-4 w-4" aria-hidden="true" />
                     </div>
-                    <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                    <h2 className="text-base font-bold text-[#101827] dark:text-white">
                       Riset Keuangan (Google Search)
                     </h2>
                   </div>
-                  <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+                  <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
                     Dapatkan data kurs, harga emas, suku bunga, atau informasi ekonomi terbaru langsung dari Google Search.
                   </p>
 
@@ -741,12 +819,12 @@ export function OwnerControlPage() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Contoh: Harga emas Antam 1 gram hari ini"
-                      className="min-w-0 flex-1 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2 text-xs text-[#06132F] placeholder:text-slate-400 focus:border-[#087BFF] focus:bg-white focus:outline-none dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:placeholder:text-[#C7D0E0]/45 dark:focus:border-[#19D8FF]"
+                      className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:bg-white focus:outline-none dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500"
                     />
                     <button
                       type="submit"
                       disabled={searchMutation.isPending || !searchQuery.trim()}
-                      className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl bg-[#087BFF] px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#0666DB] disabled:opacity-50 whitespace-nowrap"
+                      className="ego-pressable inline-flex min-h-[40px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#101827] px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#1E293B] disabled:opacity-50 dark:bg-[#D4AF37] dark:text-[#101827]"
                     >
                       {searchMutation.isPending ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -767,7 +845,7 @@ export function OwnerControlPage() {
                           href={`https://www.google.com/search?q=${encodeURIComponent(searchQuery.trim())}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#06132F] hover:bg-slate-50 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white"
+                          className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#101827] hover:bg-slate-50 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white"
                         >
                           <span>Cari Langsung di Google</span>
                           <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
@@ -775,9 +853,9 @@ export function OwnerControlPage() {
                       ) : null}
                     </div>
                   ) : searchMutation.data ? (
-                    <div className="mt-4 space-y-3 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-3.5 text-xs leading-relaxed text-slate-700 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]">
+                    <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-xs leading-relaxed text-slate-700 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-200">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-[#087BFF] dark:text-[#19D8FF]">
+                        <span className="font-semibold text-[#9A7411] dark:text-[#E6C768]">
                           Ringkasan Terverifikasi Search
                         </span>
                         <TtsButton
@@ -786,12 +864,12 @@ export function OwnerControlPage() {
                           compact
                         />
                       </div>
-                      <p className="whitespace-pre-line text-slate-700 dark:text-[#C7D0E0]">
+                      <p className="whitespace-pre-line text-slate-700 dark:text-slate-200">
                         {searchMutation.data.answer}
                       </p>
                       {searchMutation.data.sources.length > 0 ? (
-                        <div className="border-t border-[#DCE4F0] pt-2 dark:border-[#1B3163]">
-                          <p className="mb-1 text-[11px] font-medium text-slate-500 dark:text-[#C7D0E0]/70">
+                        <div className="border-t border-slate-200 pt-2 dark:border-[#1E293B]">
+                          <p className="mb-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
                             Sumber Referensi:
                           </p>
                           <ul className="space-y-1">
@@ -801,7 +879,7 @@ export function OwnerControlPage() {
                                   href={src.uri}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex items-center gap-1 text-[#087BFF] hover:underline dark:text-[#19D8FF]"
+                                  className="inline-flex items-center gap-1 text-[#9A7411] hover:underline dark:text-[#E6C768]"
                                 >
                                   <span className="max-w-64 truncate">{src.title}</span>
                                   <ExternalLink className="h-3 w-3 shrink-0" />
@@ -819,35 +897,35 @@ export function OwnerControlPage() {
 
             {/* Receipt / Nota Photo Scanner */}
             <ReceiptScanner accounts={accounts} />
-          </>
+          </EgoStaggerSection>
         ) : null}
 
         {/* Owner Control Queue & History */}
         {showControlQueue ? (
-          <>
-            <section className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
+          <EgoStaggerSection index={showAiTools ? 2 : 1} className="space-y-6">
+            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+                  <h2 className="text-base font-bold text-[#101827] dark:text-white">
                     Antrean Persetujuan Owner ({pendingCommands.length})
                   </h2>
-                  <p className="text-xs text-slate-600 dark:text-[#C7D0E0]/75">
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
                     Setiap draf wajib Anda tinjau dan setujui secara eksplisit sebelum saldo akun berubah.
                   </p>
                 </div>
               </div>
 
               {pendingCommands.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[#DCE4F0] bg-[#F4F7FB] p-8 text-center dark:border-[#1B3163] dark:bg-[#06132F]/60">
-                  <p className="text-sm font-bold text-[#06132F] dark:text-white">
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center dark:border-[#1E293B] dark:bg-[#0B111E]/70">
+                  <p className="text-sm font-bold text-[#101827] dark:text-white">
                     Antrean persetujuan bersih
                   </p>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+                  <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
                     Kirim perintah teks, suara, atau pindai struk untuk menyiapkan usulan transaksi baru.
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-[#DCE4F0]/80 dark:divide-[#1B3163]">
+                <div className="divide-y divide-slate-200/80 dark:divide-[#1E293B]">
                   {pendingCommands.map((cmd) => (
                     <PendingDraftCard
                       key={cmd.id}
@@ -864,26 +942,26 @@ export function OwnerControlPage() {
             </section>
 
             {/* Historical Owner Commands Log */}
-            <section className="rounded-2xl border border-[#DCE4F0] bg-white p-5 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-6">
-              <h2 className="text-base font-bold text-[#06132F] dark:text-white">
+            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#1E293B] dark:bg-[#101827] dark:shadow-none sm:p-6">
+              <h2 className="text-base font-bold text-[#101827] dark:text-white">
                 Log Riwayat Perintah Owner
               </h2>
               {historyCommands.length === 0 ? (
-                <p className="mt-3 text-xs text-slate-500 dark:text-[#C7D0E0]/65">
+                <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
                   Belum ada riwayat perintah yang disetujui atau ditolak.
                 </p>
               ) : (
-                <ul className="mt-4 divide-y divide-[#DCE4F0]/80 dark:divide-[#1B3163]">
+                <ul className="mt-4 divide-y divide-slate-200/80 dark:divide-[#1E293B]">
                   {historyCommands.map((cmd) => (
                     <li
                       key={cmd.id}
                       className="flex flex-col justify-between gap-2 py-3.5 first:pt-0 last:pb-0 sm:flex-row sm:items-center"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-[#06132F] dark:text-white">
+                        <p className="truncate text-sm font-semibold text-[#101827] dark:text-white">
                           &ldquo;{cmd.command_text}&rdquo;
                         </p>
-                        <p className="mt-0.5 text-xs text-slate-500 dark:text-[#C7D0E0]/75">
+                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                           {formatDateID(cmd.created_at, dateFormat)} ·{" "}
                           {cmd.parsed_draft?.amount
                             ? formatIDR(cmd.parsed_draft.amount)
@@ -894,8 +972,8 @@ export function OwnerControlPage() {
                       <span
                         className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                           cmd.status === "processed"
-                            ? "bg-[#087BFF]/10 text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
-                            : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                            ? "bg-[#14B8A6]/15 text-[#0D9488] dark:text-[#2DD4BF]"
+                            : "bg-[#EF4444]/12 text-[#DC2626] dark:text-[#F87171]"
                         }`}
                       >
                         {cmd.status === "processed"
@@ -907,7 +985,7 @@ export function OwnerControlPage() {
                 </ul>
               )}
             </section>
-          </>
+          </EgoStaggerSection>
         ) : null}
       </div>
     </AppShell>

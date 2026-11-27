@@ -97,38 +97,42 @@ export function PinLockScreen({ ownerName }: PinLockScreenProps) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#F4F7FB] px-4 py-8 text-[#06132F] dark:bg-[#040B1C] dark:text-slate-100">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#F6F7FB] px-4 py-8 text-[#101827] dark:bg-[#0B111E] dark:text-slate-100">
       <div className="mb-4 flex w-full max-w-sm justify-end">
         <ThemeToggleButton />
       </div>
 
-      <div className="w-full max-w-sm rounded-3xl border border-[#DCE4F0] bg-white p-6 shadow-sm dark:border-[#1B3163] dark:bg-[#091634] dark:shadow-none sm:p-7">
+      <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-[#D4AF37]/25 dark:bg-[#101827] dark:shadow-none sm:p-7">
         <div className="flex items-center gap-3">
           <div className="min-w-0">
-            <p className="inline-flex items-center gap-1 text-xs font-semibold text-[#087BFF] dark:text-[#19D8FF]">
+            <p className="inline-flex items-center gap-1 text-xs font-semibold text-[#9A7411] dark:text-[#E6C768]">
               <Lock className="h-3 w-3" aria-hidden="true" />
               <span>Kunci PIN Brankas</span>
             </p>
-            <p className="truncate text-sm font-bold text-[#06132F] dark:text-white">
+            <p className="truncate text-sm font-bold text-[#101827] dark:text-white">
               EGO Personal AI
             </p>
           </div>
         </div>
 
         <div className="mt-7 flex justify-center">
-          <EgoAnimatedMark size="lg" mode={verifyPin.isPending ? "processing" : errorMsg ? "warning" : "locked"} className="p-2" />
+          <EgoAnimatedMark
+            size="lg"
+            mode={verifyPin.isPending ? "processing" : errorMsg ? "warning" : "locked"}
+            className="p-2"
+          />
         </div>
 
         <div className="mt-5 text-center">
-          <h1 className="text-lg font-bold tracking-tight text-[#06132F] dark:text-white">
+          <h1 className="text-lg font-bold tracking-tight text-[#101827] dark:text-white">
             Masukkan PIN 6 Digit
           </h1>
-          <p className="mt-1 text-xs text-slate-600 dark:text-[#C7D0E0]/80">
-            Brankas <span className="font-semibold text-[#06132F] dark:text-white">{ownerName}</span> terkunci. Ketik atau sentuh 6 digit PIN untuk melanjutkan.
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+            Brankas <span className="font-semibold text-[#101827] dark:text-white">{ownerName}</span> terkunci. Ketik atau sentuh 6 digit PIN untuk melanjutkan.
           </p>
         </div>
 
-        {/* 6-digit visual dots */}
+        {/* 6-digit Champagne Gold visual dots */}
         <div
           role="status"
           aria-label={`PIN terisi ${pin.length} dari 6 digit`}
@@ -141,8 +145,8 @@ export function PinLockScreen({ ownerName }: PinLockScreenProps) {
                 key={idx}
                 className={`h-3.5 w-3.5 rounded-full border transition-all duration-150 ${
                   filled
-                    ? "scale-110 border-[#087BFF] bg-[#087BFF] shadow-xs shadow-[#19D8FF]/40 dark:border-[#19D8FF] dark:bg-[#19D8FF]"
-                    : "border-slate-300 bg-slate-100 dark:border-[#233E7A] dark:bg-[#06132F]"
+                    ? "scale-110 border-[#D4AF37] bg-[#D4AF37] shadow-xs shadow-[#D4AF37]/40"
+                    : "border-slate-300 bg-slate-100 dark:border-[#334155] dark:bg-[#0B111E]"
                 }`}
               />
             );
@@ -151,20 +155,20 @@ export function PinLockScreen({ ownerName }: PinLockScreenProps) {
 
         <div className="mt-4 min-h-10 text-center">
           {verifyPin.isPending ? (
-            <p className="inline-flex items-center gap-1.5 text-xs font-medium text-[#087BFF] dark:text-[#19D8FF]">
+            <p className="inline-flex items-center gap-1.5 text-xs font-medium text-[#9A7411] dark:text-[#E6C768]">
               <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
               <span>Memverifikasi PIN brankas...</span>
             </p>
           ) : errorMsg ? (
             <p
               role="alert"
-              className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/15 dark:text-rose-300"
+              className="rounded-xl border border-[#EF4444]/35 bg-[#EF4444]/10 px-3 py-2 text-xs font-medium text-[#DC2626] dark:text-[#F87171]"
             >
               {errorMsg}
             </p>
           ) : (
-            <p className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-[#C7D0E0]/75">
-              <ShieldCheck className="h-3.5 w-3.5 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
+            <p className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+              <ShieldCheck className="h-3.5 w-3.5 text-[#D4AF37]" aria-hidden="true" />
               <span>Terlindungi batas 5 kali percobaan gagal</span>
             </p>
           )}
@@ -179,7 +183,7 @@ export function PinLockScreen({ ownerName }: PinLockScreenProps) {
               disabled={verifyPin.isPending}
               onClick={() => appendDigit(digit)}
               aria-label={`Angka ${digit}`}
-              className="flex h-14 items-center justify-center rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] font-mono text-lg font-bold text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:bg-[#087BFF]/8 active:scale-[0.97] disabled:opacity-50 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:hover:border-[#19D8FF]/40 dark:hover:bg-[#0D1E45]"
+              className="flex h-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 font-mono text-lg font-bold text-[#101827] transition-colors hover:border-[#D4AF37]/55 hover:bg-[#D4AF37]/10 active:scale-[0.97] disabled:opacity-50 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:hover:border-[#D4AF37]/50 dark:hover:bg-[#162032]"
             >
               {digit}
             </button>
@@ -189,7 +193,7 @@ export function PinLockScreen({ ownerName }: PinLockScreenProps) {
             type="button"
             disabled={verifyPin.isPending || pin.length === 0}
             onClick={handleClear}
-            className="flex h-14 items-center justify-center rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-200/70 disabled:opacity-40 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45]"
+            className="flex h-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-200/70 disabled:opacity-40 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300 dark:hover:bg-[#162032]"
           >
             Hapus
           </button>
@@ -199,7 +203,7 @@ export function PinLockScreen({ ownerName }: PinLockScreenProps) {
             disabled={verifyPin.isPending}
             onClick={() => appendDigit("0")}
             aria-label="Angka 0"
-            className="flex h-14 items-center justify-center rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] font-mono text-lg font-bold text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:bg-[#087BFF]/8 active:scale-[0.97] disabled:opacity-50 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-white dark:hover:border-[#19D8FF]/40 dark:hover:bg-[#0D1E45]"
+            className="flex h-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 font-mono text-lg font-bold text-[#101827] transition-colors hover:border-[#D4AF37]/55 hover:bg-[#D4AF37]/10 active:scale-[0.97] disabled:opacity-50 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:hover:border-[#D4AF37]/50 dark:hover:bg-[#162032]"
           >
             0
           </button>
@@ -209,18 +213,18 @@ export function PinLockScreen({ ownerName }: PinLockScreenProps) {
             disabled={verifyPin.isPending || pin.length === 0}
             onClick={handleBackspace}
             aria-label="Hapus satu digit"
-            className="flex h-14 items-center justify-center rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] text-slate-700 transition-colors hover:bg-slate-200/70 disabled:opacity-40 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45]"
+            className="flex h-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 transition-colors hover:bg-slate-200/70 disabled:opacity-40 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300 dark:hover:bg-[#162032]"
           >
             <Delete className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
-        <div className="mt-6 border-t border-[#DCE4F0] pt-4 dark:border-[#1B3163]">
+        <div className="mt-6 border-t border-slate-200 pt-4 dark:border-[#1E293B]">
           <button
             type="button"
             onClick={handleFallbackLogout}
             disabled={logout.isPending}
-            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[#DCE4F0] bg-white px-4 py-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-[#F4F7FB] hover:text-[#06132F] disabled:opacity-60 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45] dark:hover:text-white"
+            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#101827] disabled:opacity-60 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300 dark:hover:bg-[#162032] dark:hover:text-white"
           >
             <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Masuk dengan Kata Sandi Lengkap</span>

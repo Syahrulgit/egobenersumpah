@@ -1,4 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { AnimatePresence, motion } from "motion/react";
 import {
   Activity,
   ArrowLeft,
@@ -24,7 +25,17 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import { type ReactNode, useMemo, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { summarizeBudgetMonth } from "../../lib/budgets";
 import { daysUntilDue, formatIDR, getDueRecurringBills, todayISO } from "../../lib/finance";
@@ -33,6 +44,11 @@ import { useAuthStatus, useLogoutOwner, useVaultSnapshot } from "../../lib/queri
 import { summarizeRemindersForDashboard } from "../../lib/reminders";
 import { ThemeToggleButton } from "../../lib/theme";
 import { EgoBrand, EgoLogoMark } from "./ego-brand";
+import {
+  EGO_EASE,
+  getRouteOrderIndex,
+  triggerSignatureFeedback,
+} from "./ego-motion";
 import { ModalSheet } from "./modal-sheet";
 import { OfflineIndicator, PWAInstallButton } from "./pwa-controls";
 import { useTransactionSheet } from "./transaction-input-sheet";
@@ -74,14 +90,19 @@ const SIDEBAR_ITEMS: SidebarNavItem[] = [
   { to: "/pengaturan", label: "Pengaturan", icon: Settings },
 ];
 
-interface AppShellProps {
+interface ShellMeta {
   title: string;
   subtitle?: string;
-  action?: ReactNode;
-  children: ReactNode;
 }
 
-export function AppShell({ title, subtitle, action, children }: AppShellProps) {
+interface AppShellContextValue {
+  setMeta: (meta: ShellMeta) => void;
+  desktopActionHost: HTMLDivElement | null;
+}
+
+const AppShellContext = createContext<AppShellContextValue | null>(null);
+
+export function AppShellFrame({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { data: auth } = useAuthStatus();
   const { data: vault } = useVaultSnapshot(Boolean(auth?.authenticated));
@@ -89,8 +110,79 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
   const logout = useLogoutOwner();
   const navigate = useNavigate();
 
+  const [meta, setMeta] = useState<ShellMeta>({
+    title: "EGO Personal AI",
+    subtitle: undefined,
+  });
+  const [desktopActionHost, setDesktopActionHost] = useState<HTMLDivElement | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+
+  const isBackPendingRef = useRef(false);
+  const lastCommittedPathRef = useRef(pathname);
+  const scrollMapRef = useRef<Map<string, number>>(new Map());
+  const latestScrollYRef = useRef(0);
+
+  const [routeMotion, setRouteMotion] = useState<{
+    current: string;
+    direction: 1 | -1;
+  }>({
+    current: pathname,
+    direction: 1,
+  });
+
+  if (routeMotion.current !== pathname) {
+    const prevIdx = getRouteOrderIndex(routeMotion.current);
+    const nextIdx = getRouteOrderIndex(pathname);
+    const direction: 1 | -1 = isBackPendingRef.current
+      ? -1
+      : nextIdx < prevIdx
+        ? -1
+        : 1;
+    setRouteMotion({ current: pathname, direction });
+  }
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onScroll = () => {
+      latestScrollYRef.current = window.scrollY;
+    };
+    const onPopState = () => {
+      isBackPendingRef.current = true;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("popstate", onPopState);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("popstate", onPopState);
+    };
+  }, []);
+
+  // Close mobile menu on route transition and preserve/restore scroll cleanly on Back
+  useLayoutEffect(() => {
+    setMobileMenuOpen(false);
+    if (typeof window === "undefined") return;
+    const prevPath = lastCommittedPathRef.current;
+    if (prevPath !== pathname) {
+      scrollMapRef.current.set(prevPath, latestScrollYRef.current);
+      lastCommittedPathRef.current = pathname;
+      if (isBackPendingRef.current) {
+        const savedScroll = scrollMapRef.current.get(pathname) ?? 0;
+        window.scrollTo({ top: savedScroll, behavior: "auto" });
+      } else {
+        window.scrollTo({ top: 0, behavior: "auto" });
+      }
+      isBackPendingRef.current = false;
+    }
+  }, [pathname]);
+
+  const contextValue = useMemo(
+    () => ({
+      setMeta,
+      desktopActionHost,
+    }),
+    [desktopActionHost]
+  );
 
   const pendingCommands =
     vault?.owner_commands.filter((c) => c.status === "pending") ?? [];
@@ -170,526 +262,148 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F7FB] text-[#06132F] transition-colors duration-200 dark:bg-[#040B1C] dark:text-slate-100">
-      {/* Desktop Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-[#DCE4F0] bg-white dark:border-[#1B3163] dark:bg-[#06132F] md:flex">
-        <div className="flex h-16 items-center border-b border-[#DCE4F0] px-5 dark:border-[#1B3163]">
-          <EgoBrand size="md" showSubtitle />
-        </div>
-
-        <div className="px-3.5 pt-4 pb-2">
-          <button
-            type="button"
-            onClick={() => openTransactionSheet()}
-            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#087BFF] to-[#0066E0] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#087BFF]/20 transition-all hover:brightness-110 active:scale-[0.99]"
-          >
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            <span>Catat Transaksi</span>
-          </button>
-        </div>
-
-        <nav aria-label="Navigasi Utama" className="flex-1 space-y-1 overflow-y-auto px-3.5 py-2">
-          {SIDEBAR_ITEMS.map((item) => {
-            const active =
-              item.to === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.to);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`flex min-h-[40px] items-center justify-between rounded-xl px-3.5 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
-                  active
-                    ? "bg-[#087BFF]/10 font-semibold text-[#087BFF] dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
-                    : "text-slate-600 hover:bg-[#F4F7FB] hover:text-[#06132F] dark:text-[#C7D0E0]/75 dark:hover:bg-[#0D1E45] dark:hover:text-white"
-                }`}
-              >
-                <span className="flex items-center gap-3">
-                  <Icon
-                    className={`h-4 w-4 shrink-0 ${
-                      active
-                        ? "text-[#087BFF] dark:text-[#19D8FF]"
-                        : "text-slate-400 dark:text-[#C7D0E0]/60"
-                    }`}
-                    aria-hidden="true"
-                  />
-                  <span>{item.label}</span>
-                </span>
-                {item.to === "/owner" && pendingCommands.length > 0 ? (
-                  <span className="rounded-md bg-[#087BFF]/15 px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#087BFF] dark:bg-[#19D8FF]/20 dark:text-[#19D8FF] tabular-nums">
-                    {pendingCommands.length}
-                  </span>
-                ) : item.to === "/pengingat" && reminderAlertsCount > 0 ? (
-                  <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 font-mono text-[11px] font-bold text-amber-700 dark:text-amber-300 tabular-nums">
-                    {reminderAlertsCount}
-                  </span>
-                ) : item.to === "/anggaran" && budgetSummary.attentionCount > 0 ? (
-                  <span className="rounded-md bg-rose-500/15 px-1.5 py-0.5 font-mono text-[11px] font-bold text-rose-600 dark:text-rose-400 tabular-nums">
-                    {budgetSummary.attentionCount}
-                  </span>
-                ) : item.to === "/rencana" && dueBills.length > 0 ? (
-                  <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 font-mono text-[11px] font-bold text-amber-700 dark:text-amber-300 tabular-nums">
-                    {dueBills.length}
-                  </span>
-                ) : null}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="space-y-2.5 border-t border-[#DCE4F0] p-4 dark:border-[#1B3163]">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-[11px] font-medium text-slate-500 dark:text-[#C7D0E0]/70">
-              Tema
-            </span>
-            <ThemeToggleButton />
+    <AppShellContext.Provider value={contextValue}>
+      <div className="min-h-screen bg-[#F6F7FB] text-[#101827] transition-colors duration-200 dark:bg-[#0B111E] dark:text-slate-100">
+        {/* Persistent Desktop Sidebar — Midnight Navy Luxury Rail */}
+        <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-white/10 bg-[#101827] text-slate-100 md:flex">
+          <div className="flex h-16 items-center border-b border-white/10 px-5">
+            <EgoBrand size="md" showSubtitle variant="navy" />
           </div>
 
-          <PWAInstallButton fullWidth />
-
-          <div className="border-t border-[#DCE4F0] pt-2.5 px-1 dark:border-[#1B3163]">
-            <p className="text-[11px] font-medium text-slate-500 dark:text-[#C7D0E0]/70">
-              Pemilik Brankas
-            </p>
-            <p className="truncate text-sm font-semibold text-[#06132F] dark:text-white">
-              {ownerName}
-            </p>
-          </div>
-
-          {auth?.hasPin ? (
+          <div className="px-3.5 pt-4 pb-2">
             <button
               type="button"
-              onClick={handleQuickLock}
-              className="flex min-h-[38px] w-full items-center gap-2.5 rounded-xl border border-[#087BFF]/25 bg-[#087BFF]/8 px-3.5 py-2 text-xs font-semibold text-[#087BFF] transition-colors hover:bg-[#087BFF]/15 dark:border-[#19D8FF]/30 dark:bg-[#19D8FF]/10 dark:text-[#19D8FF] dark:hover:bg-[#19D8FF]/20"
+              onClick={(e) => {
+                triggerSignatureFeedback(e.currentTarget, "action", {
+                  clientX: e.clientX,
+                  clientY: e.clientY,
+                });
+                openTransactionSheet();
+              }}
+              className="ego-pressable ego-icon-action flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#E6C768] to-[#D4AF37] px-4 py-2.5 text-sm font-bold text-[#101827] shadow-sm transition-all hover:brightness-105 whitespace-nowrap"
             >
-              <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              <span>Kunci Layar (PIN)</span>
+              <Plus className="h-4 w-4 stroke-[2.5]" aria-hidden="true" />
+              <span>Catat Transaksi</span>
             </button>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            disabled={logout.isPending}
-            className="flex min-h-[38px] w-full items-center gap-2.5 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-[#06132F] dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45] dark:hover:text-white"
-          >
-            <LogOut className="h-3.5 w-3.5 text-slate-500 dark:text-[#C7D0E0]/70" aria-hidden="true" />
-            <span>Kunci &amp; Keluar</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <div className="md:pl-64">
-        {/* Top Header */}
-        <header className="ego-pwa-header sticky top-0 z-[70] isolate border-b border-[#DCE4F0] bg-white dark:border-[#1B3163] dark:bg-[#06132F]">
-          <div className="mx-auto flex max-w-6xl items-center gap-3 border-b border-[#DCE4F0]/70 px-4 py-2.5 dark:border-[#1B3163]/70 sm:px-6 lg:px-8 md:hidden">
-            <Link to="/" className="inline-flex min-w-0 items-center gap-3" aria-label="Beranda EGO Personal AI">
-              <EgoLogoMark size="sm" />
-              <span className="truncate text-sm font-bold tracking-tight text-[#06132F] dark:text-white">
-                EGO Personal AI
-              </span>
-            </Link>
           </div>
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-            <div className="flex min-w-0 items-center gap-3">
-              {pathname !== "/" ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const historyIndex = window.history.state?.__TSR_index;
-                    if (typeof historyIndex === "number" && historyIndex > 0) {
-                      window.history.back();
-                    } else {
-                      void navigate({ to: "/" });
-                    }
+
+          <nav
+            aria-label="Navigasi Utama"
+            className="flex-1 space-y-1 overflow-y-auto px-3.5 py-2"
+          >
+            {SIDEBAR_ITEMS.map((item) => {
+              const active =
+                item.to === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(item.to);
+              const isAiRoute = item.to === "/owner";
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  aria-current={active ? "page" : undefined}
+                  onClick={(e) => {
+                    triggerSignatureFeedback(
+                      e.currentTarget,
+                      isAiRoute ? "ai" : "nav",
+                      { clientX: e.clientX, clientY: e.clientY }
+                    );
                   }}
-                  className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 text-xs font-semibold text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:bg-[#087BFF]/[0.08] dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0] dark:hover:border-[#19D8FF]/50 dark:hover:text-white"
-                  aria-label="Kembali ke halaman sebelumnya"
+                  className={`ego-nav-item ${isAiRoute ? "ego-icon-ai" : "ego-icon-nav"} relative flex min-h-[40px] items-center justify-between rounded-xl px-3.5 py-2 text-sm font-medium whitespace-nowrap ${
+                    active
+                      ? isAiRoute
+                        ? "text-[#FF9EEA]"
+                        : "font-semibold text-[#E6C768]"
+                      : "text-slate-300/85 hover:bg-white/[0.06] hover:text-white"
+                  }`}
                 >
-                  <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                  <span>Kembali</span>
-                </button>
-              ) : null}
-              <div className="min-w-0">
-                <h1 className="truncate text-base font-bold tracking-tight text-[#06132F] dark:text-white sm:text-xl">
-                  {title}
-                </h1>
-                {subtitle ? (
-                  <p className="hidden truncate text-xs text-slate-600 dark:text-[#C7D0E0]/75 sm:block">
-                    {subtitle}
-                  </p>
-                ) : null}
-              </div>
-            </div>
+                  {active ? (
+                    <motion.span
+                      layoutId="ego-desktop-nav-active"
+                      transition={{ duration: 0.22, ease: EGO_EASE }}
+                      className={`pointer-events-none absolute inset-0 rounded-xl ${
+                        isAiRoute
+                          ? "bg-[#FF4DDE]/14 ring-1 ring-[#FF4DDE]/35"
+                          : "bg-[#D4AF37]/14 ring-1 ring-[#D4AF37]/30"
+                      }`}
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                  {active ? (
+                    <motion.span
+                      layoutId="ego-desktop-nav-rail"
+                      transition={{ duration: 0.22, ease: EGO_EASE }}
+                      className={`pointer-events-none absolute top-2 bottom-2 left-0 w-1 rounded-r-full ${
+                        isAiRoute ? "bg-[#FF4DDE]" : "bg-[#D4AF37]"
+                      }`}
+                      aria-hidden="true"
+                    />
+                  ) : null}
 
-            <div className="relative z-10 flex shrink-0 items-center gap-2">
-              {action ? <div className="hidden sm:block">{action}</div> : null}
-
-              <button
-                type="button"
-                onClick={() => setNotifOpen(true)}
-                aria-label={
-                  totalNotifications > 0
-                    ? `Notifikasi (${totalNotifications} item)`
-                    : "Notifikasi"
-                }
-                className="relative z-10 flex h-10 w-10 touch-manipulation items-center justify-center rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:bg-[#087BFF]/8 dark:border-[#1B3163] dark:bg-[#091634] dark:text-[#C7D0E0] dark:hover:border-[#19D8FF]/50 dark:hover:text-white"
-              >
-                <Bell className="h-4 w-4" aria-hidden="true" />
-                {totalNotifications > 0 ? (
-                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#087BFF] px-1 font-mono text-[10px] font-bold text-white shadow-xs">
-                    {totalNotifications}
+                  <span className="relative z-10 flex items-center gap-3">
+                    <Icon
+                      className={`h-4 w-4 shrink-0 transition-transform duration-150 ${
+                        active
+                          ? isAiRoute
+                            ? "text-[#FF4DDE]"
+                            : "text-[#D4AF37]"
+                          : isAiRoute
+                            ? "text-[#FF4DDE]/80"
+                            : "text-slate-400"
+                      }`}
+                      aria-hidden="true"
+                    />
+                    <span>{item.label}</span>
                   </span>
-                ) : null}
-              </button>
-
-              <Link
-                to="/owner"
-                aria-label="Owner Control dan Pengaturan"
-                className="relative z-10 inline-flex h-10 touch-manipulation items-center gap-2 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3 text-xs font-semibold text-[#06132F] transition-colors hover:border-[#087BFF]/40 hover:bg-[#087BFF]/8 dark:border-[#1B3163] dark:bg-[#091634] dark:text-white dark:hover:border-[#19D8FF]/50"
-              >
-                <ShieldCheck className="h-4 w-4 text-[#087BFF] dark:text-[#19D8FF]" aria-hidden="true" />
-                <span className="hidden sm:inline">Owner Control</span>
-              </Link>
-            </div>
-          </div>
-          {action ? (
-            <div className="border-t border-[#DCE4F0]/70 px-4 py-2 dark:border-[#1B3163]/70 sm:hidden">
-              {action}
-            </div>
-          ) : null}
-        </header>
-
-        <main className="ego-page-main relative isolate mx-auto max-w-6xl px-4 pt-5 pb-28 sm:px-6 sm:pt-6 md:pb-14 lg:px-8">
-          <div key={pathname} className="ego-page-content relative z-10">{children}</div>
-        </main>
-      </div>
-
-      {/* Notifications Sheet */}
-      <ModalSheet
-        open={notifOpen}
-        onClose={() => setNotifOpen(false)}
-        title="Notifikasi Brankas"
-        subtitle="Pantauan antrean persetujuan AI dan jadwal tagihan mendatang."
-      >
-        <div className="space-y-5">
-          <div>
-            <div className="mb-2.5 flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/70">
-                Antrean Persetujuan AI ({pendingCommands.length})
-              </h3>
-              <Link
-                to="/owner"
-                onClick={() => setNotifOpen(false)}
-                className="text-xs font-semibold text-[#087BFF] hover:underline dark:text-[#19D8FF]"
-              >
-                Buka Owner Control
-              </Link>
-            </div>
-            {pendingCommands.length === 0 ? (
-              <p className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-3 text-xs text-slate-600 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]/75">
-                Tidak ada draf AI yang menunggu persetujuan.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {pendingCommands.slice(0, 4).map((cmd) => (
-                  <li key={cmd.id}>
-                    <Link
-                      to="/owner"
-                      onClick={() => setNotifOpen(false)}
-                      className="block rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-xs transition-colors hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F]"
-                    >
-                      <p className="truncate font-semibold text-[#06132F] dark:text-white">
-                        &ldquo;{cmd.command_text}&rdquo;
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-[#087BFF] dark:text-[#19D8FF]">
-                        Menunggu tinjauan &amp; konfirmasi Owner
-                      </p>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div>
-            <div className="mb-2.5 flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/70">
-                Pengingat Keuangan ({reminderSummary.totalActiveCount})
-              </h3>
-              <Link
-                to="/pengingat"
-                onClick={() => setNotifOpen(false)}
-                className="text-xs font-semibold text-[#087BFF] hover:underline dark:text-[#19D8FF]"
-              >
-                Pusat Pengingat
-              </Link>
-            </div>
-            {reminderSummary.nearestReminder ? (
-              <Link
-                to="/pengingat"
-                onClick={() => setNotifOpen(false)}
-                className="flex items-center justify-between gap-3 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-xs transition-colors hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F]"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-[#06132F] dark:text-white">
-                    {reminderSummary.nearestReminder.title}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-amber-700 dark:text-amber-300">
-                    {reminderSummary.nearestReminder.daysRemaining === null
-                      ? reminderSummary.nearestReminder.dueDate
-                      : reminderSummary.nearestReminder.daysRemaining < 0
-                        ? `Terlambat ${Math.abs(reminderSummary.nearestReminder.daysRemaining)} hari`
-                        : reminderSummary.nearestReminder.daysRemaining === 0
-                          ? "Jatuh tempo hari ini"
-                          : `${reminderSummary.nearestReminder.daysRemaining} hari lagi`}{" "}
-                    · {reminderSummary.overdueCount} terlambat
-                  </p>
-                </div>
-                <span className="shrink-0 font-mono font-bold text-[#087BFF] dark:text-[#19D8FF] tabular-nums">
-                  {formatIDR(reminderSummary.nearestReminder.amount)}
-                </span>
-              </Link>
-            ) : (
-              <p className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-3 text-xs text-slate-600 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]/75">
-                Belum ada pengingat keuangan aktif.
-              </p>
-            )}
-          </div>
-
-          <div>
-            <div className="mb-2.5 flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/70">
-                Tagihan Jatuh Tempo ≤ 7 Hari ({dueBills.length})
-              </h3>
-              <Link
-                to="/rencana"
-                search={{ tab: "tagihan" }}
-                onClick={() => setNotifOpen(false)}
-                className="text-xs font-semibold text-[#087BFF] hover:underline dark:text-[#19D8FF]"
-              >
-                Kelola Tagihan
-              </Link>
-            </div>
-            {dueBills.length === 0 ? (
-              <p className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-3 text-xs text-slate-600 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]/75">
-                Tidak ada tagihan mendesak dalam 7 hari ke depan.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {dueBills.slice(0, 4).map((bill) => {
-                  const delta = daysUntilDue(bill.next_due_date);
-                  return (
-                    <li key={bill.id}>
-                      <Link
-                        to="/rencana"
-                        search={{ tab: "tagihan" }}
-                        onClick={() => setNotifOpen(false)}
-                        className="flex items-center justify-between gap-3 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-xs transition-colors hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F]"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate font-semibold text-[#06132F] dark:text-white">
-                            {bill.title}
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-amber-700 dark:text-amber-300">
-                            {delta !== null
-                              ? delta < 0
-                                ? `Terlambat ${Math.abs(delta)} hari`
-                                : delta === 0
-                                  ? "Jatuh tempo hari ini"
-                                  : `${delta} hari lagi`
-                              : bill.next_due_date}
-                          </p>
-                        </div>
-                        <span className="shrink-0 font-mono font-bold text-rose-600 dark:text-rose-400 tabular-nums">
-                          {formatIDR(bill.amount)}
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-
-          <div>
-            <div className="mb-2.5 flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#C7D0E0]/70">
-                Peringatan Anggaran ({budgetSummary.attentionCount})
-              </h3>
-              <Link
-                to="/anggaran"
-                onClick={() => setNotifOpen(false)}
-                className="text-xs font-semibold text-[#087BFF] hover:underline dark:text-[#19D8FF]"
-              >
-                Smart Budget Monitor
-              </Link>
-            </div>
-            {budgetSummary.alertCategories.length === 0 ? (
-              <p className="rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-3 text-xs text-slate-600 dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]/75">
-                Seluruh kategori anggaran aktif masih berada di bawah ambang 75%.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {budgetSummary.alertCategories.slice(0, 4).map((bItem) => (
-                  <li key={bItem.budget.id}>
-                    <Link
-                      to="/anggaran"
-                      onClick={() => setNotifOpen(false)}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 text-xs transition-colors hover:border-[#087BFF]/40 dark:border-[#1B3163] dark:bg-[#06132F]"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold text-[#06132F] dark:text-white">
-                          {bItem.budget.category}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-amber-700 dark:text-amber-300">
-                          {bItem.severityLabel}
-                        </p>
-                      </div>
-                      <span className="shrink-0 font-mono font-bold text-rose-600 dark:text-rose-400 tabular-nums">
-                        {bItem.usagePct.toFixed(0)}%
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      </ModalSheet>
-
-      {/* Mobile Drawer Sheet for "Menu" */}
-      {mobileMenuOpen ? (
-        <div
-          className="fixed inset-0 z-40 bg-[#06132F]/60 backdrop-blur-xs dark:bg-black/75 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Menu Tambahan EGO"
-            className="absolute inset-x-0 bottom-16 max-h-[82vh] overflow-y-auto rounded-t-3xl border-t border-[#DCE4F0] bg-white p-5 pb-6 shadow-2xl dark:border-[#1B3163] dark:bg-[#091634]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300 dark:bg-[#233E7A]" />
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <EgoLogoMark size="sm" />
-                <div>
-                  <p className="text-sm font-bold text-[#06132F] dark:text-white">
-                    Menu Brankas EGO
-                  </p>
-                  <p className="text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
-                    {ownerName}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                aria-label="Tutup menu"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-[#06132F] dark:text-[#C7D0E0] dark:hover:bg-[#0D1E45] dark:hover:text-white"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              {(
-                [
-                  { to: "/analitik", label: "Analitik & Skor", icon: Activity, badge: 0 },
-                  { to: "/simulasi", label: "What-If", icon: FlaskConical, badge: 0 },
-                  { to: "/anggaran", label: "Anggaran", icon: PieChart, badge: budgetSummary.attentionCount },
-                  { to: "/pengingat", label: "Pengingat", icon: BellRing, badge: reminderAlertsCount },
-                  {
-                    to: "/rencana",
-                    search: { tab: "simulator" as const },
-                    label: "Sim. Target",
-                    icon: Calculator,
-                    badge: 0,
-                  },
-                  { to: "/aset", label: "Aset", icon: Briefcase, badge: 0 },
-                  { to: "/utang", label: "Utang", icon: CreditCard, badge: 0 },
-                  {
-                    to: "/rencana",
-                    search: { tab: "target" as const },
-                    label: "Target",
-                    icon: Target,
-                    badge: 0,
-                  },
-                  {
-                    to: "/rencana",
-                    search: { tab: "tagihan" as const },
-                    label: "Tagihan",
-                    icon: CalendarClock,
-                    badge: dueBills.length,
-                  },
-                  { to: "/laporan", label: "Laporan", icon: BarChart3, badge: 0 },
-                  {
-                    to: "/owner",
-                    search: { tab: "ai" as const },
-                    label: "Owner AI",
-                    icon: Bot,
-                    badge: 0,
-                  },
-                  {
-                    to: "/owner",
-                    search: { tab: "control" as const },
-                    label: "Owner Control",
-                    icon: ShieldCheck,
-                    badge: pendingCommands.length,
-                  },
-                  { to: "/pengaturan", label: "Pengaturan", icon: Settings, badge: 0 },
-                ] as const
-              ).map((item) => {
-                const Icon = item.icon;
-                const active = pathname.startsWith(item.to);
-                return (
-                  <Link
-                    key={item.label}
-                    to={item.to}
-                    search={"search" in item ? item.search : undefined}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex min-h-[48px] items-center justify-between gap-2 rounded-2xl border px-3.5 py-2.5 text-sm font-semibold transition-colors ${
-                      active
-                        ? "border-[#087BFF]/40 bg-[#087BFF]/10 text-[#087BFF] dark:border-[#19D8FF]/45 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
-                        : "border-[#DCE4F0] bg-[#F4F7FB] text-[#06132F] dark:border-[#1B3163] dark:bg-[#06132F] dark:text-[#C7D0E0]"
-                    }`}
-                  >
-                    <span className="flex min-w-0 items-center gap-2.5">
-                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      <span className="truncate">{item.label}</span>
+                  {item.to === "/owner" && pendingCommands.length > 0 ? (
+                    <span className="relative z-10 rounded-md border border-[#FF4DDE]/35 bg-[#FF4DDE]/15 px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#FF9EEA] tabular-nums">
+                      {pendingCommands.length}
                     </span>
-                    {item.badge > 0 ? (
-                      <span className="rounded-md bg-[#087BFF] px-1.5 py-0.5 font-mono text-[10px] font-bold text-white">
-                        {item.badge}
-                      </span>
-                    ) : null}
-                  </Link>
-                );
-              })}
-            </div>
+                  ) : item.to === "/pengingat" && reminderAlertsCount > 0 ? (
+                    <span className="relative z-10 rounded-md bg-[#D4AF37]/20 px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#E6C768] tabular-nums">
+                      {reminderAlertsCount}
+                    </span>
+                  ) : item.to === "/anggaran" && budgetSummary.attentionCount > 0 ? (
+                    <span className="relative z-10 rounded-md bg-[#EF4444]/20 px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#FCA5A5] tabular-nums">
+                      {budgetSummary.attentionCount}
+                    </span>
+                  ) : item.to === "/rencana" && dueBills.length > 0 ? (
+                    <span className="relative z-10 rounded-md bg-[#D4AF37]/20 px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#E6C768] tabular-nums">
+                      {dueBills.length}
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })}
+          </nav>
 
-            <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-[#DCE4F0] bg-[#F4F7FB] px-3.5 py-2.5 dark:border-[#1B3163] dark:bg-[#06132F]">
-              <span className="text-xs font-semibold text-[#06132F] dark:text-[#C7D0E0]">
-                Mode Tampilan
+          <div className="space-y-2.5 border-t border-white/10 p-4">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-medium text-slate-400">
+                Tema
               </span>
               <ThemeToggleButton />
             </div>
 
-            <div className="mt-3">
-              <PWAInstallButton fullWidth />
+            <PWAInstallButton fullWidth />
+
+            <div className="border-t border-white/10 px-1 pt-2.5">
+              <p className="text-[11px] font-medium text-slate-400">
+                Pemilik Brankas
+              </p>
+              <p className="truncate text-sm font-semibold text-white">
+                {ownerName}
+              </p>
             </div>
 
             {auth?.hasPin ? (
               <button
                 type="button"
                 onClick={handleQuickLock}
-                className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-[#087BFF]/30 bg-[#087BFF]/10 px-4 py-2.5 text-sm font-semibold text-[#087BFF] dark:border-[#19D8FF]/35 dark:bg-[#19D8FF]/15 dark:text-[#19D8FF]"
+                className="ego-pressable flex min-h-[40px] w-full items-center gap-2.5 rounded-xl border border-[#D4AF37]/35 bg-[#D4AF37]/10 px-3.5 py-2 text-xs font-semibold text-[#E6C768] transition-colors hover:bg-[#D4AF37]/20 whitespace-nowrap"
               >
-                <Lock className="h-4 w-4" aria-hidden="true" />
+                <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 <span>Kunci Layar (PIN)</span>
               </button>
             ) : null}
@@ -697,89 +411,699 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
             <button
               type="button"
               onClick={handleLogout}
-              className="mt-2.5 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
+              disabled={logout.isPending}
+              className="ego-pressable flex min-h-[40px] w-full items-center gap-2.5 rounded-xl border border-white/12 bg-white/[0.04] px-3.5 py-2 text-xs font-medium text-slate-200 transition-colors hover:bg-white/[0.09] hover:text-white whitespace-nowrap"
             >
-              <LogOut className="h-4 w-4" aria-hidden="true" />
+              <LogOut className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
               <span>Kunci &amp; Keluar</span>
             </button>
           </div>
+        </aside>
+
+        {/* Main Content Area */}
+        <div className="md:pl-64">
+          {/* Persistent Top Header */}
+          <header className="ego-pwa-header sticky top-0 z-[70] isolate border-b border-slate-200/80 bg-white/95 backdrop-blur-md dark:border-[#1E293B] dark:bg-[#101827]/95">
+            <div className="mx-auto flex max-w-6xl items-center justify-between gap-2.5 px-4 py-2.5 sm:px-6 sm:py-3 lg:px-8">
+              <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+                {pathname !== "/" ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      triggerSignatureFeedback(e.currentTarget, "back", {
+                        clientX: e.clientX,
+                        clientY: e.clientY,
+                      });
+                      isBackPendingRef.current = true;
+                      const historyIndex = window.history.state?.__TSR_index;
+                      if (typeof historyIndex === "number" && historyIndex > 0) {
+                        window.history.back();
+                      } else {
+                        void navigate({ to: "/" });
+                      }
+                    }}
+                    className="ego-pressable ego-icon-back inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-[#101827] transition-colors hover:border-[#D4AF37]/50 hover:bg-[#D4AF37]/10 md:min-h-[40px] dark:border-[#1E293B] dark:bg-[#162032] dark:text-slate-100 dark:hover:border-[#D4AF37]/50 dark:hover:text-white"
+                    aria-label="Kembali ke halaman sebelumnya"
+                  >
+                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                    <span>Kembali</span>
+                  </button>
+                ) : (
+                  <Link
+                    to="/"
+                    className="inline-flex shrink-0 items-center md:hidden"
+                    aria-label="Beranda EGO Personal AI"
+                  >
+                    <EgoLogoMark size="sm" />
+                  </Link>
+                )}
+                <div className="min-w-0">
+                  <h1 className="truncate text-base font-bold tracking-tight text-[#101827] dark:text-white sm:text-xl">
+                    {meta.title}
+                  </h1>
+                  {meta.subtitle ? (
+                    <p className="hidden truncate text-xs text-slate-600 dark:text-slate-300/75 sm:block">
+                      {meta.subtitle}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="relative z-10 flex shrink-0 items-center gap-2">
+                <div ref={setDesktopActionHost} className="hidden sm:block" />
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    triggerSignatureFeedback(e.currentTarget, "notif", {
+                      clientX: e.clientX,
+                      clientY: e.clientY,
+                    });
+                    setNotifOpen(true);
+                  }}
+                  aria-label={
+                    totalNotifications > 0
+                      ? `Notifikasi (${totalNotifications} item)`
+                      : "Notifikasi"
+                  }
+                  className="ego-pressable ego-icon-notif relative z-10 flex h-11 w-11 touch-manipulation items-center justify-center rounded-xl border border-slate-200 bg-white text-[#101827] transition-colors hover:border-[#D4AF37]/50 hover:bg-[#D4AF37]/10 md:h-10 md:w-10 dark:border-[#1E293B] dark:bg-[#162032] dark:text-slate-200 dark:hover:border-[#D4AF37]/50 dark:hover:text-white"
+                >
+                  <Bell className="h-4 w-4" aria-hidden="true" />
+                  {totalNotifications > 0 ? (
+                    <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#EF4444] px-1 font-mono text-[10px] font-bold text-white shadow-xs">
+                      {totalNotifications}
+                    </span>
+                  ) : null}
+                </button>
+
+                <Link
+                  to="/owner"
+                  onClick={(e) => {
+                    triggerSignatureFeedback(e.currentTarget, "ai", {
+                      clientX: e.clientX,
+                      clientY: e.clientY,
+                    });
+                  }}
+                  aria-label="Owner Control dan Pengaturan"
+                  aria-current={pathname.startsWith("/owner") ? "page" : undefined}
+                  className={`ego-pressable ego-icon-ai relative z-10 inline-flex h-11 touch-manipulation items-center gap-2 rounded-xl border px-3 text-xs font-semibold text-white transition-colors whitespace-nowrap shrink-0 md:h-10 ${
+                    pathname.startsWith("/owner")
+                      ? "border-[#FF4DDE]/65 bg-[#162032] ring-1 ring-[#FF4DDE]/30"
+                      : "border-[#D4AF37]/30 bg-[#101827] hover:border-[#FF4DDE]/50 hover:bg-[#162032]"
+                  }`}
+                >
+                  <ShieldCheck className="h-4 w-4 text-[#FF4DDE]" aria-hidden="true" />
+                  <span className="hidden sm:inline">Owner Control</span>
+                </Link>
+              </div>
+            </div>
+          </header>
+
+          {/* Cinematic Page Viewport (480ms directional slide, scale depth, fade & gold sweep) */}
+          <main className="ego-page-main relative isolate mx-auto max-w-6xl overflow-x-clip px-4 pt-4 pb-28 sm:px-6 sm:pt-6 md:pb-14 lg:px-8">
+            <motion.div
+              key={pathname}
+              initial={{
+                opacity: 0,
+                x: routeMotion.direction * 26,
+                scale: 0.988,
+              }}
+              animate={{
+                opacity: 1,
+                x: 0,
+                scale: 1,
+              }}
+              transition={{
+                duration: 0.48,
+                ease: EGO_EASE,
+              }}
+              className={`ego-page-content relative z-10 ${
+                routeMotion.direction < 0 ? "ego-page-content--back" : ""
+              }`}
+            >
+              {children}
+            </motion.div>
+          </main>
         </div>
-      ) : null}
 
-      {/* Mobile Bottom Navigation (5 items: Home, Transaksi, +, Akun, Menu) */}
-      <nav
-        aria-label="Navigasi Mobile"
-        className="pb-safe fixed inset-x-0 bottom-0 z-40 grid h-16 grid-cols-5 items-center border-t border-[#DCE4F0] bg-white/95 px-1 backdrop-blur-md dark:border-[#1B3163] dark:bg-[#06132F]/95 md:hidden"
-      >
-        <Link
-          to="/"
-          className={`flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
-            pathname === "/"
-              ? "text-[#087BFF] dark:text-[#19D8FF]"
-              : "text-slate-500 dark:text-[#C7D0E0]/65"
-          }`}
+        {/* Notifications Sheet */}
+        <ModalSheet
+          open={notifOpen}
+          onClose={() => setNotifOpen(false)}
+          title="Notifikasi Brankas"
+          subtitle="Pantauan antrean persetujuan AI dan jadwal tagihan mendatang."
         >
-          <Home className="h-4 w-4" aria-hidden="true" />
-          <span>Home</span>
-        </Link>
+          <div className="space-y-5">
+            <div>
+              <div className="mb-2.5 flex items-center justify-between">
+                <h3 className="text-xs font-bold tracking-wide text-slate-500 dark:text-slate-400">
+                  Antrean Persetujuan AI ({pendingCommands.length})
+                </h3>
+                <Link
+                  to="/owner"
+                  onClick={() => setNotifOpen(false)}
+                  className="text-xs font-semibold text-[#A21CAF] hover:underline dark:text-[#FF4DDE]"
+                >
+                  Buka Owner Control
+                </Link>
+              </div>
+              {pendingCommands.length === 0 ? (
+                <p className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-xs text-slate-600 dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-300/80">
+                  Tidak ada draf AI yang menunggu persetujuan.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {pendingCommands.slice(0, 4).map((cmd) => (
+                    <li key={cmd.id}>
+                      <Link
+                        to="/owner"
+                        onClick={() => setNotifOpen(false)}
+                        className="block rounded-xl border border-[#FF4DDE]/25 bg-slate-50 px-3.5 py-2.5 text-xs transition-colors hover:border-[#FF4DDE]/50 dark:border-[#FF4DDE]/30 dark:bg-[#101827]"
+                      >
+                        <p className="truncate font-semibold text-[#101827] dark:text-white">
+                          &ldquo;{cmd.command_text}&rdquo;
+                        </p>
+                        <p className="mt-0.5 text-[11px] font-medium text-[#A21CAF] dark:text-[#FF9EEA]">
+                          Menunggu tinjauan &amp; konfirmasi Owner
+                        </p>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
-        <Link
-          to="/transaksi"
-          className={`flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
-            pathname.startsWith("/transaksi")
-              ? "text-[#087BFF] dark:text-[#19D8FF]"
-              : "text-slate-500 dark:text-[#C7D0E0]/65"
-          }`}
+            <div>
+              <div className="mb-2.5 flex items-center justify-between">
+                <h3 className="text-xs font-bold tracking-wide text-slate-500 dark:text-slate-400">
+                  Pengingat Keuangan ({reminderSummary.totalActiveCount})
+                </h3>
+                <Link
+                  to="/pengingat"
+                  onClick={() => setNotifOpen(false)}
+                  className="text-xs font-semibold text-[#9A7411] hover:underline dark:text-[#D4AF37]"
+                >
+                  Pusat Pengingat
+                </Link>
+              </div>
+              {reminderSummary.nearestReminder ? (
+                <Link
+                  to="/pengingat"
+                  onClick={() => setNotifOpen(false)}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs transition-colors hover:border-[#D4AF37]/50 dark:border-[#1E293B] dark:bg-[#101827]"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-[#101827] dark:text-white">
+                      {reminderSummary.nearestReminder.title}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-[#9A7411] dark:text-[#E6C768]">
+                      {reminderSummary.nearestReminder.daysRemaining === null
+                        ? reminderSummary.nearestReminder.dueDate
+                        : reminderSummary.nearestReminder.daysRemaining < 0
+                          ? `Terlambat ${Math.abs(reminderSummary.nearestReminder.daysRemaining)} hari`
+                          : reminderSummary.nearestReminder.daysRemaining === 0
+                            ? "Jatuh tempo hari ini"
+                            : `${reminderSummary.nearestReminder.daysRemaining} hari lagi`}{" "}
+                      · {reminderSummary.overdueCount} terlambat
+                    </p>
+                  </div>
+                  <span className="shrink-0 font-mono font-bold text-[#9A7411] dark:text-[#E6C768] tabular-nums">
+                    {formatIDR(reminderSummary.nearestReminder.amount)}
+                  </span>
+                </Link>
+              ) : (
+                <p className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-xs text-slate-600 dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-300/80">
+                  Belum ada pengingat keuangan aktif.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <div className="mb-2.5 flex items-center justify-between">
+                <h3 className="text-xs font-bold tracking-wide text-slate-500 dark:text-slate-400">
+                  Tagihan Jatuh Tempo ≤ 7 Hari ({dueBills.length})
+                </h3>
+                <Link
+                  to="/rencana"
+                  search={{ tab: "tagihan" }}
+                  onClick={() => setNotifOpen(false)}
+                  className="text-xs font-semibold text-[#9A7411] hover:underline dark:text-[#D4AF37]"
+                >
+                  Kelola Tagihan
+                </Link>
+              </div>
+              {dueBills.length === 0 ? (
+                <p className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-xs text-slate-600 dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-300/80">
+                  Tidak ada tagihan mendesak dalam 7 hari ke depan.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {dueBills.slice(0, 4).map((bill) => {
+                    const delta = daysUntilDue(bill.next_due_date);
+                    return (
+                      <li key={bill.id}>
+                        <Link
+                          to="/rencana"
+                          search={{ tab: "tagihan" }}
+                          onClick={() => setNotifOpen(false)}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs transition-colors hover:border-[#D4AF37]/50 dark:border-[#1E293B] dark:bg-[#101827]"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-[#101827] dark:text-white">
+                              {bill.title}
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-[#9A7411] dark:text-[#E6C768]">
+                              {delta !== null
+                                ? delta < 0
+                                  ? `Terlambat ${Math.abs(delta)} hari`
+                                  : delta === 0
+                                    ? "Jatuh tempo hari ini"
+                                    : `${delta} hari lagi`
+                                : bill.next_due_date}
+                            </p>
+                          </div>
+                          <span className="shrink-0 font-mono font-bold text-[#DC2626] dark:text-[#F87171] tabular-nums">
+                            {formatIDR(bill.amount)}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            <div>
+              <div className="mb-2.5 flex items-center justify-between">
+                <h3 className="text-xs font-bold tracking-wide text-slate-500 dark:text-slate-400">
+                  Peringatan Anggaran ({budgetSummary.attentionCount})
+                </h3>
+                <Link
+                  to="/anggaran"
+                  onClick={() => setNotifOpen(false)}
+                  className="text-xs font-semibold text-[#9A7411] hover:underline dark:text-[#D4AF37]"
+                >
+                  Smart Budget Monitor
+                </Link>
+              </div>
+              {budgetSummary.alertCategories.length === 0 ? (
+                <p className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-xs text-slate-600 dark:border-[#1E293B] dark:bg-[#101827] dark:text-slate-300/80">
+                  Seluruh kategori anggaran aktif masih berada di bawah ambang 75%.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {budgetSummary.alertCategories.slice(0, 4).map((bItem) => (
+                    <li key={bItem.budget.id}>
+                      <Link
+                        to="/anggaran"
+                        onClick={() => setNotifOpen(false)}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs transition-colors hover:border-[#EF4444]/45 dark:border-[#1E293B] dark:bg-[#101827]"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-[#101827] dark:text-white">
+                            {bItem.budget.category}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-[#9A7411] dark:text-[#E6C768]">
+                            {bItem.severityLabel}
+                          </p>
+                        </div>
+                        <span className="shrink-0 font-mono font-bold text-[#DC2626] dark:text-[#F87171] tabular-nums">
+                          {bItem.usagePct.toFixed(0)}%
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </ModalSheet>
+
+        {/* Animated Mobile Drawer Sheet for "Menu" — preserves all 13 destinations */}
+        <AnimatePresence>
+          {mobileMenuOpen ? (
+            <motion.div
+              key="mobile-menu-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18, ease: EGO_EASE }}
+              className="fixed inset-0 z-40 bg-[#101827]/70 backdrop-blur-xs dark:bg-black/80 md:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <motion.div
+                key="mobile-menu-sheet"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Menu Tambahan EGO"
+                initial={{ opacity: 0, y: 36 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 28 }}
+                transition={{ duration: 0.22, ease: EGO_EASE }}
+                className="absolute inset-x-0 bottom-16 max-h-[82vh] overflow-y-auto rounded-t-3xl border-t border-[#D4AF37]/25 bg-white p-5 pb-6 shadow-2xl dark:border-white/10 dark:bg-[#101827]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600" />
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <EgoLogoMark size="sm" />
+                    <div>
+                      <p className="text-sm font-bold text-[#101827] dark:text-white">
+                        Menu Brankas EGO
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {ownerName}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Tutup menu"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="ego-pressable flex h-11 w-11 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-[#101827] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  {(
+                    [
+                      { to: "/analitik", label: "Analitik & Skor", icon: Activity, badge: 0 },
+                      { to: "/simulasi", label: "What-If", icon: FlaskConical, badge: 0 },
+                      { to: "/anggaran", label: "Anggaran", icon: PieChart, badge: budgetSummary.attentionCount },
+                      { to: "/pengingat", label: "Pengingat", icon: BellRing, badge: reminderAlertsCount },
+                      {
+                        to: "/rencana",
+                        search: { tab: "simulator" as const },
+                        label: "Sim. Target",
+                        icon: Calculator,
+                        badge: 0,
+                      },
+                      { to: "/aset", label: "Aset", icon: Briefcase, badge: 0 },
+                      { to: "/utang", label: "Utang", icon: CreditCard, badge: 0 },
+                      {
+                        to: "/rencana",
+                        search: { tab: "target" as const },
+                        label: "Target",
+                        icon: Target,
+                        badge: 0,
+                      },
+                      {
+                        to: "/rencana",
+                        search: { tab: "tagihan" as const },
+                        label: "Tagihan",
+                        icon: CalendarClock,
+                        badge: dueBills.length,
+                      },
+                      { to: "/laporan", label: "Laporan", icon: BarChart3, badge: 0 },
+                      {
+                        to: "/owner",
+                        search: { tab: "ai" as const },
+                        label: "Owner AI",
+                        icon: Bot,
+                        badge: 0,
+                      },
+                      {
+                        to: "/owner",
+                        search: { tab: "control" as const },
+                        label: "Owner Control",
+                        icon: ShieldCheck,
+                        badge: pendingCommands.length,
+                      },
+                      { to: "/pengaturan", label: "Pengaturan", icon: Settings, badge: 0 },
+                    ] as const
+                  ).map((item) => {
+                    const Icon = item.icon;
+                    const active = pathname.startsWith(item.to);
+                    const isAiItem = item.to === "/owner";
+                    return (
+                      <Link
+                        key={item.label}
+                        to={item.to}
+                        search={"search" in item ? item.search : undefined}
+                        aria-current={active ? "page" : undefined}
+                        onClick={(e) => {
+                          triggerSignatureFeedback(
+                            e.currentTarget,
+                            isAiItem ? "ai" : "nav",
+                            { clientX: e.clientX, clientY: e.clientY }
+                          );
+                          setMobileMenuOpen(false);
+                        }}
+                        className={`ego-nav-item ${isAiItem ? "ego-icon-ai" : "ego-icon-nav"} flex min-h-[48px] items-center justify-between gap-2 rounded-2xl border px-3.5 py-2.5 text-sm font-semibold ${
+                          active
+                            ? isAiItem
+                              ? "border-[#FF4DDE]/45 bg-[#FF4DDE]/10 text-[#A21CAF] dark:border-[#FF4DDE]/45 dark:bg-[#FF4DDE]/15 dark:text-[#FF9EEA]"
+                              : "border-[#D4AF37]/50 bg-[#D4AF37]/12 text-[#85620A] dark:border-[#D4AF37]/50 dark:bg-[#D4AF37]/15 dark:text-[#E6C768]"
+                            : isAiItem
+                              ? "border-[#FF4DDE]/25 bg-[#101827] text-white dark:border-[#FF4DDE]/30 dark:bg-[#162032]"
+                              : "border-slate-200 bg-slate-50 text-[#101827] dark:border-[#1E293B] dark:bg-[#162032] dark:text-slate-200"
+                        }`}
+                      >
+                        <span className="flex min-w-0 items-center gap-2.5">
+                          <Icon
+                            className={`h-4 w-4 shrink-0 ${
+                              isAiItem
+                                ? "text-[#FF4DDE]"
+                                : active
+                                  ? "text-[#9A7411] dark:text-[#D4AF37]"
+                                  : "text-slate-500 dark:text-slate-400"
+                            }`}
+                            aria-hidden="true"
+                          />
+                          <span className="truncate">{item.label}</span>
+                        </span>
+                        {item.badge > 0 ? (
+                          <span
+                            className={`rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums ${
+                              isAiItem
+                                ? "bg-[#FF4DDE] text-white"
+                                : "bg-[#101827] text-[#E6C768] dark:bg-[#D4AF37] dark:text-[#101827]"
+                            }`}
+                          >
+                            {item.badge}
+                          </span>
+                        ) : null}
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 dark:border-[#1E293B] dark:bg-[#162032]">
+                  <span className="text-xs font-semibold text-[#101827] dark:text-slate-200">
+                    Mode Tampilan
+                  </span>
+                  <ThemeToggleButton />
+                </div>
+
+                <div className="mt-3">
+                  <PWAInstallButton fullWidth />
+                </div>
+
+                {auth?.hasPin ? (
+                  <button
+                    type="button"
+                    onClick={handleQuickLock}
+                    className="ego-pressable mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-[#D4AF37]/40 bg-[#D4AF37]/12 px-4 py-2.5 text-sm font-semibold text-[#85620A] dark:border-[#D4AF37]/40 dark:bg-[#D4AF37]/15 dark:text-[#E6C768]"
+                  >
+                    <Lock className="h-4 w-4" aria-hidden="true" />
+                    <span>Kunci Layar (PIN)</span>
+                  </button>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="ego-pressable mt-2.5 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-[#EF4444]/25 bg-[#EF4444]/10 px-4 py-2.5 text-sm font-semibold text-[#DC2626] dark:border-[#EF4444]/30 dark:bg-[#EF4444]/12 dark:text-[#FCA5A5]"
+                >
+                  <LogOut className="h-4 w-4" aria-hidden="true" />
+                  <span>Kunci &amp; Keluar</span>
+                </button>
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        {/* Persistent Mobile Bottom Navigation (5 items: Home, Transaksi, +, Akun, Menu) */}
+        <nav
+          aria-label="Navigasi Mobile"
+          className="pb-safe fixed inset-x-0 bottom-0 z-40 grid h-16 grid-cols-5 items-center border-t border-white/10 bg-[#101827]/95 px-1 backdrop-blur-md md:hidden"
         >
-          <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
-          <span>Transaksi</span>
-        </Link>
+          <Link
+            to="/"
+            onClick={(e) => {
+              triggerSignatureFeedback(e.currentTarget, "nav", {
+                clientX: e.clientX,
+                clientY: e.clientY,
+              });
+            }}
+            aria-current={pathname === "/" ? "page" : undefined}
+            className={`ego-nav-item ego-icon-nav relative flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
+              pathname === "/" ? "text-[#E6C768]" : "text-slate-400 hover:text-white"
+            }`}
+          >
+            {pathname === "/" ? (
+              <motion.span
+                layoutId="ego-mobile-nav-active"
+                transition={{ duration: 0.26, ease: EGO_EASE }}
+                className="pointer-events-none absolute top-0 left-1/2 h-0.5 w-7 -translate-x-1/2 rounded-b-full bg-[#D4AF37] shadow-[0_1px_6px_rgba(212,175,55,0.45)]"
+                aria-hidden="true"
+              />
+            ) : null}
+            <Home className="h-4 w-4" aria-hidden="true" />
+            <span>Home</span>
+          </Link>
 
-        <div className="flex items-center justify-center">
+          <Link
+            to="/transaksi"
+            onClick={(e) => {
+              triggerSignatureFeedback(e.currentTarget, "nav", {
+                clientX: e.clientX,
+                clientY: e.clientY,
+              });
+            }}
+            aria-current={pathname.startsWith("/transaksi") ? "page" : undefined}
+            className={`ego-nav-item ego-icon-nav relative flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
+              pathname.startsWith("/transaksi")
+                ? "text-[#E6C768]"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            {pathname.startsWith("/transaksi") ? (
+              <motion.span
+                layoutId="ego-mobile-nav-active"
+                transition={{ duration: 0.26, ease: EGO_EASE }}
+                className="pointer-events-none absolute top-0 left-1/2 h-0.5 w-7 -translate-x-1/2 rounded-b-full bg-[#D4AF37] shadow-[0_1px_6px_rgba(212,175,55,0.45)]"
+                aria-hidden="true"
+              />
+            ) : null}
+            <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
+            <span>Transaksi</span>
+          </Link>
+
+          <div className="flex items-center justify-center">
+            <button
+              type="button"
+              onClick={(e) => {
+                triggerSignatureFeedback(e.currentTarget, "action", {
+                  clientX: e.clientX,
+                  clientY: e.clientY,
+                });
+                openTransactionSheet();
+              }}
+              aria-label="Catat Transaksi Baru"
+              className="ego-pressable ego-icon-action -mt-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#F1D57A] via-[#D4AF37] to-[#B8941F] text-[#101827] shadow-lg shadow-[#101827]/40 ring-4 ring-[#F6F7FB] dark:ring-[#0B111E]"
+            >
+              <Plus className="h-6 w-6 stroke-[2.5]" aria-hidden="true" />
+            </button>
+          </div>
+
+          <Link
+            to="/akun"
+            onClick={(e) => {
+              triggerSignatureFeedback(e.currentTarget, "nav", {
+                clientX: e.clientX,
+                clientY: e.clientY,
+              });
+            }}
+            aria-current={pathname.startsWith("/akun") ? "page" : undefined}
+            className={`ego-nav-item ego-icon-nav relative flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
+              pathname.startsWith("/akun")
+                ? "text-[#E6C768]"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            {pathname.startsWith("/akun") ? (
+              <motion.span
+                layoutId="ego-mobile-nav-active"
+                transition={{ duration: 0.26, ease: EGO_EASE }}
+                className="pointer-events-none absolute top-0 left-1/2 h-0.5 w-7 -translate-x-1/2 rounded-b-full bg-[#D4AF37] shadow-[0_1px_6px_rgba(212,175,55,0.45)]"
+                aria-hidden="true"
+              />
+            ) : null}
+            <Wallet className="h-4 w-4" aria-hidden="true" />
+            <span>Akun</span>
+          </Link>
+
           <button
             type="button"
-            onClick={() => openTransactionSheet()}
-            aria-label="Catat Transaksi Baru"
-            className="flex h-12 w-12 -mt-4 items-center justify-center rounded-2xl bg-gradient-to-br from-[#19D8FF] via-[#087BFF] to-[#0055CC] text-white shadow-lg shadow-[#087BFF]/35 ring-4 ring-white transition-transform active:scale-95 dark:ring-[#06132F]"
+            onClick={(e) => {
+              triggerSignatureFeedback(e.currentTarget, "toggle", {
+                clientX: e.clientX,
+                clientY: e.clientY,
+              });
+              setMobileMenuOpen((v) => !v);
+            }}
+            aria-expanded={mobileMenuOpen}
+            className={`ego-nav-item ego-icon-toggle relative flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
+              mobileMenuOpen || isMenuRouteActive
+                ? "text-[#E6C768]"
+                : "text-slate-400 hover:text-white"
+            }`}
           >
-            <Plus className="h-6 w-6 stroke-[2.5]" aria-hidden="true" />
+            {isMenuRouteActive && !mobileMenuOpen ? (
+              <motion.span
+                layoutId="ego-mobile-nav-active"
+                transition={{ duration: 0.26, ease: EGO_EASE }}
+                className="pointer-events-none absolute top-0 left-1/2 h-0.5 w-7 -translate-x-1/2 rounded-b-full bg-[#D4AF37] shadow-[0_1px_6px_rgba(212,175,55,0.45)]"
+                aria-hidden="true"
+              />
+            ) : null}
+            <Menu className="h-4 w-4" aria-hidden="true" />
+            <span>Menu</span>
+            {totalNotifications > 0 ? (
+              <span
+                className="absolute top-2.5 right-4 h-2 w-2 rounded-full bg-[#EF4444]"
+                aria-hidden="true"
+              />
+            ) : null}
           </button>
-        </div>
+        </nav>
 
-        <Link
-          to="/akun"
-          className={`flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
-            pathname.startsWith("/akun")
-              ? "text-[#087BFF] dark:text-[#19D8FF]"
-              : "text-slate-500 dark:text-[#C7D0E0]/65"
-          }`}
-        >
-          <Wallet className="h-4 w-4" aria-hidden="true" />
-          <span>Akun</span>
-        </Link>
+        <OfflineIndicator />
+      </div>
+    </AppShellContext.Provider>
+  );
+}
 
-        <button
-          type="button"
-          onClick={() => setMobileMenuOpen((v) => !v)}
-          aria-expanded={mobileMenuOpen}
-          className={`relative flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
-            mobileMenuOpen || isMenuRouteActive
-              ? "text-[#087BFF] dark:text-[#19D8FF]"
-              : "text-slate-500 dark:text-[#C7D0E0]/65"
-          }`}
-        >
-          <Menu className="h-4 w-4" aria-hidden="true" />
-          <span>Menu</span>
-          {totalNotifications > 0 ? (
-            <span
-              className="absolute top-2.5 right-4 h-2 w-2 rounded-full bg-[#087BFF] dark:bg-[#19D8FF]"
-              aria-hidden="true"
-            />
-          ) : null}
-        </button>
-      </nav>
+interface AppShellProps {
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+  children: ReactNode;
+}
 
-      <OfflineIndicator />
-    </div>
+/**
+ * Syncs page header metadata (`title`, `subtitle`, `action`) into the persistent
+ * `AppShellFrame` rendered in `_authenticated/route.tsx`, keeping the sidebar, header,
+ * and mobile bottom bar continuously mounted across all 13 routes.
+ */
+export function AppShell({ title, subtitle, action, children }: AppShellProps) {
+  const ctx = useContext(AppShellContext);
+
+  useLayoutEffect(() => {
+    if (!ctx) return;
+    ctx.setMeta({ title, subtitle });
+  }, [ctx, title, subtitle]);
+
+  if (!ctx) {
+    // Fallback when rendered standalone outside AuthenticatedLayout
+    return (
+      <AppShellFrame>
+        {action ? <div className="mb-4 sm:hidden">{action}</div> : null}
+        {children}
+      </AppShellFrame>
+    );
+  }
+
+  return (
+    <>
+      {action && ctx.desktopActionHost
+        ? createPortal(action, ctx.desktopActionHost)
+        : null}
+      {action ? <div className="mb-4 sm:hidden">{action}</div> : null}
+      {children}
+    </>
   );
 }
