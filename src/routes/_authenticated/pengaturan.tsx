@@ -27,7 +27,7 @@ import {
   vaultSnapshotToBackupJson,
 } from "../../lib/export";
 import { todayISO } from "../../lib/finance";
-import { parseEgoBackupPreview, type EgoBackupPreview } from "../../lib/backup-restore";
+import { createEgoRestorePayload, parseEgoBackupPreview, type EgoBackupPreview } from "../../lib/backup-restore";
 import {
   isAutoLockEnabled,
   setAutoLockEnabled,
@@ -47,7 +47,7 @@ import {
   useUpdatePreferences,
   useVaultSnapshot,
 } from "../../lib/queries";
-import { isSupabaseConfigured } from "../../lib/supabase";
+import { isSupabaseConfigured, supabase } from "../../lib/supabase";
 import { ThemeToggleButton } from "../../lib/theme";
 import type { DateFormatPref } from "../../types/ego";
 
@@ -70,6 +70,8 @@ export function PengaturanPage() {
   const [expenseLimit, setExpenseLimit] = useState(5_000_000);
   const [backupPreview, setBackupPreview] = useState<EgoBackupPreview | null>(null);
   const [backupValidationError, setBackupValidationError] = useState<string | null>(null);
+  const [backupRestoreConfirmed, setBackupRestoreConfirmed] = useState(false);
+  const [backupRestorePending, setBackupRestorePending] = useState(false);
 
   // Edit Owner profile form state
   const [editingProfile, setEditingProfile] = useState(false);
@@ -211,6 +213,7 @@ export function PengaturanPage() {
     event.currentTarget.value = "";
     setBackupPreview(null);
     setBackupValidationError(null);
+    setBackupRestoreConfirmed(false);
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
       setBackupValidationError("Ukuran file cadangan maksimal 10 MB.");
@@ -227,6 +230,32 @@ export function PengaturanPage() {
       toast.success("Cadangan lolos validasi awal. Belum ada data yang diubah.");
     } catch (error) {
       setBackupValidationError(error instanceof Error ? error.message : "Cadangan tidak dapat divalidasi.");
+    }
+  }
+
+  async function handleRestoreBackup() {
+    if (!backupPreview || !backupRestoreConfirmed || !isSupabaseConfigured || !supabase) {
+      toast.error("Pilih cadangan yang valid dan berikan persetujuan Owner terlebih dahulu.");
+      return;
+    }
+    setBackupRestorePending(true);
+    try {
+      const payload = createEgoRestorePayload(backupPreview);
+      const { data, error } = await supabase.rpc("ego_restore_backup", {
+        p_backup: payload,
+        p_owner_confirmed: true,
+      });
+      if (error) throw error;
+      await qc.invalidateQueries({ queryKey: egoKeys.vault });
+      setBackupRestoreConfirmed(false);
+      setBackupPreview(null);
+      const inserted = Number(data?.inserted ?? 0);
+      const skipped = Number(data?.skipped_identical ?? 0);
+      toast.success(`Pemulihan selesai: ${inserted} data ditambahkan, ${skipped} data identik dilewati.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Pemulihan dibatalkan. Tidak ada perubahan parsial yang disimpan.");
+    } finally {
+      setBackupRestorePending(false);
     }
   }
 
@@ -921,8 +950,33 @@ export function PengaturanPage() {
                       <li key={name}>{name}: <strong>{count}</strong></li>
                     ))}
                   </ul>
-                  <p className="mt-2 font-semibold">Konflik ID yang sudah ada: {Object.values(backupPreview.existingIdConflicts).reduce((sum, count) => sum + count, 0)}</p>
-                  <p className="mt-1 text-amber-700 dark:text-amber-300">Pemulihan belum dijalankan. Restore cloud memerlukan operasi database atomik dan persetujuan Owner terpisah; pratinjau ini tidak mengubah data.</p>
+                  <p className="mt-2 font-semibold">ID yang sudah ada: {Object.values(backupPreview.existingIdConflicts).reduce((sum, count) => sum + count, 0)}</p>
+                  <p className="mt-1 text-amber-700 dark:text-amber-300">Baris yang identik akan dilewati. Jika ID yang sama memiliki isi berbeda, seluruh pemulihan dibatalkan. Tidak ada data lama yang ditimpa atau dihapus.</p>
+                  {isSupabaseConfigured && supabase ? (
+                    <div className="mt-3 space-y-3 border-t border-emerald-300/60 pt-3 dark:border-emerald-700/50">
+                      <label className="flex items-start gap-2 text-slate-700 dark:text-[#C7D0E0]">
+                        <input
+                          type="checkbox"
+                          checked={backupRestoreConfirmed}
+                          onChange={(event) => setBackupRestoreConfirmed(event.target.checked)}
+                          disabled={backupRestorePending}
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                        />
+                        <span>Saya Owner dan menyetujui pemulihan cadangan ini ke akun EGO saya. Data yang identik dilewati; konflik akan membatalkan seluruh proses.</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleRestoreBackup}
+                        disabled={!backupRestoreConfirmed || backupRestorePending}
+                        className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-[#087BFF] px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#0669DB] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#087BFF]"
+                      >
+                        {backupRestorePending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
+                        <span>{backupRestorePending ? "Memulihkan..." : "Pulihkan Cadangan"}</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-amber-700 dark:text-amber-300">Pemulihan otomatis hanya tersedia saat EGO terhubung ke Supabase dan Owner sudah masuk.</p>
+                  )}
                 </div>
               ) : null}
             </div>
