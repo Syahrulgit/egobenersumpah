@@ -817,6 +817,7 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                         { to: "/rencana", search: { tab: "simulator" as const }, label: "Sim. Target", icon: Calculator, badge: 0, tone: "violet" },
                         { to: "/rencana", search: { tab: "target" as const }, label: "Target", icon: Target, badge: 0, tone: "gold" },
                         { to: "/rencana", search: { tab: "tagihan" as const }, label: "Tagihan", icon: CalendarClock, badge: dueBills.length, tone: "rose" },
+                        { to: "/owner", search: { tab: "ai" as const }, label: "Robo AI", icon: Bot, badge: 0, tone: "ai" },
                       ],
                     },
                     {
@@ -869,15 +870,9 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                                 : "border-slate-200 bg-white shadow-sm shadow-slate-900/[0.025] hover:-translate-y-0.5 hover:border-[#D4AF37]/35 hover:shadow-md dark:border-[#263449] dark:bg-[#162032]"
                             }`}
                           >
-                            {item.label === "Tagihan" ? (
-                              <span className="flex h-11 items-center justify-center gap-2">
-                                <span className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${toneClass}`}>
-                                  <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
-                                  {active ? <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border-2 border-white bg-[#D4AF37] dark:border-[#162032]" /> : null}
-                                </span>
-                                <span className="flex h-9 w-8 shrink-0 items-center justify-center overflow-visible">
-                                  <EgoCompanion size="sm" mode="idle" className="scale-[0.72]" />
-                                </span>
+                            {item.label === "Robo AI" ? (
+                              <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-visible">
+                                <EgoCompanion size="sm" mode="idle" className="scale-[0.9]" />
                               </span>
                             ) : (
                               <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${toneClass}`}>
