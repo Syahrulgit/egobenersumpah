@@ -817,13 +817,13 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                         { to: "/rencana", search: { tab: "simulator" as const }, label: "Sim. Target", icon: Calculator, badge: 0, tone: "violet" },
                         { to: "/rencana", search: { tab: "target" as const }, label: "Target", icon: Target, badge: 0, tone: "gold" },
                         { to: "/rencana", search: { tab: "tagihan" as const }, label: "Tagihan", icon: CalendarClock, badge: dueBills.length, tone: "rose" },
-                        { to: "/owner", search: { tab: "ai" as const }, label: "Robo AI", icon: Bot, badge: 0, tone: "ai" },
+                        { to: "/pengingat", label: "Pengingat", icon: BellRing, badge: reminderAlertsCount, tone: "gold" },
                       ],
                     },
                     {
                       title: "ASISTEN & SISTEM",
                                             items: [
-                        { to: "/pengingat", label: "Pengingat", icon: BellRing, badge: reminderAlertsCount, tone: "gold" },
+                        { to: "/owner", search: { tab: "ai" as const }, label: "Robo AI", icon: Bot, badge: 0, tone: "ai" },
                         { to: "/owner", search: { tab: "ai" as const }, label: "Owner AI", icon: Bot, badge: 0, tone: "ai" },
                         { to: "/owner", search: { tab: "control" as const }, label: "Owner Control", icon: ShieldCheck, badge: pendingCommands.length, tone: "ai" },
                         { to: "/pengaturan", label: "Pengaturan", icon: Settings, badge: 0, tone: "slate" },
