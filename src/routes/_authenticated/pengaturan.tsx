@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
+  AlertTriangle,
   CheckCircle2,
   Database,
   Download,
@@ -26,6 +27,7 @@ import {
   vaultSnapshotToBackupJson,
 } from "../../lib/export";
 import { todayISO } from "../../lib/finance";
+import { createEgoRestorePayload, parseEgoBackupPreview, type EgoBackupPreview } from "../../lib/backup-restore";
 import {
   isAutoLockEnabled,
   setAutoLockEnabled,
@@ -45,7 +47,7 @@ import {
   useUpdatePreferences,
   useVaultSnapshot,
 } from "../../lib/queries";
-import { isSupabaseConfigured } from "../../lib/supabase";
+import { isSupabaseConfigured, supabase } from "../../lib/supabase";
 import { ThemeToggleButton } from "../../lib/theme";
 import type { DateFormatPref } from "../../types/ego";
 
@@ -66,6 +68,10 @@ export function PengaturanPage() {
 
   const [dateFormat, setDateFormat] = useState<DateFormatPref>("DD MMM YYYY");
   const [expenseLimit, setExpenseLimit] = useState(5_000_000);
+  const [backupPreview, setBackupPreview] = useState<EgoBackupPreview | null>(null);
+  const [backupValidationError, setBackupValidationError] = useState<string | null>(null);
+  const [backupRestoreConfirmed, setBackupRestoreConfirmed] = useState(false);
+  const [backupRestorePending, setBackupRestorePending] = useState(false);
 
   // Edit Owner profile form state
   const [editingProfile, setEditingProfile] = useState(false);
@@ -202,6 +208,66 @@ export function PengaturanPage() {
     toast.success("Cadangan lengkap brankas (JSON) berhasil diunduh.");
   }
 
+  async function handleValidateBackupFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    setBackupPreview(null);
+    setBackupValidationError(null);
+    setBackupRestoreConfirmed(false);
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setBackupValidationError("Ukuran file cadangan maksimal 10 MB.");
+      return;
+    }
+    try {
+      const raw = await file.text();
+      const preview = parseEgoBackupPreview(
+        raw,
+        vault as unknown as Partial<Record<import("../../lib/backup-restore").BackupCollection, unknown[]>>,
+        auth?.owner?.email ?? null
+      );
+      setBackupPreview(preview);
+      toast.success("Cadangan lolos validasi awal. Belum ada data yang diubah.");
+    } catch (error) {
+      setBackupValidationError(error instanceof Error ? error.message : "Cadangan tidak dapat divalidasi.");
+    }
+  }
+
+  async function handleRestoreBackup() {
+    if (!backupPreview || !backupRestoreConfirmed || !isSupabaseConfigured || !supabase) {
+      toast.error("Pilih cadangan yang valid dan berikan persetujuan Owner terlebih dahulu.");
+      return;
+    }
+    setBackupRestorePending(true);
+    try {
+      const payload = createEgoRestorePayload(backupPreview);
+      const { data, error } = await supabase.rpc("ego_restore_backup", {
+        p_backup: payload,
+        p_owner_confirmed: true,
+      });
+      if (error) throw error;
+      let preferencesRestored = false;
+      if (backupPreview.preferences) {
+        try {
+          await updatePrefs.mutateAsync(backupPreview.preferences);
+          preferencesRestored = true;
+        } catch {
+          toast.warning("Data keuangan pulih, tetapi preferensi perangkat tidak berhasil dipulihkan.");
+        }
+      }
+      await qc.invalidateQueries({ queryKey: egoKeys.vault });
+      setBackupRestoreConfirmed(false);
+      setBackupPreview(null);
+      const inserted = Number(data?.inserted ?? 0);
+      const skipped = Number(data?.skipped_identical ?? 0);
+      toast.success(`Pemulihan selesai: ${inserted} data ditambahkan, ${skipped} data identik dilewati.${preferencesRestored ? " Preferensi Owner juga dipulihkan." : ""}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Pemulihan dibatalkan. Tidak ada perubahan parsial yang disimpan.");
+    } finally {
+      setBackupRestorePending(false);
+    }
+  }
+
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
     if (!currentPassword) {
@@ -317,9 +383,9 @@ export function PengaturanPage() {
     {
       label: "Kebijakan Keamanan & RLS",
       status: isSupabaseConfigured
-        ? "RLS owner_id = auth.uid() Aktif"
-        : "Single-Owner + Pembatas Login Aktif",
-      ok: true,
+        ? "Belum dapat diverifikasi dari perangkat"
+        : "Mode lokal: RLS Supabase tidak digunakan",
+      ok: false,
     },
     {
       label: "Mode Aplikasi Harian (PWA)",
@@ -723,10 +789,11 @@ export function PengaturanPage() {
                     {item.label}
                   </span>
                   <span className="inline-flex items-center gap-1.5 font-semibold text-[#087BFF] dark:text-[#19D8FF]">
-                    <CheckCircle2
-                      className="h-3.5 w-3.5 shrink-0"
-                      aria-hidden="true"
-                    />
+                    {item.ok ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    ) : (
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden="true" />
+                    )}
                     <span>{item.status}</span>
                   </span>
                 </li>
@@ -743,8 +810,8 @@ export function PengaturanPage() {
               </div>
               <p className="mt-1.5 leading-relaxed">
                 {isSupabaseConfigured
-                  ? "Supabase Cloud sudah terhubung aktif. Seluruh mutasi Anda dilindungi RLS owner_id = auth.uid()."
-                  : "Untuk penyimpanan cloud permanen: (1) Jalankan skrip docs/ego-supabase-setup.sql di Supabase SQL Editor, lalu (2) Isi VITE_SUPABASE_URL dan VITE_SUPABASE_PUBLISHABLE_KEY pada panel Secrets sebelum mempublikasikan."}
+                  ? "Supabase Cloud terhubung. Status kebijakan RLS tidak dapat dipastikan dari browser; pemeriksaan kebijakan dan hak akses harus dilakukan melalui audit server-side/Supabase Advisor."
+                  : "Aplikasi sedang menggunakan mode server lokal. RLS Supabase tidak berlaku pada mode ini."}
               </p>
             </div>
           </div>
@@ -865,6 +932,74 @@ export function PengaturanPage() {
                 <Download className="h-4 w-4" aria-hidden="true" />
                 <span>Cadangan Brankas Lengkap (JSON)</span>
               </button>
+            </div>
+            <div className="mt-5 border-t border-[#DCE4F0] pt-4 dark:border-[#1B3163]">
+              <h3 className="text-sm font-bold text-[#06132F] dark:text-white">Pemulihan Cadangan — Validasi & Pratinjau</h3>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
+                Pilih file JSON untuk memeriksa struktur, UUID, nilai keuangan, dan ID yang sudah ada. File JSON dapat diedit; metadata email bukan bukti keaslian. Akun tujuan ditentukan oleh sesi Owner yang sedang masuk.
+              </p>
+              <label className="mt-3 block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]">
+                File cadangan EGO (.json)
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={handleValidateBackupFile}
+                  className="mt-2 block w-full rounded-xl border border-[#DCE4F0] bg-[#F4F7FB] p-2 text-xs dark:border-[#1B3163] dark:bg-[#06132F]"
+                />
+              </label>
+              {backupValidationError ? (
+                <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-950/30 dark:text-red-300">{backupValidationError}</p>
+              ) : null}
+              {backupPreview ? (
+                <div className="mt-3 rounded-xl border border-emerald-300/60 bg-emerald-50/60 p-3 text-xs dark:border-emerald-700/50 dark:bg-emerald-950/20">
+                  <p className="font-bold text-emerald-800 dark:text-emerald-300">Validasi awal berhasil — {backupPreview.totalRecords} baris data</p>
+                  <p className="mt-1 text-slate-600 dark:text-[#C7D0E0]/75">Ekspor: {new Date(backupPreview.exportedAt).toLocaleString("id-ID")} · Metadata email: {backupPreview.ownerEmail ?? "tidak dicantumkan"}</p>
+                  {backupPreview.ownerMetadataMismatch ? <p className="mt-2 rounded-lg bg-amber-100 p-2 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">Email di metadata berbeda dari akun aktif. Ini bukan pemeriksaan keaslian; pemulihan tetap hanya dapat menulis ke UID sesi Owner yang sedang masuk.</p> : null}
+                  <ul className="mt-2 grid grid-cols-2 gap-1 text-slate-700 dark:text-[#C7D0E0]">
+                    {Object.entries(backupPreview.counts).map(([name, count]) => (
+                      <li key={name}>{name}: <strong>{count}</strong></li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 font-semibold">ID yang sudah ada (perlu pemeriksaan server): {Object.values(backupPreview.existingIdConflicts).reduce((sum, count) => sum + count, 0)}</p>
+                  <div className="mt-3 rounded-lg border border-[#DCE4F0] bg-white/70 p-3 dark:border-[#1B3163] dark:bg-[#06132F]/70">
+                    <p className="font-bold text-slate-800 dark:text-white">Ringkasan nilai dalam file (bukan perubahan saldo)</p>
+                    <dl className="mt-2 grid grid-cols-2 gap-2 text-slate-700 dark:text-[#C7D0E0]">
+                      <div><dt className="text-slate-500 dark:text-[#C7D0E0]/60">Pemasukan terposting</dt><dd className="font-semibold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(backupPreview.financialSummary.postedIncome)}</dd></div>
+                      <div><dt className="text-slate-500 dark:text-[#C7D0E0]/60">Pengeluaran terposting</dt><dd className="font-semibold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(backupPreview.financialSummary.postedExpenses)}</dd></div>
+                      <div><dt className="text-slate-500 dark:text-[#C7D0E0]/60">Arus kas bersih</dt><dd className="font-semibold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(backupPreview.financialSummary.netCashflow)}</dd></div>
+                      <div><dt className="text-slate-500 dark:text-[#C7D0E0]/60">Sisa utang tercatat</dt><dd className="font-semibold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(backupPreview.financialSummary.outstandingDebt)}</dd></div>
+                      <div className="col-span-2"><dt className="text-slate-500 dark:text-[#C7D0E0]/60">Nilai aset tercatat</dt><dd className="font-semibold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(backupPreview.financialSummary.assetValue)}</dd></div>
+                    </dl>
+                    <p className="mt-2 text-[11px] text-slate-500 dark:text-[#C7D0E0]/60">Ringkasan dihitung dari isi file. Pemasukan/pengeluaran hanya transaksi berstatus posted; server tetap memvalidasi relasi dan batasan database sebelum menyimpan.</p>
+                  </div>
+                  <p className="mt-2 text-amber-700 dark:text-amber-300">Baris identik akan dilewati. ID yang sama dengan isi berbeda membatalkan seluruh pemulihan. Data lama tidak ditimpa atau dihapus.</p>
+                  {isSupabaseConfigured && supabase ? (
+                    <div className="mt-3 space-y-3 border-t border-emerald-300/60 pt-3 dark:border-emerald-700/50">
+                      <label className="flex items-start gap-2 text-slate-700 dark:text-[#C7D0E0]">
+                        <input
+                          type="checkbox"
+                          checked={backupRestoreConfirmed}
+                          onChange={(event) => setBackupRestoreConfirmed(event.target.checked)}
+                          disabled={backupRestorePending}
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                        />
+                        <span>Saya Owner dan menyetujui pemulihan cadangan ini ke akun EGO saya. Data yang identik dilewati; konflik akan membatalkan seluruh proses.</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleRestoreBackup}
+                        disabled={!backupRestoreConfirmed || backupRestorePending}
+                        className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-[#087BFF] px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#0669DB] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#087BFF]"
+                      >
+                        {backupRestorePending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
+                        <span>{backupRestorePending ? "Memulihkan..." : "Pulihkan Cadangan"}</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-amber-700 dark:text-amber-300">Pemulihan otomatis hanya tersedia saat EGO terhubung ke Supabase dan Owner sudah masuk.</p>
+                  )}
+                </div>
+              ) : null}
             </div>
           </div>
 
