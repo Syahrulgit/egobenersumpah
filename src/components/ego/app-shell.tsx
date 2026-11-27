@@ -787,53 +787,42 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                 </div>
 
                 <div className="mb-4 overflow-hidden rounded-2xl border border-[#D4AF37]/25 bg-gradient-to-br from-[#101827] via-[#17243A] to-[#101827] p-4 text-white shadow-lg shadow-[#101827]/10">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-bold tracking-[0.22em] text-[#E6C768]">EGO COMMAND CENTER</p>
-                      <p className="mt-1 text-base font-bold tracking-tight">Pusat Kendali Brankas</p>
-                      <p className="mt-1 text-[11px] leading-relaxed text-slate-300">Akses cepat ke seluruh instrumen keuangan dan kontrol pribadi Anda.</p>
-                    </div>
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#D4AF37]/35 bg-[#D4AF37]/10 shadow-inner shadow-[#D4AF37]/10">
+                  <div className="relative flex min-h-12 items-center justify-center">
+                    <p className="text-center text-base font-bold tracking-tight">Pusat Kendali EGO</p>
+                    <div className="absolute right-0 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#D4AF37]/35 bg-[#D4AF37]/10 shadow-inner shadow-[#D4AF37]/10">
                       <ShieldCheck className="h-6 w-6 text-[#E6C768]" aria-hidden="true" />
                     </div>
                   </div>
-                  <div className="mt-3 flex items-center gap-2 text-[10px] font-semibold tracking-wide text-[#E6C768]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#14B8A6] shadow-[0_0_8px_rgba(20,184,166,0.8)]" />
-                    RUANG KENDALI OWNER
-                  </div>
-                </div>
+                                  </div>
 
                 {(
                   [
                     {
                       title: "KEUANGAN & INSIGHT",
-                      description: "Pantau dan pahami kondisi keuangan",
-                      items: [
-                        { to: "/anggaran", label: "Anggaran", detail: "Batas & pemakaian", icon: PieChart, badge: budgetSummary.attentionCount, tone: "gold" },
-                        { to: "/analitik", label: "Analitik & Skor", detail: "Tren & kesehatan", icon: Activity, badge: 0, tone: "blue" },
-                        { to: "/simulasi", label: "What-If", detail: "Uji skenario", icon: FlaskConical, badge: 0, tone: "violet" },
-                        { to: "/laporan", label: "Laporan", detail: "Ringkasan keuangan", icon: BarChart3, badge: 0, tone: "emerald" },
+                                            items: [
+                        { to: "/anggaran", label: "Anggaran", icon: PieChart, badge: budgetSummary.attentionCount, tone: "gold" },
+                        { to: "/analitik", label: "Analitik & Skor", icon: Activity, badge: 0, tone: "blue" },
+                        { to: "/simulasi", label: "What-If", icon: FlaskConical, badge: 0, tone: "violet" },
+                        { to: "/laporan", label: "Laporan", icon: BarChart3, badge: 0, tone: "emerald" },
                       ],
                     },
                     {
                       title: "ASET & KEWAJIBAN",
-                      description: "Kelola nilai dan tujuan finansial",
-                      items: [
-                        { to: "/aset", label: "Aset", detail: "Kekayaan tersimpan", icon: Briefcase, badge: 0, tone: "emerald" },
-                        { to: "/utang", label: "Utang", detail: "Kewajiban berjalan", icon: CreditCard, badge: 0, tone: "rose" },
-                        { to: "/rencana", search: { tab: "simulator" as const }, label: "Sim. Target", detail: "Proyeksi tujuan", icon: Calculator, badge: 0, tone: "violet" },
-                        { to: "/rencana", search: { tab: "target" as const }, label: "Target", detail: "Pencapaian tujuan", icon: Target, badge: 0, tone: "gold" },
-                        { to: "/rencana", search: { tab: "tagihan" as const }, label: "Tagihan", detail: "Jadwal pembayaran", icon: CalendarClock, badge: dueBills.length, tone: "rose" },
+                                            items: [
+                        { to: "/aset", label: "Aset", icon: Briefcase, badge: 0, tone: "emerald" },
+                        { to: "/utang", label: "Utang", icon: CreditCard, badge: 0, tone: "rose" },
+                        { to: "/rencana", search: { tab: "simulator" as const }, label: "Sim. Target", icon: Calculator, badge: 0, tone: "violet" },
+                        { to: "/rencana", search: { tab: "target" as const }, label: "Target", icon: Target, badge: 0, tone: "gold" },
+                        { to: "/rencana", search: { tab: "tagihan" as const }, label: "Tagihan", icon: CalendarClock, badge: dueBills.length, tone: "rose" },
                       ],
                     },
                     {
                       title: "ASISTEN & SISTEM",
-                      description: "Pengingat, kecerdasan, dan keamanan",
-                      items: [
-                        { to: "/pengingat", label: "Pengingat", detail: "Agenda & jatuh tempo", icon: BellRing, badge: reminderAlertsCount, tone: "gold" },
-                        { to: "/owner", search: { tab: "ai" as const }, label: "Owner AI", detail: "Asisten finansial", icon: Bot, badge: 0, tone: "ai" },
-                        { to: "/owner", search: { tab: "control" as const }, label: "Owner Control", detail: "Persetujuan & kontrol", icon: ShieldCheck, badge: pendingCommands.length, tone: "ai" },
-                        { to: "/pengaturan", label: "Pengaturan", detail: "Preferensi brankas", icon: Settings, badge: 0, tone: "slate" },
+                                            items: [
+                        { to: "/pengingat", label: "Pengingat", icon: BellRing, badge: reminderAlertsCount, tone: "gold" },
+                        { to: "/owner", search: { tab: "ai" as const }, label: "Owner AI", icon: Bot, badge: 0, tone: "ai" },
+                        { to: "/owner", search: { tab: "control" as const }, label: "Owner Control", icon: ShieldCheck, badge: pendingCommands.length, tone: "ai" },
+                        { to: "/pengaturan", label: "Pengaturan", icon: Settings, badge: 0, tone: "slate" },
                       ],
                     },
                   ] as const
@@ -842,7 +831,6 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                     <div className="mb-2.5 flex items-end justify-between gap-2 px-0.5">
                       <div>
                         <p className="text-[10px] font-extrabold tracking-[0.16em] text-[#9A7411] dark:text-[#E6C768]">{group.title}</p>
-                        <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">{group.description}</p>
                       </div>
                       <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">{group.items.length.toString().padStart(2, "0")}</span>
                     </div>
@@ -872,7 +860,7 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                               });
                               setMobileMenuOpen(false);
                             }}
-                            className={`ego-nav-item group relative flex min-h-[76px] items-center gap-2.5 overflow-hidden rounded-2xl border p-3 transition-all duration-200 active:scale-[0.97] ${
+                            className={`ego-nav-item group relative flex min-h-[76px] ${item.label === "Tagihan" ? "flex-col items-center justify-center gap-1.5 text-center" : "items-center gap-2.5"} overflow-hidden rounded-2xl border p-3 transition-all duration-200 active:scale-[0.97] ${
                               active
                                 ? isAiItem
                                   ? "border-[#FF4DDE]/55 bg-[#FF4DDE]/10 shadow-[0_5px_18px_rgba(255,77,222,0.10)] dark:bg-[#FF4DDE]/15"
@@ -884,9 +872,8 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                               <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
                               {active ? <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border-2 border-white bg-[#D4AF37] dark:border-[#162032]" /> : null}
                             </span>
-                            <span className="min-w-0 flex-1">
+                            <span className={`min-w-0 ${item.label === "Tagihan" ? "w-full text-center" : "flex-1"}`}>
                               <span className={`block truncate text-[12px] font-bold leading-tight ${active ? isAiItem ? "text-[#C026A5] dark:text-[#FF9EEA]" : "text-[#85620A] dark:text-[#E6C768]" : "text-[#101827] dark:text-slate-100"}`}>{item.label}</span>
-                              <span className="mt-1 block truncate text-[10px] font-medium text-slate-500 dark:text-slate-400">{item.detail}</span>
                             </span>
                             {item.badge > 0 ? (
                               <span className={`absolute right-2 top-2 rounded-md px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums ${isAiItem ? "bg-[#FF4DDE] text-white" : "bg-[#101827] text-[#E6C768] dark:bg-[#D4AF37] dark:text-[#101827]"}`}>
@@ -900,36 +887,37 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                   </section>
                 ))}
 
-                <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 dark:border-[#1E293B] dark:bg-[#162032]">
-                  <span className="text-xs font-semibold text-[#101827] dark:text-slate-200">
-                    Mode Tampilan
-                  </span>
-                  <ThemeToggleButton />
-                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="flex min-h-[42px] items-center justify-between gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 dark:border-[#1E293B] dark:bg-[#162032]">
+                    <span className="text-[10px] font-semibold leading-tight text-[#101827] dark:text-slate-200">
+                      Mode Tampilan
+                    </span>
+                    <ThemeToggleButton />
+                  </div>
 
-                <div className="mt-3">
-                  <PWAInstallButton fullWidth />
-                </div>
+                  <PWAInstallButton className="!min-h-[42px] !w-full !gap-1 !rounded-xl !px-2 !py-2 !text-[10px]" />
 
-                {auth?.hasPin ? (
+                  {auth?.hasPin ? (
+                    <button
+                      type="button"
+                      onClick={handleQuickLock}
+                      className="ego-pressable flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37]/12 px-2 py-2 text-[11px] font-semibold leading-tight text-[#85620A] dark:border-[#D4AF37]/40 dark:bg-[#D4AF37]/15 dark:text-[#E6C768]"
+                    >
+                      <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      <span>Kunci Layar (PIN)</span>
+                    </button>
+                  ) : null}
+
                   <button
                     type="button"
-                    onClick={handleQuickLock}
-                    className="ego-pressable mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-[#D4AF37]/40 bg-[#D4AF37]/12 px-4 py-2.5 text-sm font-semibold text-[#85620A] dark:border-[#D4AF37]/40 dark:bg-[#D4AF37]/15 dark:text-[#E6C768]"
+                    onClick={handleLogout}
+                    disabled={logout.isPending}
+                    className="ego-pressable flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-xl border border-[#EF4444]/25 bg-[#EF4444]/10 px-2 py-2 text-[11px] font-semibold leading-tight text-[#DC2626] dark:border-[#EF4444]/30 dark:bg-[#EF4444]/12 dark:text-[#FCA5A5]"
                   >
-                    <Lock className="h-4 w-4" aria-hidden="true" />
-                    <span>Kunci Layar (PIN)</span>
+                    <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span>Kunci &amp; Keluar</span>
                   </button>
-                ) : null}
-
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="ego-pressable mt-2.5 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-[#EF4444]/25 bg-[#EF4444]/10 px-4 py-2.5 text-sm font-semibold text-[#DC2626] dark:border-[#EF4444]/30 dark:bg-[#EF4444]/12 dark:text-[#FCA5A5]"
-                >
-                  <LogOut className="h-4 w-4" aria-hidden="true" />
-                  <span>Kunci &amp; Keluar</span>
-                </button>
+                </div>
               </motion.div>
             </motion.div>
           ) : null}
