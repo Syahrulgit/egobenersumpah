@@ -54,6 +54,17 @@ export function AkunPage() {
     .filter((a) => a.is_active)
     .reduce((sum, a) => sum + a.current_balance, 0);
 
+  const accountMix = (["bank", "cash", "ewallet"] as const).map((type) => {
+    const amount = accounts
+      .filter((account) => account.is_active && account.account_type === type)
+      .reduce((sum, account) => sum + account.current_balance, 0);
+    return {
+      type,
+      amount,
+      percentage: totalLiquidity > 0 ? (amount / totalLiquidity) * 100 : 0,
+    };
+  });
+
   const selectedAccountTx = useMemo(() => {
     if (!selectedAccount) return [];
     return filterTransactions(transactions, {
@@ -150,6 +161,77 @@ export function AkunPage() {
             </button>
           </div>
         </section>
+
+        {/* Unified account balance composition */}
+        {!isLoading && accounts.some((account) => account.is_active) ? (
+          <section className="rounded-2xl border border-[#DCE4F0] bg-white p-4 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] sm:p-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-bold text-[#06132F] dark:text-white">
+                  Komposisi Saldo
+                </h2>
+                <p className="mt-0.5 text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+                  Persentase dari total likuiditas aktif
+                </p>
+              </div>
+              <span className="shrink-0 font-mono text-xs font-semibold tabular-nums text-[#06132F] dark:text-white">
+                {formatIDR(totalLiquidity)}
+              </span>
+            </div>
+
+            <div
+              className="flex h-3.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-[#06132F]"
+              role="img"
+              aria-label={accountMix.map((item) => `${accountTypeLabel(item.type)} ${item.percentage.toFixed(1)} persen`).join(", ")}
+            >
+              {accountMix.map((item) => (
+                <span
+                  key={item.type}
+                  className="h-full shrink-0 transition-[width] duration-700 ease-out first:rounded-l-full last:rounded-r-full"
+                  style={{
+                    width: `${Math.max(0, item.percentage)}%`,
+                    backgroundColor:
+                      item.type === "bank"
+                        ? "#D4AF37"
+                        : item.type === "cash"
+                          ? "#14B8A6"
+                          : "#FF4DDE",
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {accountMix.map((item) => (
+                <div key={item.type} className="min-w-0">
+                  <div className="mb-1 flex items-center gap-1.5">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{
+                        backgroundColor:
+                          item.type === "bank"
+                            ? "#D4AF37"
+                            : item.type === "cash"
+                              ? "#14B8A6"
+                              : "#FF4DDE",
+                      }}
+                      aria-hidden="true"
+                    />
+                    <span className="truncate text-[11px] text-slate-500 dark:text-[#C7D0E0]/70">
+                      {accountTypeLabel(item.type)}
+                    </span>
+                  </div>
+                  <p className="font-mono text-sm font-bold tabular-nums text-[#06132F] dark:text-white">
+                    {item.percentage.toFixed(1)}%
+                  </p>
+                  <p className="mt-0.5 truncate font-mono text-[10px] tabular-nums text-slate-500 dark:text-[#C7D0E0]/60">
+                    {formatIDR(item.amount)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         {/* Banking Card Grids */}
         {isLoading ? (
