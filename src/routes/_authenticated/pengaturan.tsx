@@ -936,7 +936,7 @@ export function PengaturanPage() {
             <div className="mt-5 border-t border-[#DCE4F0] pt-4 dark:border-[#1B3163]">
               <h3 className="text-sm font-bold text-[#06132F] dark:text-white">Pemulihan Cadangan — Validasi & Pratinjau</h3>
               <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-[#C7D0E0]/75">
-                Pilih file JSON EGO untuk memeriksa versi, identitas Owner, struktur, ID ganda, dan konflik. Tahap ini hanya membaca file; tidak menulis atau mengubah data.
+                Pilih file JSON untuk memeriksa struktur, UUID, nilai keuangan, dan ID yang sudah ada. File JSON dapat diedit; metadata email bukan bukti keaslian. Akun tujuan ditentukan oleh sesi Owner yang sedang masuk.
               </p>
               <label className="mt-3 block text-xs font-semibold text-slate-700 dark:text-[#C7D0E0]">
                 File cadangan EGO (.json)
@@ -953,14 +953,26 @@ export function PengaturanPage() {
               {backupPreview ? (
                 <div className="mt-3 rounded-xl border border-emerald-300/60 bg-emerald-50/60 p-3 text-xs dark:border-emerald-700/50 dark:bg-emerald-950/20">
                   <p className="font-bold text-emerald-800 dark:text-emerald-300">Validasi awal berhasil — {backupPreview.totalRecords} baris data</p>
-                  <p className="mt-1 text-slate-600 dark:text-[#C7D0E0]/75">Ekspor: {new Date(backupPreview.exportedAt).toLocaleString("id-ID")} · Owner: {backupPreview.ownerEmail ?? "tidak dicantumkan"}</p>
+                  <p className="mt-1 text-slate-600 dark:text-[#C7D0E0]/75">Ekspor: {new Date(backupPreview.exportedAt).toLocaleString("id-ID")} · Metadata email: {backupPreview.ownerEmail ?? "tidak dicantumkan"}</p>
+                  {backupPreview.ownerMetadataMismatch ? <p className="mt-2 rounded-lg bg-amber-100 p-2 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">Email di metadata berbeda dari akun aktif. Ini bukan pemeriksaan keaslian; pemulihan tetap hanya dapat menulis ke UID sesi Owner yang sedang masuk.</p> : null}
                   <ul className="mt-2 grid grid-cols-2 gap-1 text-slate-700 dark:text-[#C7D0E0]">
                     {Object.entries(backupPreview.counts).map(([name, count]) => (
                       <li key={name}>{name}: <strong>{count}</strong></li>
                     ))}
                   </ul>
-                  <p className="mt-2 font-semibold">ID yang sudah ada: {Object.values(backupPreview.existingIdConflicts).reduce((sum, count) => sum + count, 0)}</p>
-                  <p className="mt-1 text-amber-700 dark:text-amber-300">Baris yang identik akan dilewati. Jika ID yang sama memiliki isi berbeda, seluruh pemulihan dibatalkan. Tidak ada data lama yang ditimpa atau dihapus.</p>
+                  <p className="mt-2 font-semibold">ID yang sudah ada (perlu pemeriksaan server): {Object.values(backupPreview.existingIdConflicts).reduce((sum, count) => sum + count, 0)}</p>
+                  <div className="mt-3 rounded-lg border border-[#DCE4F0] bg-white/70 p-3 dark:border-[#1B3163] dark:bg-[#06132F]/70">
+                    <p className="font-bold text-slate-800 dark:text-white">Ringkasan nilai dalam file (bukan perubahan saldo)</p>
+                    <dl className="mt-2 grid grid-cols-2 gap-2 text-slate-700 dark:text-[#C7D0E0]">
+                      <div><dt className="text-slate-500 dark:text-[#C7D0E0]/60">Pemasukan terposting</dt><dd className="font-semibold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(backupPreview.financialSummary.postedIncome)}</dd></div>
+                      <div><dt className="text-slate-500 dark:text-[#C7D0E0]/60">Pengeluaran terposting</dt><dd className="font-semibold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(backupPreview.financialSummary.postedExpenses)}</dd></div>
+                      <div><dt className="text-slate-500 dark:text-[#C7D0E0]/60">Arus kas bersih</dt><dd className="font-semibold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(backupPreview.financialSummary.netCashflow)}</dd></div>
+                      <div><dt className="text-slate-500 dark:text-[#C7D0E0]/60">Sisa utang tercatat</dt><dd className="font-semibold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(backupPreview.financialSummary.outstandingDebt)}</dd></div>
+                      <div className="col-span-2"><dt className="text-slate-500 dark:text-[#C7D0E0]/60">Nilai aset tercatat</dt><dd className="font-semibold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(backupPreview.financialSummary.assetValue)}</dd></div>
+                    </dl>
+                    <p className="mt-2 text-[11px] text-slate-500 dark:text-[#C7D0E0]/60">Ringkasan dihitung dari isi file. Pemasukan/pengeluaran hanya transaksi berstatus posted; server tetap memvalidasi relasi dan batasan database sebelum menyimpan.</p>
+                  </div>
+                  <p className="mt-2 text-amber-700 dark:text-amber-300">Baris identik akan dilewati. ID yang sama dengan isi berbeda membatalkan seluruh pemulihan. Data lama tidak ditimpa atau dihapus.</p>
                   {isSupabaseConfigured && supabase ? (
                     <div className="mt-3 space-y-3 border-t border-emerald-300/60 pt-3 dark:border-emerald-700/50">
                       <label className="flex items-start gap-2 text-slate-700 dark:text-[#C7D0E0]">
