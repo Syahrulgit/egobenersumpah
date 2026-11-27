@@ -120,7 +120,7 @@ export function AkunPage() {
         <button
           type="button"
           onClick={() => setCreateModalOpen(true)}
-          className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B88D20] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#D4AF37]/20 hover:brightness-110 whitespace-nowrap"
+          className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B88D20] px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-[#D4AF37]/20 transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 hover:shadow-lg active:scale-[0.96] whitespace-nowrap"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Tambah Akun</span>
@@ -147,14 +147,14 @@ export function AkunPage() {
             <button
               type="button"
               onClick={() => openTransactionSheet({ type: "transfer" })}
-              className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-[#D4AF37]/35 bg-[#D4AF37]/15 px-4 py-2 text-xs font-semibold text-[#D4AF37] transition-colors hover:bg-[#D4AF37]/25"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37]/10 px-4 py-2 text-xs font-semibold text-[#E8C96A] transition-[transform,background-color,border-color] duration-200 hover:border-[#D4AF37]/65 hover:bg-[#D4AF37]/20 active:scale-[0.96]"
             >
               <span>Transfer Antar-Akun</span>
             </button>
             <button
               type="button"
               onClick={() => setCreateModalOpen(true)}
-              className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#D4AF37] px-4 py-2 text-xs font-semibold text-white hover:bg-[#B88D20]"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B88D20] px-4 py-2 text-xs font-semibold text-white shadow-md shadow-[#D4AF37]/15 transition-[transform,filter] duration-200 hover:brightness-110 active:scale-[0.96]"
             >
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Akun Baru</span>
@@ -164,17 +164,17 @@ export function AkunPage() {
 
         {/* Unified account balance composition */}
         {!isLoading && accounts.some((account) => account.is_active) ? (
-          <section className="rounded-2xl border border-[#DCE4F0] bg-white p-4 shadow-xs dark:border-[#1B3163] dark:bg-[#091634] sm:p-5">
+          <section className="rounded-[1.5rem] border border-[#D4AF37]/20 bg-gradient-to-br from-[#101827] via-[#101827] to-[#15233A] p-4 shadow-lg shadow-[#06132F]/15 ring-1 ring-white/5 sm:p-5">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-sm font-bold text-[#06132F] dark:text-white">
+                <h2 className="text-sm font-bold tracking-wide text-white">
                   Komposisi Saldo
                 </h2>
-                <p className="mt-0.5 text-[11px] text-slate-500 dark:text-[#C7D0E0]/65">
+                <p className="mt-0.5 text-[11px] text-[#C7D0E0]/65">
                   Persentase dari total likuiditas aktif
                 </p>
               </div>
-              <span className="shrink-0 font-mono text-xs font-semibold tabular-nums text-[#06132F] dark:text-white">
+              <span className="shrink-0 font-mono text-xs font-semibold tabular-nums text-[#E8C96A]">
                 {formatIDR(totalLiquidity)}
               </span>
             </div>
@@ -221,7 +221,7 @@ export function AkunPage() {
                       {accountTypeLabel(item.type)}
                     </span>
                   </div>
-                  <p className="font-mono text-sm font-bold tabular-nums text-[#06132F] dark:text-white">
+                  <p className="font-mono text-sm font-bold tabular-nums text-white">
                     {item.percentage.toFixed(1)}%
                   </p>
                   <p className="mt-0.5 truncate font-mono text-[10px] tabular-nums text-slate-500 dark:text-[#C7D0E0]/60">
