@@ -870,8 +870,8 @@ export function AppShellFrame({ children }: { children: ReactNode }) {
                               <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
                               {active ? <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border-2 border-white bg-[#D4AF37] dark:border-[#162032]" /> : null}
                             </span>
-                            <span className={`min-w-0 ${item.label === "Tagihan" ? "w-full self-center text-center" : "flex-1"}`}>
-                              <span className={`block truncate text-[12px] font-bold leading-tight ${active ? isAiItem ? "text-[#C026A5] dark:text-[#FF9EEA]" : "text-[#85620A] dark:text-[#E6C768]" : "text-[#101827] dark:text-slate-100"}`}>{item.label}</span>
+                            <span className="w-full min-w-0 flex-none self-center text-center">
+                              <span className={`block line-clamp-2 break-words text-[9px] font-bold leading-tight ${active ? isAiItem ? "text-[#C026A5] dark:text-[#FF9EEA]" : "text-[#85620A] dark:text-[#E6C768]" : "text-[#101827] dark:text-slate-100"}`}>{item.label}</span>
                             </span>
                             {item.badge > 0 ? (
                               <span className={`absolute ${item.label === "Tagihan" ? "left-1/2 -translate-x-1/2" : "right-2"} top-2 rounded-md px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums ${isAiItem ? "bg-[#FF4DDE] text-white" : "bg-[#101827] text-[#E6C768] dark:bg-[#D4AF37] dark:text-[#101827]"}`}>
