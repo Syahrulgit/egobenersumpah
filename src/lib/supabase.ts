@@ -92,8 +92,8 @@ function attachRecoveryListener(client: SupabaseClient): void {
   }
   const {
     data: { subscription },
-  } = client.auth.onAuthStateChange((event) => {
-    if (event === "PASSWORD_RECOVERY") {
+  } = client.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY" && session) {
       setPasswordRecoveryActive(true);
     } else if (event === "SIGNED_OUT") {
       setPasswordRecoveryActive(false);

@@ -32,8 +32,8 @@ function RootContent() {
       if (!supabase) return;
       const {
         data: { subscription },
-      } = supabase.auth.onAuthStateChange((event) => {
-        if (event === "PASSWORD_RECOVERY") {
+      } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "PASSWORD_RECOVERY" && session) {
           setPasswordRecoveryActive(true);
         } else if (event === "SIGNED_OUT") {
           setPasswordRecoveryActive(false);

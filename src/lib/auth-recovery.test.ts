@@ -3,11 +3,57 @@ import assert from "node:assert/strict";
 import {
   classifyPasswordResetError,
   formatPasswordUpdateError,
+  getPasswordRecoveryRedirectUrl,
   isRecoveryRedirectUrl,
   parseAuthRedirectError,
+  parseRecoveryCallbackParams,
   PASSWORD_RESET_NEUTRAL_NOTICE,
+  PRODUCTION_AUTH_REDIRECT_URL,
   validateRecoveryPasswordInput,
 } from "./auth-recovery";
+
+test("getPasswordRecoveryRedirectUrl always returns explicit production /auth URL without localhost", () => {
+  const redirectUrl = getPasswordRecoveryRedirectUrl();
+  assert.equal(redirectUrl, "https://ego-personal-ai.ai.studio/auth");
+  assert.equal(redirectUrl, PRODUCTION_AUTH_REDIRECT_URL);
+  assert.equal(redirectUrl.includes("localhost"), false);
+  assert.equal(redirectUrl.includes("127.0.0.1"), false);
+});
+
+test("parseRecoveryCallbackParams extracts implicit hash tokens, PKCE code, token_hash, and errors", () => {
+  const implicit = parseRecoveryCallbackParams(
+    "https://ego-personal-ai.ai.studio/auth#access_token=tok_123&refresh_token=ref_456&type=recovery"
+  );
+  assert.deepEqual(implicit, {
+    isRecoveryType: true,
+    hasAccessToken: true,
+    code: null,
+    tokenHash: null,
+    errorMessage: null,
+  });
+
+  const tokenHash = parseRecoveryCallbackParams(
+    "https://ego-personal-ai.ai.studio/auth?token_hash=hash_abc&type=recovery"
+  );
+  assert.deepEqual(tokenHash, {
+    isRecoveryType: true,
+    hasAccessToken: false,
+    code: null,
+    tokenHash: "hash_abc",
+    errorMessage: null,
+  });
+
+  const pkce = parseRecoveryCallbackParams(
+    "https://ego-personal-ai.ai.studio/auth?code=pkce_xyz"
+  );
+  assert.deepEqual(pkce, {
+    isRecoveryType: false,
+    hasAccessToken: false,
+    code: "pkce_xyz",
+    tokenHash: null,
+    errorMessage: null,
+  });
+});
 
 test("isRecoveryRedirectUrl detects recovery links from hash or query and ignores error redirects", () => {
   assert.equal(

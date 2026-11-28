@@ -12,6 +12,7 @@ import { initializeSupabase, isSupabaseConfigured, supabase } from "./supabase";
 import {
   classifyPasswordResetError,
   formatPasswordUpdateError,
+  getPasswordRecoveryRedirectUrl,
   PASSWORD_RESET_NEUTRAL_NOTICE,
   setPasswordRecoveryActive,
   validateRecoveryPasswordInput,
@@ -538,7 +539,7 @@ export function useRequestPasswordReset() {
         throw new Error("Format email tidak valid.");
       }
 
-      const redirectTo = `${window.location.origin}/auth`;
+      const redirectTo = getPasswordRecoveryRedirectUrl();
       const { error } = await client.auth.resetPasswordForEmail(cleanEmail, {
         redirectTo,
       });

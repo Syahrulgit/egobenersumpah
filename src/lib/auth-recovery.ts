@@ -4,34 +4,29 @@ const RECOVERY_CHANGE_EVENT = "ego-password-recovery-change";
 let memoryRecoveryActive = false;
 const listeners = new Set<() => void>();
 
+export const PRODUCTION_AUTH_REDIRECT_URL =
+  "https://ego-personal-ai.ai.studio/auth";
+
+export function getPasswordRecoveryRedirectUrl(): string {
+  return PRODUCTION_AUTH_REDIRECT_URL;
+}
+
 export const PASSWORD_RESET_NEUTRAL_NOTICE =
   "Jika email tersebut terdaftar di sistem EGO, tautan pemulihan kata sandi telah dikirim. Silakan periksa kotak masuk atau folder spam Anda.";
 
-export function isRecoveryRedirectUrl(urlLike: string): boolean {
-  try {
-    const parsed = new URL(urlLike, "http://localhost");
-    const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ""));
-    const hasError =
-      parsed.searchParams.has("error") ||
-      parsed.searchParams.has("error_code") ||
-      hashParams.has("error") ||
-      hashParams.has("error_code");
-    if (hasError) {
-      return false;
-    }
-    return (
-      hashParams.get("type") === "recovery" ||
-      parsed.searchParams.get("type") === "recovery"
-    );
-  } catch {
-    return false;
-  }
+export interface RecoveryCallbackParams {
+  isRecoveryType: boolean;
+  hasAccessToken: boolean;
+  code: string | null;
+  tokenHash: string | null;
+  errorMessage: string | null;
 }
 
-export function parseAuthRedirectError(urlLike: string): string | null {
+export function parseRecoveryCallbackParams(urlLike: string): RecoveryCallbackParams {
   try {
-    const parsed = new URL(urlLike, "http://localhost");
+    const parsed = new URL(urlLike, "https://ego-personal-ai.ai.studio");
     const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ""));
+
     const error = parsed.searchParams.get("error") || hashParams.get("error") || "";
     const errorCode =
       parsed.searchParams.get("error_code") || hashParams.get("error_code") || "";
@@ -41,22 +36,53 @@ export function parseAuthRedirectError(urlLike: string): string | null {
       ""
     ).toLowerCase();
 
-    if (!error && !errorCode && !description) {
-      return null;
+    let errorMessage: string | null = null;
+    if (error || errorCode || description) {
+      if (
+        errorCode === "otp_expired" ||
+        description.includes("expired") ||
+        description.includes("invalid")
+      ) {
+        errorMessage =
+          "Tautan pemulihan tidak valid atau sudah kedaluwarsa. Silakan kirim ulang tautan pemulihan.";
+      } else {
+        errorMessage =
+          "Tautan pemulihan tidak dapat diproses atau sudah tidak berlaku. Silakan kirim ulang tautan pemulihan.";
+      }
     }
 
-    if (
-      errorCode === "otp_expired" ||
-      description.includes("expired") ||
-      description.includes("invalid")
-    ) {
-      return "Tautan pemulihan tidak valid atau sudah kedaluwarsa. Silakan kirim ulang tautan pemulihan.";
-    }
+    const type = hashParams.get("type") || parsed.searchParams.get("type");
+    const hasAccessToken =
+      hashParams.has("access_token") && Boolean(hashParams.get("access_token"));
+    const code = parsed.searchParams.get("code") || null;
+    const tokenHash =
+      parsed.searchParams.get("token_hash") || hashParams.get("token_hash") || null;
 
-    return "Tautan pemulihan tidak dapat diproses atau sudah tidak berlaku. Silakan kirim ulang tautan pemulihan.";
+    return {
+      isRecoveryType: !errorMessage && type === "recovery",
+      hasAccessToken,
+      code,
+      tokenHash,
+      errorMessage,
+    };
   } catch {
-    return null;
+    return {
+      isRecoveryType: false,
+      hasAccessToken: false,
+      code: null,
+      tokenHash: null,
+      errorMessage: null,
+    };
   }
+}
+
+export function isRecoveryRedirectUrl(urlLike: string): boolean {
+  const parsed = parseRecoveryCallbackParams(urlLike);
+  return parsed.isRecoveryType && !parsed.errorMessage;
+}
+
+export function parseAuthRedirectError(urlLike: string): string | null {
+  return parseRecoveryCallbackParams(urlLike).errorMessage;
 }
 
 export function validateRecoveryPasswordInput(

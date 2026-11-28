@@ -10,17 +10,19 @@ import {
   Trash2,
   UserPlus,
 } from "lucide-react";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { EgoCompanion, EgoLogoMark } from "../components/ego/ego-brand";
 import {
   isPasswordRecoveryActive,
-  parseAuthRedirectError,
+  parseRecoveryCallbackParams,
   setPasswordRecoveryActive,
   subscribePasswordRecoveryChange,
   validateRecoveryPasswordInput,
 } from "../lib/auth-recovery";
 import {
+  egoKeys,
   useAuthStatus,
   useLoginOwner,
   useRegisterOwner,
@@ -28,10 +30,11 @@ import {
   useResetLocalOwner,
   useUpdateRecoveryPassword,
 } from "../lib/queries";
-import { supabase, subscribeSupabaseChange } from "../lib/supabase";
+import { initializeSupabase, supabase, subscribeSupabaseChange } from "../lib/supabase";
 import { ThemeToggleButton } from "../lib/theme";
 
 export function AuthRoutePage() {
+  const qc = useQueryClient();
   const navigate = useNavigate();
   const { data: auth, isLoading } = useAuthStatus();
   const registerMutation = useRegisterOwner();
@@ -51,6 +54,12 @@ export function AuthRoutePage() {
   const [fullName, setFullName] = useState("Owner Utama");
   const [supabaseAction, setSupabaseAction] = useState<"login" | "register">("login");
   const [forgotPasswordMode, setForgotPasswordMode] = useState(false);
+  const [verifyingCallback, setVerifyingCallback] = useState(() => {
+    const params = parseRecoveryCallbackParams(
+      typeof window !== "undefined" ? window.location.href : ""
+    );
+    return Boolean(params.tokenHash && params.isRecoveryType);
+  });
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [newRecoveryPassword, setNewRecoveryPassword] = useState("");
   const [confirmRecoveryPassword, setConfirmRecoveryPassword] = useState("");
@@ -61,16 +70,72 @@ export function AuthRoutePage() {
   const [resetConfirmed, setResetConfirmed] = useState(false);
   const [resetKeyword, setResetKeyword] = useState("");
   const [resetError, setResetError] = useState<string | null>(null);
+  const handledTokenHashRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const redirectErr = parseAuthRedirectError(window.location.href);
-    if (redirectErr) {
-      setPasswordRecoveryActive(false);
-      setForgotPasswordMode(true);
-      setFormError(redirectErr);
-      window.history.replaceState(null, "", "/auth");
-    }
-  }, []);
+    const processLocationCallback = () => {
+      const callback = parseRecoveryCallbackParams(window.location.href);
+      if (callback.errorMessage) {
+        setPasswordRecoveryActive(false);
+        setForgotPasswordMode(true);
+        setFormError(callback.errorMessage);
+        setVerifyingCallback(false);
+        window.history.replaceState(null, "", "/auth");
+        return;
+      }
+
+      if (callback.isRecoveryType && !callback.tokenHash) {
+        setPasswordRecoveryActive(true);
+        setForgotPasswordMode(false);
+      }
+
+      if (callback.tokenHash && callback.isRecoveryType) {
+        if (handledTokenHashRef.current === callback.tokenHash) return;
+        handledTokenHashRef.current = callback.tokenHash;
+        setVerifyingCallback(true);
+
+        void (async () => {
+          try {
+            const client = (await initializeSupabase()) ?? supabase;
+            if (!client) {
+              throw new Error("Autentikasi Supabase belum terkonfigurasi.");
+            }
+            const { data, error } = await client.auth.verifyOtp({
+              token_hash: callback.tokenHash!,
+              type: "recovery",
+            });
+            if (error || !data.session) {
+              setPasswordRecoveryActive(false);
+              setForgotPasswordMode(true);
+              setFormError(
+                "Tautan pemulihan tidak valid atau sudah kedaluwarsa. Silakan kirim ulang tautan pemulihan."
+              );
+            } else {
+              setPasswordRecoveryActive(true);
+              setForgotPasswordMode(false);
+              setFormError(null);
+              await qc.invalidateQueries({ queryKey: egoKeys.auth });
+            }
+          } catch {
+            setPasswordRecoveryActive(false);
+            setForgotPasswordMode(true);
+            setFormError(
+              "Tautan pemulihan gagal diverifikasi. Silakan kirim ulang tautan pemulihan."
+            );
+          } finally {
+            window.history.replaceState(null, "", "/auth");
+            setVerifyingCallback(false);
+          }
+        })();
+      }
+    };
+
+    processLocationCallback();
+    window.addEventListener("hashchange", processLocationCallback);
+    return () => {
+      window.removeEventListener("hashchange", processLocationCallback);
+    };
+  }, [qc]);
 
   useEffect(() => {
     let authUnsub: (() => void) | null = null;
@@ -83,12 +148,13 @@ export function AuthRoutePage() {
       if (!supabase) return;
       const {
         data: { subscription },
-      } = supabase.auth.onAuthStateChange((event) => {
-        if (event === "PASSWORD_RECOVERY") {
+      } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "PASSWORD_RECOVERY" && session) {
           setPasswordRecoveryActive(true);
           setForgotPasswordMode(false);
           setFormError(null);
           setFormNotice(null);
+          void qc.invalidateQueries({ queryKey: egoKeys.auth });
         }
       });
       authUnsub = () => subscription.unsubscribe();
@@ -102,13 +168,13 @@ export function AuthRoutePage() {
         authUnsub();
       }
     };
-  }, []);
+  }, [qc]);
 
   useEffect(() => {
-    if (auth?.authenticated && !recoveryActive) {
+    if (auth?.authenticated && !recoveryActive && !verifyingCallback) {
       void navigate({ to: "/" });
     }
-  }, [auth?.authenticated, recoveryActive, navigate]);
+  }, [auth?.authenticated, recoveryActive, verifyingCallback, navigate]);
 
   const isSupabaseMode = auth?.mode === "supabase";
   const isRecoveryView = isSupabaseMode && recoveryActive;
@@ -294,11 +360,59 @@ export function AuthRoutePage() {
         </div>
 
         <div className="p-6 sm:p-8">
-          {isLoading ? (
+          {isLoading || verifyingCallback ? (
             <div className="flex items-center justify-center py-12 text-sm text-slate-600 dark:text-slate-300">
               <Loader2 className="mr-2 h-4 w-4 animate-spin text-[#D4AF37]" />
-              <span>Menyiapkan brankas Anda...</span>
+              <span>
+                {verifyingCallback
+                  ? "Memverifikasi tautan pemulihan Anda..."
+                  : "Menyiapkan brankas Anda..."}
+              </span>
             </div>
+          ) : isRecoveryView && !auth?.authenticated ? (
+            <>
+              <div
+                role="alert"
+                className="mb-5 rounded-2xl border border-[#EF4444]/35 bg-[#EF4444]/10 p-4 text-xs leading-relaxed text-[#DC2626] dark:border-[#EF4444]/35 dark:bg-[#EF4444]/12 dark:text-[#F87171]"
+              >
+                <strong className="block font-semibold">
+                  Sesi Pemulihan Tidak Valid atau Kedaluwarsa
+                </strong>
+                <span className="mt-1 block">
+                  Tautan pemulihan tidak membawa sesi aktif yang sah atau sudah kedaluwarsa. Silakan kirim ulang tautan pemulihan kata sandi.
+                </span>
+              </div>
+
+              <div className="space-y-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPasswordRecoveryActive(false);
+                    setForgotPasswordMode(true);
+                    setFormError(null);
+                    setFormNotice(null);
+                    window.history.replaceState(null, "", "/auth");
+                  }}
+                  className="flex min-h-[46px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#E6C768] to-[#D4AF37] px-4 py-3 text-sm font-bold text-[#101827] shadow-md shadow-[#D4AF37]/20 transition-all hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
+                >
+                  <Mail className="h-4 w-4" aria-hidden="true" />
+                  <span>Kirim Ulang Tautan Pemulihan</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleCancelRecovery()}
+                  className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#101827] dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300 dark:hover:bg-[#162032] dark:hover:text-white"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Kembali ke Masuk Owner</span>
+                </button>
+              </div>
+
+              <div className="mt-6 flex items-center gap-2 border-t border-slate-200 pt-4 text-xs text-slate-500 dark:border-[#1E293B] dark:text-slate-400">
+                <Lock className="h-3.5 w-3.5 shrink-0 text-[#D4AF37]" aria-hidden="true" />
+                <span>Penyimpanan: Supabase Cloud (RLS Aktif)</span>
+              </div>
+            </>
           ) : isRecoveryView ? (
             <>
               <div className="mb-5 rounded-2xl border border-[#D4AF37]/30 bg-[#D4AF37]/8 p-3.5 text-xs leading-relaxed text-slate-700 dark:border-[#D4AF37]/30 dark:bg-[#162032] dark:text-slate-300">
