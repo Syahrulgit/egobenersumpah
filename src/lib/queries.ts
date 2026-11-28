@@ -8,7 +8,14 @@ import {
   markPinSessionUnlocked,
   verifyPinWebCrypto,
 } from "./pin-lock";
-import { isSupabaseConfigured, supabase } from "./supabase";
+import { initializeSupabase, isSupabaseConfigured, supabase } from "./supabase";
+import {
+  classifyPasswordResetError,
+  formatPasswordUpdateError,
+  PASSWORD_RESET_NEUTRAL_NOTICE,
+  setPasswordRecoveryActive,
+  validateRecoveryPasswordInput,
+} from "./auth-recovery";
 import {
   budgetThresholdLabel,
   isThresholdAlreadyNotified,
@@ -209,6 +216,7 @@ export function useHealthStatus() {
 }
 
 export async function fetchAuthStatus(): Promise<AuthStatusResponse> {
+  await initializeSupabase();
   if (isSupabaseConfigured && supabase) {
     const { data } = await supabase.auth.getSession();
     const user = data.session?.user ?? null;
@@ -501,6 +509,7 @@ export function useLogoutOwner() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
+      setPasswordRecoveryActive(false);
       if (isSupabaseConfigured && supabase) {
         await supabase.auth.signOut();
       } else {
@@ -511,6 +520,79 @@ export function useLogoutOwner() {
     onSuccess: () => {
       clearPinSessionState();
       qc.clear();
+    },
+  });
+}
+
+export function useRequestPasswordReset() {
+  return useMutation({
+    mutationFn: async (input: { email: string }) => {
+      const client = (await initializeSupabase()) ?? supabase;
+      if (!isSupabaseConfigured || !client) {
+        throw new Error(
+          "Fitur lupa kata sandi hanya tersedia pada mode autentikasi Supabase."
+        );
+      }
+      const cleanEmail = input.email.trim();
+      if (!OWNER_EMAIL_REGEX.test(cleanEmail)) {
+        throw new Error("Format email tidak valid.");
+      }
+
+      const redirectTo = `${window.location.origin}/auth`;
+      const { error } = await client.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo,
+      });
+
+      if (error) {
+        const classified = classifyPasswordResetError(error);
+        if (classified.kind === "neutral_success") {
+          return { message: classified.message };
+        }
+        throw new Error(classified.message);
+      }
+
+      return { message: PASSWORD_RESET_NEUTRAL_NOTICE };
+    },
+  });
+}
+
+export function useUpdateRecoveryPassword() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { newPassword: string; confirmPassword: string }) => {
+      const validation = validateRecoveryPasswordInput(
+        input.newPassword,
+        input.confirmPassword
+      );
+      if (!validation.valid) {
+        throw new Error(validation.message);
+      }
+
+      const client = (await initializeSupabase()) ?? supabase;
+      if (!isSupabaseConfigured || !client) {
+        throw new Error("Autentikasi Supabase belum terkonfigurasi.");
+      }
+
+      const { data: sessionData } = await client.auth.getSession();
+      if (!sessionData.session) {
+        throw new Error(
+          "Sesi pemulihan telah berakhir atau tidak valid. Silakan kirim ulang tautan pemulihan."
+        );
+      }
+
+      const { error } = await client.auth.updateUser({
+        password: input.newPassword,
+      });
+      if (error) {
+        throw new Error(formatPasswordUpdateError(error));
+      }
+      return { ok: true };
+    },
+    onSuccess: async () => {
+      setPasswordRecoveryActive(false);
+      markPinSessionUnlocked();
+      await qc.invalidateQueries({ queryKey: egoKeys.auth });
+      await qc.invalidateQueries({ queryKey: egoKeys.vault });
     },
   });
 }

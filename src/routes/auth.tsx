@@ -1,22 +1,34 @@
 import { useNavigate } from "@tanstack/react-router";
 import {
   AlertTriangle,
+  ArrowLeft,
   KeyRound,
   Loader2,
   Lock,
+  Mail,
   ShieldCheck,
   Trash2,
   UserPlus,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { EgoCompanion, EgoLogoMark } from "../components/ego/ego-brand";
+import {
+  isPasswordRecoveryActive,
+  parseAuthRedirectError,
+  setPasswordRecoveryActive,
+  subscribePasswordRecoveryChange,
+  validateRecoveryPasswordInput,
+} from "../lib/auth-recovery";
 import {
   useAuthStatus,
   useLoginOwner,
   useRegisterOwner,
+  useRequestPasswordReset,
   useResetLocalOwner,
+  useUpdateRecoveryPassword,
 } from "../lib/queries";
+import { supabase, subscribeSupabaseChange } from "../lib/supabase";
 import { ThemeToggleButton } from "../lib/theme";
 
 export function AuthRoutePage() {
@@ -25,11 +37,24 @@ export function AuthRoutePage() {
   const registerMutation = useRegisterOwner();
   const loginMutation = useLoginOwner();
   const resetOwnerMutation = useResetLocalOwner();
+  const requestResetMutation = useRequestPasswordReset();
+  const updateRecoveryPasswordMutation = useUpdateRecoveryPassword();
+
+  const recoveryActive = useSyncExternalStore(
+    subscribePasswordRecoveryChange,
+    isPasswordRecoveryActive,
+    () => false
+  );
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("Owner Utama");
   const [supabaseAction, setSupabaseAction] = useState<"login" | "register">("login");
+  const [forgotPasswordMode, setForgotPasswordMode] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [newRecoveryPassword, setNewRecoveryPassword] = useState("");
+  const [confirmRecoveryPassword, setConfirmRecoveryPassword] = useState("");
+
   const [formError, setFormError] = useState<string | null>(null);
   const [formNotice, setFormNotice] = useState<string | null>(null);
   const [showResetPanel, setShowResetPanel] = useState(false);
@@ -38,17 +63,64 @@ export function AuthRoutePage() {
   const [resetError, setResetError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (auth?.authenticated) {
+    const redirectErr = parseAuthRedirectError(window.location.href);
+    if (redirectErr) {
+      setPasswordRecoveryActive(false);
+      setForgotPasswordMode(true);
+      setFormError(redirectErr);
+      window.history.replaceState(null, "", "/auth");
+    }
+  }, []);
+
+  useEffect(() => {
+    let authUnsub: (() => void) | null = null;
+
+    const attachListener = () => {
+      if (authUnsub) {
+        authUnsub();
+        authUnsub = null;
+      }
+      if (!supabase) return;
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "PASSWORD_RECOVERY") {
+          setPasswordRecoveryActive(true);
+          setForgotPasswordMode(false);
+          setFormError(null);
+          setFormNotice(null);
+        }
+      });
+      authUnsub = () => subscription.unsubscribe();
+    };
+
+    attachListener();
+    const unsubSupabase = subscribeSupabaseChange(attachListener);
+    return () => {
+      unsubSupabase();
+      if (authUnsub) {
+        authUnsub();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (auth?.authenticated && !recoveryActive) {
       void navigate({ to: "/" });
     }
-  }, [auth?.authenticated, navigate]);
+  }, [auth?.authenticated, recoveryActive, navigate]);
 
   const isSupabaseMode = auth?.mode === "supabase";
-  const isRegistrationMode = isSupabaseMode
-    ? supabaseAction === "register"
-    : auth
-      ? !auth.hasOwner
-      : false;
+  const isRecoveryView = isSupabaseMode && recoveryActive;
+  const isForgotView = isSupabaseMode && forgotPasswordMode && !recoveryActive;
+  const isRegistrationMode =
+    !isRecoveryView &&
+    !isForgotView &&
+    (isSupabaseMode
+      ? supabaseAction === "register"
+      : auth
+        ? !auth.hasOwner
+        : false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -82,6 +154,73 @@ export function AuthRoutePage() {
     }
   }
 
+  async function handleForgotPasswordSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+    setFormNotice(null);
+    try {
+      const res = await requestResetMutation.mutateAsync({ email: recoveryEmail });
+      setFormNotice(res.message);
+      toast.success("Permintaan pemulihan kata sandi telah diproses.");
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Gagal mengirim tautan pemulihan kata sandi.";
+      setFormError(message);
+      toast.error(message);
+    }
+  }
+
+  async function handleRecoveryPasswordSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+    setFormNotice(null);
+
+    const validation = validateRecoveryPasswordInput(
+      newRecoveryPassword,
+      confirmRecoveryPassword
+    );
+    if (!validation.valid) {
+      setFormError(validation.message);
+      toast.error(validation.message);
+      return;
+    }
+
+    try {
+      await updateRecoveryPasswordMutation.mutateAsync({
+        newPassword: newRecoveryPassword,
+        confirmPassword: confirmRecoveryPassword,
+      });
+      setNewRecoveryPassword("");
+      setConfirmRecoveryPassword("");
+      window.history.replaceState(null, "", "/auth");
+      toast.success("Kata sandi baru berhasil disimpan. Mengarahkan ke dashboard...");
+      await navigate({ to: "/" });
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Gagal memperbarui kata sandi baru.";
+      setFormError(message);
+      toast.error(message);
+    }
+  }
+
+  async function handleCancelRecovery() {
+    setFormError(null);
+    setFormNotice(null);
+    setNewRecoveryPassword("");
+    setConfirmRecoveryPassword("");
+    setPasswordRecoveryActive(false);
+    if (supabase) {
+      await supabase.auth.signOut().catch(() => {});
+    }
+    window.history.replaceState(null, "", "/auth");
+    setSupabaseAction("login");
+    setForgotPasswordMode(false);
+  }
+
   async function handleResetLocalOwner(e: React.FormEvent) {
     e.preventDefault();
     setResetError(null);
@@ -110,7 +249,9 @@ export function AuthRoutePage() {
   const pending =
     registerMutation.isPending ||
     loginMutation.isPending ||
-    resetOwnerMutation.isPending;
+    resetOwnerMutation.isPending ||
+    requestResetMutation.isPending ||
+    updateRecoveryPasswordMutation.isPending;
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#F6F7FB] px-4 py-10 transition-colors duration-200 dark:bg-[#0B111E]">
@@ -158,6 +299,183 @@ export function AuthRoutePage() {
               <Loader2 className="mr-2 h-4 w-4 animate-spin text-[#D4AF37]" />
               <span>Menyiapkan brankas Anda...</span>
             </div>
+          ) : isRecoveryView ? (
+            <>
+              <div className="mb-5 rounded-2xl border border-[#D4AF37]/30 bg-[#D4AF37]/8 p-3.5 text-xs leading-relaxed text-slate-700 dark:border-[#D4AF37]/30 dark:bg-[#162032] dark:text-slate-300">
+                <strong className="text-[#9A7411] dark:text-[#E6C768]">
+                  Atur Kata Sandi Baru:
+                </strong>{" "}
+                Tautan pemulihan terverifikasi. Masukkan kata sandi baru minimal 6 karakter untuk membuka kembali akses brankas Anda.
+              </div>
+
+              <form onSubmit={handleRecoveryPasswordSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="recovery-new-password"
+                    className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+                  >
+                    Kata Sandi Baru
+                  </label>
+                  <input
+                    id="recovery-new-password"
+                    type="password"
+                    required
+                    minLength={6}
+                    autoComplete="new-password"
+                    value={newRecoveryPassword}
+                    onChange={(e) => setNewRecoveryPassword(e.target.value)}
+                    placeholder="Minimal 6 karakter"
+                    className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/25 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[#D4AF37]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="recovery-confirm-password"
+                    className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+                  >
+                    Konfirmasi Kata Sandi
+                  </label>
+                  <input
+                    id="recovery-confirm-password"
+                    type="password"
+                    required
+                    minLength={6}
+                    autoComplete="new-password"
+                    value={confirmRecoveryPassword}
+                    onChange={(e) => setConfirmRecoveryPassword(e.target.value)}
+                    placeholder="Ulangi kata sandi baru"
+                    className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/25 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[#D4AF37]"
+                  />
+                </div>
+
+                {formNotice ? (
+                  <div
+                    role="status"
+                    className="rounded-xl border border-[#14B8A6]/35 bg-[#14B8A6]/10 px-3.5 py-2.5 text-xs font-medium text-[#0D9488] dark:border-[#14B8A6]/35 dark:bg-[#14B8A6]/12 dark:text-[#2DD4BF]"
+                  >
+                    {formNotice}
+                  </div>
+                ) : null}
+
+                {formError ? (
+                  <div
+                    role="alert"
+                    className="rounded-xl border border-[#EF4444]/35 bg-[#EF4444]/10 px-3.5 py-2.5 text-xs font-medium text-[#DC2626] dark:border-[#EF4444]/35 dark:bg-[#EF4444]/12 dark:text-[#F87171]"
+                  >
+                    {formError}
+                  </div>
+                ) : null}
+
+                <button
+                  type="submit"
+                  disabled={pending}
+                  className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#E6C768] to-[#D4AF37] px-4 py-3 text-sm font-bold text-[#101827] shadow-md shadow-[#D4AF37]/20 transition-all hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] disabled:opacity-60"
+                >
+                  {updateRecoveryPasswordMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <KeyRound className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  <span>Simpan Kata Sandi Baru</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => void handleCancelRecovery()}
+                  className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#101827] dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300 dark:hover:bg-[#162032] dark:hover:text-white"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Batalkan Pemulihan</span>
+                </button>
+              </form>
+
+              <div className="mt-6 flex items-center gap-2 border-t border-slate-200 pt-4 text-xs text-slate-500 dark:border-[#1E293B] dark:text-slate-400">
+                <Lock className="h-3.5 w-3.5 shrink-0 text-[#D4AF37]" aria-hidden="true" />
+                <span>Penyimpanan: Supabase Cloud (RLS Aktif)</span>
+              </div>
+            </>
+          ) : isForgotView ? (
+            <>
+              <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 text-xs leading-relaxed text-slate-700 dark:border-[#1E293B] dark:bg-[#162032] dark:text-slate-300">
+                <strong className="text-[#9A7411] dark:text-[#E6C768]">
+                  Pemulihan Kata Sandi:
+                </strong>{" "}
+                Masukkan alamat email akun Supabase Anda untuk menerima tautan pengaturan kata sandi baru.
+              </div>
+
+              <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="forgot-password-email"
+                    className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+                  >
+                    Email Akun Terdaftar
+                  </label>
+                  <input
+                    id="forgot-password-email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={recoveryEmail}
+                    onChange={(e) => setRecoveryEmail(e.target.value)}
+                    placeholder="owner@domain.id"
+                    className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/25 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[#D4AF37]"
+                  />
+                </div>
+
+                {formNotice ? (
+                  <div
+                    role="status"
+                    className="rounded-xl border border-[#14B8A6]/35 bg-[#14B8A6]/10 px-3.5 py-2.5 text-xs font-medium text-[#0D9488] dark:border-[#14B8A6]/35 dark:bg-[#14B8A6]/12 dark:text-[#2DD4BF]"
+                  >
+                    {formNotice}
+                  </div>
+                ) : null}
+
+                {formError ? (
+                  <div
+                    role="alert"
+                    className="rounded-xl border border-[#EF4444]/35 bg-[#EF4444]/10 px-3.5 py-2.5 text-xs font-medium text-[#DC2626] dark:border-[#EF4444]/35 dark:bg-[#EF4444]/12 dark:text-[#F87171]"
+                  >
+                    {formError}
+                  </div>
+                ) : null}
+
+                <button
+                  type="submit"
+                  disabled={pending}
+                  className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#E6C768] to-[#D4AF37] px-4 py-3 text-sm font-bold text-[#101827] shadow-md shadow-[#D4AF37]/20 transition-all hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] disabled:opacity-60"
+                >
+                  {requestResetMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Mail className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  <span>Kirim Tautan Pemulihan</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => {
+                    setForgotPasswordMode(false);
+                    setFormError(null);
+                    setFormNotice(null);
+                  }}
+                  className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#101827] dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-slate-300 dark:hover:bg-[#162032] dark:hover:text-white"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Kembali ke Masuk Owner</span>
+                </button>
+              </form>
+
+              <div className="mt-6 flex items-center gap-2 border-t border-slate-200 pt-4 text-xs text-slate-500 dark:border-[#1E293B] dark:text-slate-400">
+                <Lock className="h-3.5 w-3.5 shrink-0 text-[#D4AF37]" aria-hidden="true" />
+                <span>Penyimpanan: Supabase Cloud (RLS Aktif)</span>
+              </div>
+            </>
           ) : (
             <>
               {isSupabaseMode ? (
@@ -172,6 +490,7 @@ export function AuthRoutePage() {
                     aria-selected={supabaseAction === "login"}
                     onClick={() => {
                       setSupabaseAction("login");
+                      setForgotPasswordMode(false);
                       setFormError(null);
                       setFormNotice(null);
                     }}
@@ -189,6 +508,7 @@ export function AuthRoutePage() {
                     aria-selected={supabaseAction === "register"}
                     onClick={() => {
                       setSupabaseAction("register");
+                      setForgotPasswordMode(false);
                       setFormError(null);
                       setFormNotice(null);
                     }}
@@ -277,6 +597,22 @@ export function AuthRoutePage() {
                     placeholder="Minimal 6 karakter"
                     className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-[#101827] placeholder:text-slate-400 focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/25 dark:border-[#1E293B] dark:bg-[#0B111E] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[#D4AF37]"
                   />
+                  {isSupabaseMode && !isRegistrationMode ? (
+                    <div className="flex justify-end pt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRecoveryEmail(email.trim());
+                          setForgotPasswordMode(true);
+                          setFormError(null);
+                          setFormNotice(null);
+                        }}
+                        className="text-xs font-medium text-[#9A7411] underline decoration-[#D4AF37]/40 underline-offset-4 transition-colors hover:text-[#101827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] dark:text-[#E6C768] dark:hover:text-white"
+                      >
+                        Lupa Kata Sandi?
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
 
                 {formNotice ? (

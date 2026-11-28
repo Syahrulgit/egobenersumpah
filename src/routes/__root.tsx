@@ -2,8 +2,9 @@ import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/reac
 import { Outlet } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
+import { setPasswordRecoveryActive } from "../lib/auth-recovery";
 import { egoKeys } from "../lib/queries";
-import { supabase } from "../lib/supabase";
+import { supabase, subscribeSupabaseChange } from "../lib/supabase";
 import { MotionConfig } from "motion/react";
 import { ThemeProvider, useTheme } from "../lib/theme";
 
@@ -21,15 +22,39 @@ function RootContent() {
   const qc = useQueryClient();
 
   useEffect(() => {
-    if (!supabase) return;
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    let authUnsubscribe: (() => void) | null = null;
+
+    const bindAuthListener = () => {
+      if (authUnsubscribe) {
+        authUnsubscribe();
+        authUnsubscribe = null;
+      }
+      if (!supabase) return;
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "PASSWORD_RECOVERY") {
+          setPasswordRecoveryActive(true);
+        } else if (event === "SIGNED_OUT") {
+          setPasswordRecoveryActive(false);
+        }
+        void qc.invalidateQueries({ queryKey: egoKeys.auth });
+        void qc.invalidateQueries({ queryKey: egoKeys.vault });
+      });
+      authUnsubscribe = () => subscription.unsubscribe();
+    };
+
+    bindAuthListener();
+    const unsubSupabase = subscribeSupabaseChange(() => {
+      bindAuthListener();
       void qc.invalidateQueries({ queryKey: egoKeys.auth });
-      void qc.invalidateQueries({ queryKey: egoKeys.vault });
     });
+
     return () => {
-      subscription.unsubscribe();
+      unsubSupabase();
+      if (authUnsubscribe) {
+        authUnsubscribe();
+      }
     };
   }, [qc]);
 

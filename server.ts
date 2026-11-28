@@ -52,6 +52,7 @@ import {
 } from "./src/lib/reminders";
 import {
   createAuthedSupabaseClient,
+  getPublicSupabaseConfig,
   isServerSupabaseConfigured,
   verifyOwnerToken,
 } from "./server/authVerify";
@@ -210,6 +211,11 @@ async function startServer(): Promise<void> {
       supabaseConfigured,
       timestamp: new Date().toISOString(),
     });
+  });
+
+  app.get("/api/public-config", (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.json(getPublicSupabaseConfig());
   });
 
   // =========================================================

@@ -1,8 +1,8 @@
 // server.ts
 import crypto4 from "node:crypto";
-import fs5 from "node:fs";
+import fs6 from "node:fs";
 import http from "node:http";
-import path5 from "node:path";
+import path6 from "node:path";
 
 // server/loadEnv.ts
 import fs from "node:fs";
@@ -632,6 +632,9 @@ function normalizeDebt(debt) {
 }
 
 // server/authVerify.ts
+import fs4 from "node:fs";
+import path4 from "node:path";
+import dotenv2 from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 
 // server/vaultStore.ts
@@ -1276,15 +1279,90 @@ function normalizeSupabaseUrl(raw) {
     return null;
   }
 }
+function isPublicSupabaseKey(rawKey) {
+  const key = rawKey.trim();
+  if (!key || key === "Xzx1@2@3xzX" || key.startsWith("MY_")) {
+    return false;
+  }
+  if (key.startsWith("sb_secret_") || key.toLowerCase().includes("service_role")) {
+    return false;
+  }
+  if (key.startsWith("sb_publishable_")) {
+    return key.length >= 24;
+  }
+  const parts = key.split(".");
+  if (parts.length === 3 && parts.every((part) => part.length > 0)) {
+    try {
+      const payloadJson = Buffer.from(parts[1], "base64url").toString("utf8");
+      const payload = JSON.parse(payloadJson);
+      if (!payload || typeof payload !== "object") {
+        return false;
+      }
+      if (payload.role === "service_role") {
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+function readDotEnvSupabaseFallback() {
+  try {
+    const envPath = path4.resolve(process.cwd(), ".env");
+    if (!fs4.existsSync(envPath)) return {};
+    const parsed = dotenv2.parse(fs4.readFileSync(envPath, "utf8"));
+    const url = normalizeSupabaseUrl(
+      parsed.VITE_SUPABASE_URL || parsed.SUPABASE_URL || ""
+    ) ?? void 0;
+    const key = [
+      parsed.VITE_SUPABASE_PUBLISHABLE_KEY,
+      parsed.SUPABASE_PUBLISHABLE_KEY,
+      parsed.VITE_SUPABASE_ANON_KEY,
+      parsed.SUPABASE_ANON_KEY
+    ].map((val) => (val ?? "").trim()).find((val) => isPublicSupabaseKey(val));
+    return { url, key };
+  } catch {
+    return {};
+  }
+}
 function getSupabaseCredentials() {
-  const url = normalizeSupabaseUrl(
+  const envUrl = normalizeSupabaseUrl(
     process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ""
   );
-  const key = (process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "").trim();
-  if (!url || !key || key === "Xzx1@2@3xzX" || key.startsWith("MY_")) {
+  const candidates = [
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    process.env.SUPABASE_PUBLISHABLE_KEY,
+    process.env.VITE_SUPABASE_ANON_KEY,
+    process.env.SUPABASE_ANON_KEY
+  ];
+  const envKey = candidates.map((val) => (val ?? "").trim()).find((val) => isPublicSupabaseKey(val)) ?? "";
+  if (envUrl && envKey) {
+    return { url: envUrl, key: envKey };
+  }
+  const dotEnvFallback = readDotEnvSupabaseFallback();
+  const finalUrl = envUrl || dotEnvFallback.url || null;
+  const finalKey = envKey || dotEnvFallback.key || "";
+  if (!finalUrl || !finalKey) {
     return null;
   }
-  return { url, key };
+  return { url: finalUrl, key: finalKey };
+}
+function getPublicSupabaseConfig() {
+  const creds = getSupabaseCredentials();
+  if (!creds) {
+    return {
+      supabaseConfigured: false,
+      url: null,
+      publishableKey: null
+    };
+  }
+  return {
+    supabaseConfigured: true,
+    url: creds.url,
+    publishableKey: creds.key
+  };
 }
 function isServerSupabaseConfigured() {
   return getSupabaseCredentials() !== null;
@@ -1971,16 +2049,16 @@ async function attachLiveVoiceSession(clientWs, sessionToken) {
 
 // server/persistentRateLimiter.ts
 import crypto3 from "node:crypto";
-import fs4 from "node:fs";
-import path4 from "node:path";
-var DATA_DIR2 = path4.resolve(process.cwd(), "data");
+import fs5 from "node:fs";
+import path5 from "node:path";
+var DATA_DIR2 = path5.resolve(process.cwd(), "data");
 function storageKey(namespace, key) {
   return crypto3.createHash("sha256").update(`${namespace}\0${key}`, "utf8").digest("hex");
 }
 function readStore(rateLimitFile) {
   let raw;
   try {
-    raw = fs4.readFileSync(rateLimitFile, "utf8");
+    raw = fs5.readFileSync(rateLimitFile, "utf8");
   } catch (error) {
     if (error.code === "ENOENT") return {};
     throw new Error("Penyimpanan pembatas percobaan tidak dapat dibaca. Login ditahan demi keamanan.");
@@ -2004,13 +2082,13 @@ function readStore(rateLimitFile) {
   return store;
 }
 function writeStore(rateLimitFile, store) {
-  fs4.mkdirSync(path4.dirname(rateLimitFile), { recursive: true, mode: 448 });
+  fs5.mkdirSync(path5.dirname(rateLimitFile), { recursive: true, mode: 448 });
   const tmp = `${rateLimitFile}.${process.pid}.${crypto3.randomUUID()}.tmp`;
   try {
-    fs4.writeFileSync(tmp, JSON.stringify(store), { encoding: "utf8", mode: 384, flag: "wx" });
-    fs4.renameSync(tmp, rateLimitFile);
+    fs5.writeFileSync(tmp, JSON.stringify(store), { encoding: "utf8", mode: 384, flag: "wx" });
+    fs5.renameSync(tmp, rateLimitFile);
   } catch (error) {
-    fs4.rmSync(tmp, { force: true });
+    fs5.rmSync(tmp, { force: true });
     throw error;
   }
 }
@@ -2031,8 +2109,8 @@ function evaluate(entry, maxAttempts, windowMs, nowMs) {
   };
 }
 function createPersistentLoginRateLimiter(namespace, maxAttempts = 5, windowMs = 15 * 60 * 1e3, storageDir = DATA_DIR2) {
-  const rateLimitFile = path4.join(storageDir, "ego-rate-limits.json");
-  const rateLimitLock = path4.join(storageDir, "ego-rate-limits.lock");
+  const rateLimitFile = path5.join(storageDir, "ego-rate-limits.json");
+  const rateLimitLock = path5.join(storageDir, "ego-rate-limits.lock");
   if (!/^[a-z-]{1,24}$/.test(namespace)) throw new Error("Namespace rate limit tidak valid.");
   if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || !Number.isFinite(windowMs) || windowMs <= 0) {
     throw new Error("Konfigurasi rate limit tidak valid.");
@@ -2178,6 +2256,10 @@ async function startServer() {
       supabaseConfigured,
       timestamp: (/* @__PURE__ */ new Date()).toISOString()
     });
+  });
+  app.get("/api/public-config", (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.json(getPublicSupabaseConfig());
   });
   app.get("/api/auth/status", async (req, res) => {
     const token = extractToken(req);
@@ -4283,8 +4365,8 @@ async function startServer() {
   });
   const httpServer = http.createServer(app);
   const wss = new WebSocketServer({ noServer: true });
-  const distDir = path5.resolve(process.cwd(), "dist");
-  const isProd = process.env.NODE_ENV === "production" && fs5.existsSync(distDir);
+  const distDir = path6.resolve(process.cwd(), "dist");
+  const isProd = process.env.NODE_ENV === "production" && fs6.existsSync(distDir);
   httpServer.on("upgrade", (req, socket, head) => {
     try {
       const host = req.headers.host || `127.0.0.1:${PORT}`;
@@ -4326,7 +4408,7 @@ async function startServer() {
   } else {
     app.use(express.static(distDir));
     app.get("*", (_req, res) => {
-      res.sendFile(path5.join(distDir, "index.html"));
+      res.sendFile(path6.join(distDir, "index.html"));
     });
   }
   const shutdown = () => {
